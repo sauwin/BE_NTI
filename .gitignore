@@ -1,0 +1,29 @@
+# Laravel core
+/vendor
+/node_modules
+/public/build
+/public/hot
+/storage/*.key
+/storage/logs
+/storage/framework/*
+!storage/framework/.gitignore
+
+# Env files
+.env
+.env.*
+!.env.example
+
+# IDEs
+.idea/
+*.iml
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+npm-debug.log
+yarn-error.log
