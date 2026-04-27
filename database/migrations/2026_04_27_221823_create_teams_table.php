@@ -13,13 +13,13 @@ return new class extends Migration
     {
         Schema::create('teams', function (Blueprint $table) {
             $table->id();
-            $table->string("name")
+            $table->string('name')
                 ->unique();
-            $table->foreignId("leader_user_id")
+            $table->foreignId('leader_user_id')
                 ->constrained('users')
                 ->onDelete('set null')
                 ->nullable();
-            $table->text("description")
+            $table->text('description')
                 ->nullable();
             $table->timestamps();
             $table->index('leader_user_id');
