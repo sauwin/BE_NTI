@@ -2,4 +2,6 @@
 
 use Illuminate\Support\Facades\Route;
 
-Route::inertia('/', 'Welcome')->name('home');
+Route::get('/', function () {
+    return response()->json(['status' => 'NTI API running']);
+});

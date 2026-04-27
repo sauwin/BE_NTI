@@ -8,11 +8,6 @@
 /storage/framework/*
 !storage/framework/.gitignore
 
-# Env files
-.env
-.env.*
-!.env.example
-
 # IDEs
 .idea/
 *.iml

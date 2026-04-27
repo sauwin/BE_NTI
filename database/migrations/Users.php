@@ -8,7 +8,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('roles', function(Blueprint $table) {
+        Schema::create('roles', function (Blueprint $table) {
             $table->id();
             $table->string('name')->unique();
             $table->string('slug')->unique();
@@ -16,8 +16,8 @@ return new class extends Migration
             $table->timestamps();
         });
 
-        Schema::create('users', function(Blueprint $table) {
-            $table->id(); 
+        Schema::create('users', function (Blueprint $table) {
+            $table->id();
             $table->string('email')->unique();
             $table->string('password_hash');
             $table->enum('status', ['active', 'pending_verification', 'blocked'])
@@ -32,7 +32,7 @@ return new class extends Migration
             $table->timestamps();
         });
 
-        Schema::create('user_roles', function(Blueprint $table) {
+        Schema::create('user_roles', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')
                 ->unique()

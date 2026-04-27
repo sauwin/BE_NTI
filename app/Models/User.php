@@ -17,16 +17,19 @@ class User extends Authenticatable
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable;
 
-    /**
-     * Get the attributes that should be cast.
-     *
-     * @return array<string, string>
-     */
-    protected function casts(): array
+    protected $fillable = [
+        'first_name', 'last_name', 'email', 'password_hash', 'status', 'language_preference',
+    ];
+
+    protected $hidden = ['password_hash'];
+
+    protected $casts = [
+        'email_verified_at' => 'datetime',
+    ];
+
+    // Laravel expects getAuthPassword() to return the hash
+    public function getAuthPassword(): string
     {
-        return [
-            'email_verified_at' => 'datetime',
-            'password' => 'hashed',
-        ];
+        return $this->password_hash;
     }
 }
