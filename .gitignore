@@ -22,3 +22,8 @@ Thumbs.db
 # Logs
 npm-debug.log
 yarn-error.log
+
+# Env
+.env
+.env.*
+!.env.example
