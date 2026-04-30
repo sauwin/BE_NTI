@@ -14,9 +14,9 @@ return new class extends Migration
         Schema::create('audit', function (Blueprint $table) {
             $table->id();
             $table->foreignId('actor_id')
+                ->nullable()
                 ->constrained('users')
-                ->onDelete('set null')
-                ->nullable();
+                ->onDelete('set null');
             $table->string('action');
             $table->string('target_type');
             $table->unsignedBigInteger('target_id');

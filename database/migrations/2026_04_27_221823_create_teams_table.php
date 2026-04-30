@@ -16,9 +16,9 @@ return new class extends Migration
             $table->string('name')
                 ->unique();
             $table->foreignId('leader_user_id')
+                ->nullable()
                 ->constrained('users')
-                ->onDelete('set null')
-                ->nullable();
+                ->onDelete('set null');
             $table->text('description')
                 ->nullable();
             $table->timestamps();
