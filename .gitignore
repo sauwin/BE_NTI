@@ -5,6 +5,7 @@
 /public/hot
 /storage/*.key
 /storage/logs
+/storage/app/private/documents/*
 /storage/framework/*
 !storage/framework/.gitignore
 

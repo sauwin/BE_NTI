@@ -38,7 +38,7 @@ return new class extends Migration
             $table->string('file_name');
             $table->string('mime_type', 100);
             $table->unsignedInteger('file_size_bytes');
-            $table->timestamp('created_at');
+            $table->timestamp('created_at')->useCurrent()->default(DB::raw('CURRENT_TIMESTAMP'));
  
             $table->index('uploaded_by');
             $table->index('type');
