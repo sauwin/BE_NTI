@@ -18,4 +18,11 @@ class Document extends Model
         'mime_type',
         'file_size_bytes',
     ];
+
+    protected static function booted(): void
+    {
+        static::creating(function ($document) {
+            $document->created_at = now();
+        });
+    }
 }
