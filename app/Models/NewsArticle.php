@@ -1,0 +1,32 @@
+<?php
+
+namespace App\Models;
+
+use App\Models\User;
+use App\Models\NewsArticleTranslation;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+
+class NewsArticle extends Model
+{
+    use HasFactory;
+
+    protected $fillable = [
+        'slug', 'author_id', 'is_published', 'published_at'
+    ];
+    
+    public function author()
+    {
+        return $this->belongsTo(User::class, 'author_id');
+    }
+
+    public function translation()
+    {
+        return $this->hasMany(NewsArticleTranslation::class, 'article_id');
+    }
+
+    protected $casts = [
+        'published_at' => 'datetime',
+        'is_published' => 'boolean',
+    ];
+}
