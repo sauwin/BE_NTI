@@ -11,15 +11,14 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('milestone_documents', function (Blueprint $table) {
-            // $table->foreignId('milestone_id')
-            //     ->constrained('milestones')
-            //     ->onDelete('cascade');
+        Schema::create('application_documents', function (Blueprint $table) {
+            $table->foreignId('application_id')
+                ->constrained('applications')
+                ->onDelete('cascade');
             $table->foreignId('document_id')
                 ->constrained('documents')
                 ->onDelete('cascade');
- 
-            // $table->primary(['milestone_id', 'document_id']);
+            $table->primary(['application_id', 'document_id']);
         });
     }
 
@@ -28,6 +27,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('milestone_documents');
+        Schema::dropIfExists('application_documents');
     }
 };
