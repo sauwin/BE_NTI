@@ -19,7 +19,7 @@ return new class extends Migration
                 ->constrained('users')
                 ->onDelete('cascade');
             $table->timestamp('assigned_at')->useCurrent();
-            $table->primary(['call_id', 'user_id']);
+            $table->unique(['call_id', 'user_id']);
         });
     }
 

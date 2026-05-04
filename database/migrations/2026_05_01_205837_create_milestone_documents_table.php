@@ -18,7 +18,7 @@ return new class extends Migration
             $table->foreignId('document_id')
                 ->constrained('documents')
                 ->onDelete('cascade');
-            $table->primary(['milestone_id', 'document_id']);
+            $table->unique(['milestone_id', 'document_id']);
         });
     }
 
