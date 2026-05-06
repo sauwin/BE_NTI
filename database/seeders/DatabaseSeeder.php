@@ -28,5 +28,9 @@ class DatabaseSeeder extends Seeder
             'translations'
         )
         ->create();
+
+        $this->call([
+            ProgramSeeder::class,
+        ]);
     }
 }

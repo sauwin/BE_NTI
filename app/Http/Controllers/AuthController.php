@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Mail\RegistrationSubmit;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
 
 class AuthController extends Controller
 {
@@ -26,6 +28,9 @@ class AuthController extends Controller
             'status' => 'pending_verification',
         ]);
 
+        // Send verification email
+        Mail::to($user->email)->send(new RegistrationSubmit($user));
+
         $token = $user->createToken('auth_token')->plainTextToken;
 
         return response()->json(['token' => $token, 'user' => $user], 201);
@@ -42,6 +47,10 @@ class AuthController extends Controller
 
         if (! $user || ! Hash::check($data['password'], $user->password_hash)) {
             return response()->json(['message' => 'Invalid credentials'], 401);
+        }
+
+        if ($user->status === 'pending_verification') {
+            return response()->json(['message' => 'pending_verification'], 403);
         }
 
         $token = $user->createToken('auth_token')->plainTextToken;
