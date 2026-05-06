@@ -4,11 +4,13 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\ApplicationController;
 use App\Http\Controllers\ArticleController;
+use App\Http\Controllers\TranslationController;
 use Illuminate\Support\Facades\Route;
 
 Route::post('/auth/register', [AuthController::class, 'register']);
 Route::post('/auth/login', [AuthController::class, 'login']);
 
+//Route::apiResource('translations', TranslationController::class);
 Route::apiResource('articles', ArticleController::class);
 
 Route::middleware('auth:sanctum')->group(function () {

@@ -22,7 +22,7 @@ class NewsArticleFactory extends Factory
             'slug' => $this->faker->slug(),
             'author_id' => User::all()->random()->id,
             'is_published' => $this->faker->boolean(80),
-            'published_at' => now(),
+            'published_at' => now()->subMinutes(fake()->numberBetween(1, 10000)),
         ];
     }
 }

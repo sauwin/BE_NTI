@@ -21,11 +21,11 @@ class DatabaseSeeder extends Seeder
         NewsArticle::factory(30)
         ->has(
             NewsArticleTranslation::factory()->state(['language' => 'en']),
-            'translation'
+            'translations'
         )
         ->has(
             NewsArticleTranslation::factory()->state(['language' => 'sk']),
-            'translation'
+            'translations'
         )
         ->create();
     }
