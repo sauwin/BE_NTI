@@ -1,9 +1,9 @@
 <?php
 
-use App\Http\Controllers\AuthController;
-use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\ApplicationController;
 use App\Http\Controllers\ArticleController;
+use App\Http\Controllers\AuthController;
+use App\Http\Controllers\DocumentController;
 use App\Mail\RegistrationSubmit;
 use App\Models\User;
 use Illuminate\Support\Facades\Mail;
