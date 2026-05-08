@@ -14,6 +14,16 @@ class NewsArticleTranslationResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
-        return parent::toArray($request);
+        return [
+            'id' => $this->id,
+
+            'language' => $this->language,
+
+            'title' => $this->title,
+
+            'excerpt' => $this->excerpt,
+
+            'content' => $this->content,
+        ];
     }
 }
