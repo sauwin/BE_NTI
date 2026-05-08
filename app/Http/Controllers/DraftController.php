@@ -11,7 +11,6 @@ class DraftController extends Controller
     {
         $data = $request->validate([
             'program_type' => 'required',
-            'data' => 'required',
         ]);
         
         $draft = Draft::updateOrCreate([
@@ -20,7 +19,7 @@ class DraftController extends Controller
 
         ],
         [
-            'data' => $data['data'],
+            'data' => $request->input('data', []),
         ]);
 
         return response()->json($draft, 201);
