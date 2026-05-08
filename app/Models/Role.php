@@ -4,5 +4,9 @@ use Illuminate\Database\Eloquent\Model;
 
 class Role extends Model
 {
-    protected $fillable = ['name', 'slug', 'description'];
+    protected $fillable = [
+        'name', 
+        'slug', 
+        'description'
+    ];
 }

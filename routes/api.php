@@ -4,6 +4,7 @@ use App\Http\Controllers\ApplicationController;
 use App\Http\Controllers\ArticleController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DocumentController;
+use App\Http\Controller\DraftController;
 use App\Mail\RegistrationSubmit;
 use App\Models\User;
 use Illuminate\Support\Facades\Mail;
@@ -52,3 +53,8 @@ Route::post('/email/resend', function (Request $request) {
 
     return response()->json(['message' => 'Verification email sent']);
 })->middleware(['auth:sanctum', 'throttle:3,1']);
+
+Route::middleware('auth:sanctum')->group(function () {
+    Route::post('/drafts', [DraftController::class, 'store']);
+    Route::get('/drafts/{program_type}', [DraftController::class, 'show']);
+});

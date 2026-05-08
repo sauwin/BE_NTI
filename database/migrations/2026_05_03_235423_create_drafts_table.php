@@ -16,7 +16,7 @@ return new class extends Migration
                 ->constrained()
                 ->cascadeOnDelete();
             $table->enum('program_type', ['a', 'b']);
-            $table->json('payload');
+            $table->json('data');
             $table->timestamps();
             $table->unique(['user_id', 'program_type']);
         });
