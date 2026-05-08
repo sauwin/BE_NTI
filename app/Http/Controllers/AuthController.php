@@ -15,10 +15,10 @@ class AuthController extends Controller
     {
         $data = $request->validate([
             'first_name' => 'required|string|max:255',
-            'last_name'  => 'required|string|max:255',
-            'email'      => 'required|email|unique:users,email',
-            'password'   => 'required|string|min:8|confirmed',
-            'role'       => 'required|in:student,company,mentor',
+            'last_name' => 'required|string|max:255',
+            'email' => 'required|email|unique:users,email',
+            'password' => 'required|string|min:8|confirmed',
+            'role' => 'required|in:student,company,mentor',
         ]);
 
         // Domain check before anything is created
@@ -28,24 +28,24 @@ class AuthController extends Controller
             if (!in_array($emailDomain, $allowedDomains)) {
                 return response()->json([
                     'message' => 'Students must register with a university email.',
-                    'errors'  => ['email' => ['Email domain not allowed. Use ukf.sk or spu.sk address.']]
+                    'errors' => ['email' => ['Email domain not allowed. Use ukf.sk or spu.sk address.']]
                 ], 422);
             }
         }
 
         $user = DB::transaction(function () use ($data) {
             $user = User::create([
-                'first_name'    => $data['first_name'],
-                'last_name'     => $data['last_name'],
-                'email'         => $data['email'],
+                'first_name' => $data['first_name'],
+                'last_name' => $data['last_name'],
+                'email' => $data['email'],
                 'password_hash' => Hash::make($data['password']),
-                'status'        => 'pending_verification',
+                'status' => 'pending_verification',
             ]);
 
             $role = Role::where('slug', $data['role'])->firstOrFail();
             DB::table('user_roles')->insert([
-                'user_id'    => $user->id,
-                'role_id'    => $role->id,
+                'user_id' => $user->id,
+                'role_id' => $role->id,
                 'granted_by' => null,
                 'granted_at' => now(),
             ]);
@@ -62,7 +62,7 @@ class AuthController extends Controller
     public function login(Request $request)
     {
         $data = $request->validate([
-            'email'    => 'required|email',
+            'email' => 'required|email',
             'password' => 'required|string',
         ]);
 

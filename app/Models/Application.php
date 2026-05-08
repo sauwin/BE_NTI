@@ -21,6 +21,6 @@ class Application extends Model
 
     protected $casts = [
         'submitted_at' => 'datetime',
-        'decision_at'  => 'datetime',
+        'decision_at' => 'datetime',
     ];
 }
