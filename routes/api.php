@@ -4,8 +4,9 @@ use App\Http\Controllers\ApplicationController;
 use App\Http\Controllers\ArticleController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DocumentController;
-use App\Http\Controller\DraftController;
+use App\Http\Controllers\DraftController;
 use App\Mail\RegistrationSubmit;
+use App\Http\Controllers\CallController;
 use App\Models\User;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Route;
@@ -58,3 +59,5 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/drafts', [DraftController::class, 'store']);
     Route::get('/drafts/{program_type}', [DraftController::class, 'show']);
 });
+
+Route::get('/calls/active/{program_type}', [CallController::class, 'active']);

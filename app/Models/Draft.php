@@ -15,4 +15,7 @@ class Draft extends Model
     protected $casts = [
         'data' => 'array'
     ];
+
+    protected $primaryKey = null;
+    public $incrementing = false;
 }
