@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\DB;
 
 use App\Models\NewsArticle;
 use App\Http\Resources\NewsArticleResource;
+use App\Services\ArticleImageService;
 
 class ArticleController extends Controller
 {
@@ -16,7 +17,7 @@ class ArticleController extends Controller
      */
     public function index()
     {
-        $posts = NewsArticle::with(['translations'])
+        $posts = NewsArticle::with(['translations', 'coverImage'])
             ->where('is_published', true)
             ->whereNotNull('published_at')
             ->where('published_at', '<=', now())
@@ -29,9 +30,11 @@ class ArticleController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
+    public function store(Request $request, ArticleImageService $imageService)
     {
         $validated = $request->validate([
+            'image' => 'required|file|max:2048|mimes:png,jpg,jpeg,webp',
+
             'slug' => 'required|string|max:255|unique:news_articles,slug',
             'is_published' => 'nullable|boolean',
             'published_at' => 'nullable|date',
@@ -56,18 +59,38 @@ class ArticleController extends Controller
             }
         }
 
-        $article = NewsArticle::create($validated);
+        $article = DB::transaction(function () use (
+            $validated,
+            $request,
+            $imageService
+        ) {
 
-        foreach ($validated['translations'] as $lang => $translationData) {
-            $article->translations()->create([
-                'language' => $lang,
-                ...$translationData
-            ]);
-        }
+            $article = NewsArticle::create($validated);
 
-        return (new NewsArticleResource($article->load(['author', 'translations'])))
-            ->response()
-            ->setStatusCode(201);
+            foreach ($validated['translations'] as $lang => $translationData) {
+                $article->translations()->create([
+                    'language' => $lang,
+                    ...$translationData
+                ]);
+            }
+
+            if ($request->hasFile('image')) {
+
+                $imageService->createCover(
+                    $request->file('image'),
+                    $article->id
+                );
+            }
+
+            return $article;
+        });
+
+        return new NewsArticleResource(
+            $article->load([
+                'translations',
+                'coverImage'
+            ])
+        );
     }
 
     /**
@@ -81,9 +104,11 @@ class ArticleController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, NewsArticle $article)
+    public function update(Request $request, NewsArticle $article, ArticleImageService $imageService)
     {
         $validated = $request->validate([
+            'image' => 'sometimes|file|max:2048|mimes:png,jpg,jpeg,webp',
+
             'slug' => 'sometimes|string|max:255|unique:news_articles,slug,' . $article->id,
 
             'translations' => 'sometimes|array',
@@ -94,7 +119,12 @@ class ArticleController extends Controller
             'translations.*.content' => 'required|string',
         ]);
 
-        DB::transaction(function () use ($validated, $article) {
+        DB::transaction(function () use (
+            $validated,
+            $article,
+            $request,
+            $imageService
+        ) {
 
             $article->update($validated);
 
@@ -116,6 +146,24 @@ class ArticleController extends Controller
 
             $toDelete = array_diff($existingIds, $incomingIds);
             $article->translations()->whereIn('id', $toDelete)->delete();
+
+            if ($request->hasFile('image')) {
+
+                if ($article->coverImage) {
+
+                    $imageService->replaceCover(
+                        $request->file('image'),
+                        $article->coverImage
+                    );
+
+                } else {
+
+                    $imageService->createCover(
+                        $request->file('image'),
+                        $article->id
+                    );
+                }
+            }
         });
 
         return response()->json($article->load('translations'));
@@ -124,9 +172,19 @@ class ArticleController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(NewsArticle $article)
+    public function destroy(NewsArticle $article, ArticleImageService $imageService)
     {
-        $article->delete();
+        DB::transaction(function () use (
+            $article,
+            $imageService
+        ) {
+            if ($article->coverImage) {
+                $imageService->deleteCover($article->coverImage);
+            }
+
+            $article->delete();
+        });
+
         return response()->noContent();
     }
 }
