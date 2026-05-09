@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Http\Controllers;
 
 use App\Mail\MentorAssignedMail;
@@ -13,19 +14,19 @@ class MentorshipController extends Controller
     {
         $data = $request->validate([
             'application_id' => 'required|exists:applications,id',
-            'mentor_id'      => 'required|exists:users,id',
-            'student_id'     => 'required|exists:users,id',
+            'mentor_id' => 'required|exists:users,id',
+            'student_id' => 'required|exists:users,id',
         ]);
 
         DB::table('mentorships')->insert([
             'application_id' => $data['application_id'],
-            'mentor_id'      => $data['mentor_id'],
-            'status'         => 'active',
-            'created_at'     => now(),
-            'updated_at'     => now(),
+            'mentor_id' => $data['mentor_id'],
+            'assigned_at' => now(),
+            'created_at' => now(),
+            'updated_at' => now(),
         ]);
 
-        $mentor  = User::findOrFail($data['mentor_id']);
+        $mentor = User::findOrFail($data['mentor_id']);
         $student = User::findOrFail($data['student_id']);
 
         Mail::to($student->email)->send(new MentorAssignedMail($student, $mentor));
