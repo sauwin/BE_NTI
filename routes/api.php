@@ -7,6 +7,7 @@ use App\Http\Controllers\CallController;
 use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\DraftController;
 use App\Http\Controllers\MentorshipController;
+use App\Http\Controllers\NotificationController;
 use App\Mail\RegistrationSubmit;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -56,6 +57,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::patch('/applications/{id}/status', [ApplicationController::class, 'updateStatus']);
 
     Route::post('/mentorships', [MentorshipController::class, 'assign']);
+
+    Route::get('/notifications', [NotificationController::class, 'index']);
+    Route::patch('/notifications/{id}/read', [NotificationController::class, 'markRead']);
+    Route::patch('/notifications/read-all', [NotificationController::class, 'markAllRead']);
 
     Route::post('/drafts', [DraftController::class, 'store']);
     Route::get('/drafts/{program_type}', [DraftController::class, 'show']);

@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Http\Controllers;
 
 use App\Mail\RegistrationSubmit;
@@ -8,6 +9,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
+use App\Http\Controllers\NotificationController;
 
 class AuthController extends Controller
 {
@@ -25,10 +27,10 @@ class AuthController extends Controller
         if ($data['role'] === 'student') {
             $allowedDomains = explode(',', env('STUDENT_ALLOWED_DOMAINS', ''));
             $emailDomain = substr(strrchr($data['email'], '@'), 1);
-            if (!in_array($emailDomain, $allowedDomains)) {
+            if (! in_array($emailDomain, $allowedDomains)) {
                 return response()->json([
                     'message' => 'Students must register with a university email.',
-                    'errors' => ['email' => ['Email domain not allowed. Use ukf.sk or spu.sk address.']]
+                    'errors' => ['email' => ['Email domain not allowed. Use ukf.sk or spu.sk address.']],
                 ], 422);
             }
         }
@@ -54,8 +56,12 @@ class AuthController extends Controller
         });
 
         Mail::to($user->email)->send(new RegistrationSubmit($user));
-
+        NotificationController::log($user->id, $user->email, 'registration',
+            'Welcome to NTI! Please verify your email to continue.',
+            ['email' => $user->email]
+        );
         $token = $user->createToken('auth_token')->plainTextToken;
+
         return response()->json(['token' => $token, 'user' => $this->userWithRole($user)], 201);
     }
 
@@ -68,7 +74,7 @@ class AuthController extends Controller
 
         $user = User::where('email', $data['email'])->first();
 
-        if (!$user || !Hash::check($data['password'], $user->password_hash)) {
+        if (! $user || ! Hash::check($data['password'], $user->password_hash)) {
             return response()->json(['message' => 'Invalid credentials'], 401);
         }
 
@@ -81,12 +87,14 @@ class AuthController extends Controller
         }
 
         $token = $user->createToken('auth_token')->plainTextToken;
+
         return response()->json(['token' => $token, 'user' => $this->userWithRole($user)]);
     }
 
     public function logout(Request $request)
     {
         $request->user()->currentAccessToken()->delete();
+
         return response()->json(['message' => 'Logged out']);
     }
 
@@ -101,6 +109,7 @@ class AuthController extends Controller
         $role = $row ? Role::find($row->role_id) : null;
         $data = $user->toArray();
         $data['role_slug'] = $role?->slug;
+
         return $data;
     }
 }

@@ -33,6 +33,11 @@ class ApplicationController extends Controller
             new ApplicationSubmittedMail($request->user(), $application)
         );
 
+        NotificationController::log($request->user()->id, $request->user()->email, 'application_submitted',
+            'Your application #'.$application->id.' for Program '.strtoupper($application->program_type).' was submitted.',
+            ['application_id' => $application->id]
+        );
+
         return response()->json([
             'application_id' => $application->id,
         ], 201);
@@ -52,8 +57,16 @@ class ApplicationController extends Controller
 
         if ($data['status'] === 'closed') {
             Mail::to($user->email)->send(new ProjectClosedMail($user, $application));
+            NotificationController::log($user->id, $user->email, 'project_closed',
+                'Your project #'.$application->id.' has been closed.',
+                ['application_id' => $application->id]
+            );
         } else {
             Mail::to($user->email)->send(new StatusChangedMail($user, $application, $oldStatus));
+            NotificationController::log($user->id, $user->email, 'status_changed',
+                'Your application #'.$application->id.' status changed from '.$oldStatus.' to '.$data['status'].'.',
+                ['application_id' => $application->id, 'old_status' => $oldStatus, 'new_status' => $data['status']]
+            );
         }
 
         return response()->json(['status' => $application->status]);
