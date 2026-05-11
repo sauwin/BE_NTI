@@ -7,6 +7,7 @@ use App\Http\Controllers\CallController;
 use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\DraftController;
 use App\Http\Controllers\MentorshipController;
+use App\Http\Controllers\OnboardingController;
 use App\Mail\RegistrationSubmit;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -59,4 +60,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::post('/drafts', [DraftController::class, 'store']);
     Route::get('/drafts/{program_type}', [DraftController::class, 'show']);
+
+    Route::get('/onboarding/status', [OnboardingController::class, 'status']);
+    Route::post('/onboarding', [OnboardingController::class, 'store']);
 });
