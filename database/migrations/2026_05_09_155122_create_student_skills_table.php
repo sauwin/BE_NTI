@@ -15,7 +15,9 @@ return new class extends Migration
             $table->id();
             $table->foreignId('student_profile_id')->constrained('student_profiles')->onDelete('cascade');
             $table->string('skill');
-            $table->enum('level', ['beginner', 'intermediate', 'advanced']);
+            $table->enum('level', ['beginner', 'intermediate', 'advanced'])->default('beginner');
+            $table->timestamps();
+            $table->index('student_profile_id');
         });
     }
 
