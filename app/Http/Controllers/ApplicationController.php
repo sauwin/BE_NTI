@@ -6,6 +6,7 @@ use App\Mail\ApplicationSubmittedMail;
 use App\Mail\ProjectClosedMail;
 use App\Mail\StatusChangedMail;
 use App\Models\Application;
+use App\Models\StudentProfile;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
 
@@ -20,12 +21,27 @@ class ApplicationController extends Controller
             'team_id' => 'nullable|exists:teams,id',
         ]);
 
+        $profile = StudentProfile::where('user_id', $request->user()->id)->first();
+        $maxApps = (int) env('MAX_ACTIVE_APPLICATIONS');
+
+        if ($maxApps > 0) {
+            $activeCount = Application::where('student_profile_id', $profile?->id)
+                ->whereNotIn('status', ['rejected', 'closed'])
+                ->count();
+
+            if ($activeCount >= $maxApps) {
+                return response()->json([
+                    'message' => 'You have reached the maximum number of active applications.',
+                ], 422);
+            }
+        }
+
         $application = Application::create([
             'call_id' => $data['call_id'],
             'applicant_type' => $data['applicant_type'],
             'program_type' => $data['program_type'],
             'team_id' => $data['team_id'] ?? null,
-            'student_profile_id' => null,
+            'student_profile_id' => $profile?->id,
             'status' => 'draft',
         ]);
 
@@ -70,5 +86,55 @@ class ApplicationController extends Controller
         }
 
         return response()->json(['status' => $application->status]);
+    }
+
+    public function index(Request $request)
+    {
+        $profile = StudentProfile::where('user_id', $request->user()->id)->first();
+
+        if (! $profile) {
+            return response()->json([]);
+        }
+
+        $applications = Application::where('student_profile_id', $profile->id)
+            ->orderByDesc('created_at')
+            ->get();
+
+        return response()->json($applications);
+    }
+
+    public function show(Request $request, int $id)
+    {
+        $profile = StudentProfile::where('user_id', $request->user()->id)->first();
+        $application = Application::where('id', $id)
+            ->where('student_profile_id', $profile?->id)
+            ->firstOrFail();
+
+        return response()->json($application);
+    }
+
+    public function update(Request $request, int $id)
+    {
+        $profile = StudentProfile::where('user_id', $request->user()->id)->first();
+        $application = Application::where('id', $id)
+            ->where('student_profile_id', $profile?->id)
+            ->firstOrFail();
+
+        if (! in_array($application->status, ['draft', 'pending_revision'])) {
+            return response()->json([
+                'message' => 'Application can only be edited when in draft or pending revision status.',
+            ], 422);
+        }
+
+        $data = $request->validate([
+            'applicant_type' => 'sometimes|in:student,team',
+            'program_type' => 'sometimes|in:a,b',
+            'team_id' => 'nullable|exists:teams,id',
+            'internal_notes' => 'sometimes|string',
+        ]);
+
+        $application->update($data);
+
+        return response()->json($application);
     }
 }

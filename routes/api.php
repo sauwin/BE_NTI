@@ -8,6 +8,7 @@ use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\DraftController;
 use App\Http\Controllers\MentorshipController;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\StudentProfileController;
 use App\Mail\RegistrationSubmit;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -54,7 +55,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/documents/upload', [DocumentController::class, 'upload']);
 
     Route::post('/applications', [ApplicationController::class, 'store']);
+    Route::get('/applications', [ApplicationController::class, 'index']);
+    Route::get('/applications/{id}', [ApplicationController::class, 'show']);
+    Route::patch('/applications/{id}', [ApplicationController::class, 'update']);
     Route::patch('/applications/{id}/status', [ApplicationController::class, 'updateStatus']);
+
+    Route::post('/profile/student', [StudentProfileController::class, 'store']);
+    Route::get('/profile/student', [StudentProfileController::class, 'show']);
 
     Route::post('/mentorships', [MentorshipController::class, 'assign']);
 
