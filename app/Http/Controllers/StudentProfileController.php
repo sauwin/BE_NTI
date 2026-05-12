@@ -7,18 +7,22 @@ use App\Models\StudentSkill;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
-class OnboardingController extends Controller
+class StudentProfileController extends Controller
 {
-    public function status(Request $request)
+    public function show(Request $request)
     {
-        $profile = StudentProfile::where('user_id', $request->user()->id)->first();
+        $profile = StudentProfile::with('skills')
+            ->where('user_id', $request->user()->id)
+            ->first();
 
-        return response()->json([
-            'completed' => $profile !== null,
-        ]);
+        if (!$profile) {
+            return response()->json(['message' => 'Profile not found'], 404);
+        }
+
+        return response()->json($profile);
     }
 
-    public function store(Request $request)
+    public function update(Request $request)
     {
         $request->validate([
             'university' => 'required|string|max:255',
@@ -27,10 +31,8 @@ class OnboardingController extends Controller
             'bio' => 'nullable|string|max:1000',
             'github_url' => 'nullable|url|max:255',
             'skills' => 'nullable|array',
-            'skills.*.skill' => 'required_with:skills|string|max:100',
-            'skills.*.level' => 'required_with:skills|in:beginner,intermediate,advanced',
-            'gdpr_consent' => 'required|accepted',
-            'academic_declaration_confirmed' => 'required|accepted',
+            'skills.*.skill'=> 'required_with:skills|string|max:100',
+            'skills.*.level'=> 'required_with:skills|in:beginner,intermediate,advanced',
         ]);
 
         DB::transaction(function () use ($request) {
@@ -42,7 +44,6 @@ class OnboardingController extends Controller
                     'year_of_study' => $request->year_of_study,
                     'bio' => $request->bio,
                     'github_url' => $request->github_url,
-                    'academic_declaration_confirmed' => true,
                 ]
             );
 
@@ -59,6 +60,6 @@ class OnboardingController extends Controller
             }
         });
 
-        return response()->json(['message' => 'Onboarding completed'], 201);
+        return response()->json(['message' => 'Profile updated']);
     }
 }
