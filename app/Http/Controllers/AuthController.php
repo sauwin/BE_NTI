@@ -21,7 +21,6 @@ class AuthController extends Controller
             'role' => 'required|in:student,company,mentor',
         ]);
 
-        // Domain check before anything is created
         if ($data['role'] === 'student') {
             $allowedDomains = explode(',', env('STUDENT_ALLOWED_DOMAINS', ''));
             $emailDomain = substr(strrchr($data['email'], '@'), 1);
@@ -76,8 +75,8 @@ class AuthController extends Controller
             return response()->json(['message' => 'pending_verification'], 403);
         }
 
-        if ($user->status === 'pending_approval') {
-            return response()->json(['message' => 'pending_approval'], 403);
+        if ($user->status === 'blocked') {
+            return response()->json(['message' => 'blocked'], 403);
         }
 
         $token = $user->createToken('auth_token')->plainTextToken;
@@ -102,5 +101,16 @@ class AuthController extends Controller
         $data = $user->toArray();
         $data['role_slug'] = $role?->slug;
         return $data;
+    }
+    
+    public function roleStatus(Request $request)
+    {
+        $row = DB::table('user_roles')
+            ->where('user_id', $request->user()->id)
+            ->first();
+
+        return response()->json([
+            'approved' => $row && $row->granted_by !== null,
+        ]);
     }
 }

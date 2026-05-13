@@ -39,4 +39,10 @@ class User extends Authenticatable
     {
         return $this->hasMany(NewsArticle::class, 'author_id');
     }
+
+    public function roles()
+    {
+        return $this->belongsToMany(Role::class, 'user_roles')
+            ->withPivot('granted_by', 'granted_at');
+    }
 }
