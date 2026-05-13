@@ -15,10 +15,6 @@ class StudentProfileController extends Controller
             ->where('user_id', $request->user()->id)
             ->first();
 
-        if (!$profile) {
-            return response()->json(['message' => 'Profile not found'], 404);
-        }
-
         return response()->json($profile);
     }
 
@@ -30,9 +26,10 @@ class StudentProfileController extends Controller
             'year_of_study' => 'required|integer|min:1|max:6',
             'bio' => 'nullable|string|max:1000',
             'github_url' => 'nullable|url|max:255',
+            'academic_declaration_confirmed' => 'nullable|boolean',
             'skills' => 'nullable|array',
-            'skills.*.skill'=> 'required_with:skills|string|max:100',
-            'skills.*.level'=> 'required_with:skills|in:beginner,intermediate,advanced',
+            'skills.*.skill' => 'required_with:skills|string|max:100',
+            'skills.*.level' => 'required_with:skills|in:beginner,intermediate,advanced',
         ]);
 
         DB::transaction(function () use ($request) {
@@ -44,19 +41,18 @@ class StudentProfileController extends Controller
                     'year_of_study' => $request->year_of_study,
                     'bio' => $request->bio,
                     'github_url' => $request->github_url,
+                    'academic_declaration_confirmed' => $request->academic_declaration_confirmed ?? false,
                 ]
             );
 
             $profile->skills()->delete();
 
-            if ($request->has('skills')) {
-                foreach ($request->skills as $s) {
-                    StudentSkill::create([
-                        'student_profile_id' => $profile->id,
-                        'skill' => $s['skill'],
-                        'level' => $s['level'],
-                    ]);
-                }
+            foreach ($request->skills ?? [] as $s) {
+                StudentSkill::create([
+                    'student_profile_id' => $profile->id,
+                    'skill' => $s['skill'],
+                    'level' => $s['level'],
+                ]);
             }
         });
 
