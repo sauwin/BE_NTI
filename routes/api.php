@@ -11,6 +11,8 @@ use App\Http\Controllers\StudentProfileController;
 use App\Http\Controllers\MentorProfileController;
 use App\Http\Controllers\OrganizationController;
 use App\Http\Controllers\AdminController;
+use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\OnboardingController;
 use App\Mail\RegistrationSubmit;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -60,10 +62,22 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Applications
     Route::post('/applications', [ApplicationController::class, 'store']);
+    Route::get('/applications', [ApplicationController::class, 'index']);
+    Route::get('/applications/{id}', [ApplicationController::class, 'show']);
+    Route::patch('/applications/{id}', [ApplicationController::class, 'update']);
+    Route::delete('/applications/{id}', [ApplicationController::class, 'destroy']);
     Route::patch('/applications/{id}/status', [ApplicationController::class, 'updateStatus']);
+    Route::get('/applications/{id}/documents', [ApplicationController::class, 'documents']);
+
+    Route::post('/profile/student', [StudentProfileController::class, 'store']);
+    Route::get('/profile/student', [StudentProfileController::class, 'show']);
 
     // Mentorships
     Route::post('/mentorships', [MentorshipController::class, 'assign']);
+
+    Route::get('/notifications', [NotificationController::class, 'index']);
+    Route::patch('/notifications/{id}/read', [NotificationController::class, 'markRead']);
+    Route::patch('/notifications/read-all', [NotificationController::class, 'markAllRead']);
 
     // Drafts
     Route::post('/drafts', [DraftController::class, 'store']);
