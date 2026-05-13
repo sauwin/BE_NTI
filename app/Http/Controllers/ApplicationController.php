@@ -6,6 +6,7 @@ use App\Mail\ApplicationSubmittedMail;
 use App\Mail\ProjectClosedMail;
 use App\Mail\StatusChangedMail;
 use App\Models\Application;
+use App\Models\Document;
 use App\Models\StudentProfile;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
@@ -136,5 +137,52 @@ class ApplicationController extends Controller
         $application->update($data);
 
         return response()->json($application);
+    }
+
+    public function documents(Request $request, int $id)
+    {
+        $profile = StudentProfile::where('user_id', $request->user()->id)->first();
+        $application = Application::where('id', $id)
+            ->where('student_profile_id', $profile?->id)
+            ->firstOrFail();
+
+        $docs = \DB::table('application_documents')
+            ->join('documents', 'documents.id', '=', 'application_documents.document_id')
+            ->where('application_documents.application_id', $id)
+            ->select('documents.id', 'documents.type', 'documents.file_name', 'documents.created_at')
+            ->get();
+
+        return response()->json($docs);
+    }
+
+    public function destroy(Request $request, int $id)
+    {
+        $profile = StudentProfile::where('user_id', $request->user()->id)->first();
+        $application = Application::where('id', $id)
+            ->where('student_profile_id', $profile?->id)
+            ->firstOrFail();
+
+        if (! in_array($application->status, ['draft', 'pending_revision'])) {
+            return response()->json([
+                'message' => 'Only draft or pending revision applications can be deleted.',
+            ], 422);
+        }
+
+        // Delete associated documents from storage and DB
+        $docs = \DB::table('application_documents')
+            ->join('documents', 'documents.id', '=', 'application_documents.document_id')
+            ->where('application_documents.application_id', $id)
+            ->select('documents.id', 'documents.file_path')
+            ->get();
+
+        foreach ($docs as $doc) {
+            \Storage::disk('local')->delete($doc->file_path);
+            \DB::table('application_documents')->where('document_id', $doc->id)->delete();
+            Document::find($doc->id)?->delete();
+        }
+
+        $application->delete();
+
+        return response()->json(['message' => 'Application deleted']);
     }
 }

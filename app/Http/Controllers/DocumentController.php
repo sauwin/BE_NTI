@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Document;
 use App\Models\ApplicationDocument;
+use App\Models\Document;
 use Illuminate\Http\Request;
 
 class DocumentController extends Controller
@@ -16,6 +16,20 @@ class DocumentController extends Controller
             'classification' => 'in:public,internal,confidential',
             'application_id' => 'required|exists:applications,id',
         ]);
+
+        $existing = ApplicationDocument::join('documents', 'documents.id', '=', 'application_documents.document_id')
+            ->where('application_documents.application_id', $request->application_id)
+            ->where('documents.type', $request->type)
+            ->select('application_documents.document_id', 'documents.file_path')
+            ->first();
+
+        if ($existing) {
+            \Storage::disk('local')->delete($existing->file_path);
+            ApplicationDocument::where('application_id', $request->application_id)
+                ->where('document_id', $existing->document_id)
+                ->delete();
+            Document::find($existing->document_id)?->delete();
+        }
 
         $file = $request->file('file');
         $path = $file->store('documents', 'local');
