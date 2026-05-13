@@ -2,20 +2,17 @@
 
 namespace App\Models;
 
-use App\Models\User;
-use App\Models\NewsArticleTranslation;
-use App\Models\NewsArticleImage;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 
 class NewsArticle extends Model
 {
     use HasFactory;
 
     protected $fillable = [
-        'slug', 'author_id', 'is_published', 'published_at'
+        'slug', 'author_id', 'is_published', 'published_at',
     ];
-    
+
     public function author()
     {
         return $this->belongsTo(User::class, 'author_id');

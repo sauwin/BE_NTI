@@ -12,15 +12,15 @@ class DraftController extends Controller
         $data = $request->validate([
             'program_type' => 'required',
         ]);
-        
+
         $draft = Draft::updateOrCreate([
             'user_id' => $request->user()->id,
             'program_type' => $data['program_type'],
 
         ],
-        [
-            'data' => $request->input('data', []),
-        ]);
+            [
+                'data' => $request->input('data', []),
+            ]);
 
         return response()->json($draft, 201);
     }

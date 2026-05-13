@@ -6,6 +6,7 @@ use App\Mail\ApplicationSubmittedMail;
 use App\Mail\ProjectClosedMail;
 use App\Mail\StatusChangedMail;
 use App\Models\Application;
+use App\Models\Call;
 use App\Models\Document;
 use App\Models\StudentProfile;
 use Illuminate\Http\Request;
@@ -16,20 +17,27 @@ class ApplicationController extends Controller
     public function store(Request $request)
     {
         $data = $request->validate([
-            'call_id' => 'required', // ТИМЧАСОВО required|exists:calls,id'
             'applicant_type' => 'required|in:student,team',
             'program_type' => 'required|in:a,b',
             'team_id' => 'nullable|exists:teams,id',
         ]);
 
-        $profile = StudentProfile::where('user_id', $request->user()->id)->first();
-        $maxApps = (int) env('MAX_ACTIVE_APPLICATIONS');
+        $call = Call::whereHas('program', fn ($q) => $q->where('code', 'program_'.$data['program_type']))
+            ->where('status', 'open')
+            ->latest()
+            ->first();
 
+        if (! $call) {
+            return response()->json(['message' => 'No active call found for this program.'], 422);
+        }
+
+        $profile = StudentProfile::where('user_id', $request->user()->id)->first();
+
+        $maxApps = (int) env('MAX_ACTIVE_APPLICATIONS', 0);
         if ($maxApps > 0) {
             $activeCount = Application::where('student_profile_id', $profile?->id)
                 ->whereNotIn('status', ['rejected', 'closed'])
                 ->count();
-
             if ($activeCount >= $maxApps) {
                 return response()->json([
                     'message' => 'You have reached the maximum number of active applications.',
@@ -38,7 +46,7 @@ class ApplicationController extends Controller
         }
 
         $application = Application::create([
-            'call_id' => $data['call_id'],
+            'call_id' => $call->id,
             'applicant_type' => $data['applicant_type'],
             'program_type' => $data['program_type'],
             'team_id' => $data['team_id'] ?? null,
@@ -55,9 +63,7 @@ class ApplicationController extends Controller
             ['application_id' => $application->id]
         );
 
-        return response()->json([
-            'application_id' => $application->id,
-        ], 201);
+        return response()->json(['application_id' => $application->id], 201);
     }
 
     public function updateStatus(Request $request, int $id)
@@ -92,7 +98,6 @@ class ApplicationController extends Controller
     public function index(Request $request)
     {
         $profile = StudentProfile::where('user_id', $request->user()->id)->first();
-
         if (! $profile) {
             return response()->json([]);
         }
@@ -139,22 +144,6 @@ class ApplicationController extends Controller
         return response()->json($application);
     }
 
-    public function documents(Request $request, int $id)
-    {
-        $profile = StudentProfile::where('user_id', $request->user()->id)->first();
-        $application = Application::where('id', $id)
-            ->where('student_profile_id', $profile?->id)
-            ->firstOrFail();
-
-        $docs = \DB::table('application_documents')
-            ->join('documents', 'documents.id', '=', 'application_documents.document_id')
-            ->where('application_documents.application_id', $id)
-            ->select('documents.id', 'documents.type', 'documents.file_name', 'documents.created_at')
-            ->get();
-
-        return response()->json($docs);
-    }
-
     public function destroy(Request $request, int $id)
     {
         $profile = StudentProfile::where('user_id', $request->user()->id)->first();
@@ -168,7 +157,6 @@ class ApplicationController extends Controller
             ], 422);
         }
 
-        // Delete associated documents from storage and DB
         $docs = \DB::table('application_documents')
             ->join('documents', 'documents.id', '=', 'application_documents.document_id')
             ->where('application_documents.application_id', $id)
@@ -184,5 +172,21 @@ class ApplicationController extends Controller
         $application->delete();
 
         return response()->json(['message' => 'Application deleted']);
+    }
+
+    public function documents(Request $request, int $id)
+    {
+        $profile = StudentProfile::where('user_id', $request->user()->id)->first();
+        $application = Application::where('id', $id)
+            ->where('student_profile_id', $profile?->id)
+            ->firstOrFail();
+
+        $docs = \DB::table('application_documents')
+            ->join('documents', 'documents.id', '=', 'application_documents.document_id')
+            ->where('application_documents.application_id', $id)
+            ->select('documents.id', 'documents.type', 'documents.file_name', 'documents.created_at')
+            ->get();
+
+        return response()->json($docs);
     }
 }

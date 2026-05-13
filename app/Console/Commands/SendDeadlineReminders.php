@@ -1,16 +1,18 @@
 <?php
+
 namespace App\Console\Commands;
 
+use App\Mail\DeadlineReminderMail;
 use App\Models\Application;
 use App\Models\User;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
-use App\Mail\DeadlineReminderMail;
 
 class SendDeadlineReminders extends Command
 {
-    protected $signature   = 'nti:deadlineReminders';
+    protected $signature = 'nti:deadlineReminders';
+
     protected $description = 'Send deadline reminder emails to applicants';
 
     public function handle(): void
@@ -28,7 +30,9 @@ class SendDeadlineReminders extends Command
 
             foreach ($applications as $application) {
                 $user = User::find($application->student_profile_id ?? $application->created_by ?? null);
-                if (!$user) continue;
+                if (! $user) {
+                    continue;
+                }
 
                 Mail::to($user->email)->send(new DeadlineReminderMail($user, $call));
             }

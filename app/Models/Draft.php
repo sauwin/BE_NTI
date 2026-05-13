@@ -9,13 +9,14 @@ class Draft extends Model
     protected $fillable = [
         'user_id',
         'program_type',
-        'data'
+        'data',
     ];
 
     protected $casts = [
-        'data' => 'array'
+        'data' => 'array',
     ];
 
     protected $primaryKey = null;
+
     public $incrementing = false;
 }
