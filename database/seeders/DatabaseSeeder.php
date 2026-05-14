@@ -30,6 +30,7 @@ class DatabaseSeeder extends Seeder
         $this->call([
             ProgramSeeder::class,
             RoleSeeder::class,
+            AdminUserSeeder::class,
         ]);
     }
 }

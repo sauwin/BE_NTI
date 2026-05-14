@@ -90,12 +90,18 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/mentor-profile', [MentorProfileController::class, 'update']);
     Route::get('/company-profile', [OrganizationController::class, 'show']);
     Route::put('/company-profile', [OrganizationController::class, 'update']);
-});
-Route::middleware(['auth:sanctum'])->prefix('admin')->group(function () {
+
     Route::get('/admin/users', [AdminController::class, 'users']);
     Route::get('/admin/approvals', [AdminController::class, 'pendingApprovals']);
     Route::post('/admin/approve/{userId}', [AdminController::class, 'approveRole']);
     Route::post('/admin/block/{userId}', [AdminController::class, 'blockUser']);
+
+    Route::middleware('super_admin')->group(function () {
+        Route::post('/admin/create-admin', [AdminController::class, 'createAdmin']);
+        Route::post('/admin/users/{userId}/roles', [AdminController::class, 'assignRole']);
+        Route::delete('/admin/users/{userId}/roles', [AdminController::class, 'removeRole']);
+        Route::delete('/admin/users/{userId}', [AdminController::class, 'deleteUser']);
+    });
 
     Route::get('/calls', [CallController::class, 'index']);
     Route::post('/calls', [CallController::class, 'store']);

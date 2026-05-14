@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Role;
 use App\Models\StudentProfile;
 use App\Models\StudentSkill;
 use Illuminate\Http\Request;
@@ -24,6 +25,17 @@ class StudentProfileController extends Controller
             ['user_id' => $request->user()->id],
             $data
         );
+
+        $user = $request->user();
+        $studentRole = Role::where('slug', 'student')->first();
+        if ($studentRole && ! $user->roles()->where('role_id', $studentRole->id)->exists()) {
+            DB::table('user_roles')->insert([
+                'user_id' => $user->id,
+                'role_id' => $studentRole->id,
+                'granted_by' => 1,
+                'granted_at' => now(),
+            ]);
+        }
 
         return response()->json($profile, 201);
     }
@@ -71,6 +83,17 @@ class StudentProfileController extends Controller
                     'student_profile_id' => $profile->id,
                     'skill' => $s['skill'],
                     'level' => $s['level'],
+                ]);
+            }
+
+            $user = $request->user();
+            $studentRole = Role::where('slug', 'student')->first();
+            if ($studentRole && ! $user->roles()->where('role_id', $studentRole->id)->exists()) {
+                DB::table('user_roles')->insert([
+                    'user_id' => $user->id,
+                    'role_id' => $studentRole->id,
+                    'granted_by' => 1,
+                    'granted_at' => now(),
                 ]);
             }
         });
