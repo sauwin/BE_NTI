@@ -2,14 +2,12 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-
-use App\Models\NewsArticle;
 use App\Http\Resources\NewsArticleResource;
+use App\Models\NewsArticle;
 use App\Services\ArticleImageService;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class ArticleController extends Controller
 {
@@ -49,15 +47,15 @@ class ArticleController extends Controller
             'translations.*.content' => 'required|string',
         ]);
 
-        //$validated['author_id'] = $request->user()->id;
+        // $validated['author_id'] = $request->user()->id;
         $validated['is_published'] = 1;
         $validated['published_at'] = $validated['published_at'] ?? now();
         $validated['author_id'] = 1;
 
         foreach ($request->translations as $lang => $data) {
-            if (!in_array($lang, ['en', 'sk'])) {
+            if (! in_array($lang, ['en', 'sk'])) {
                 return response()->json([
-                    'error' => "Invalid language: $lang"
+                    'error' => "Invalid language: $lang",
                 ], 422);
             }
         }
@@ -73,7 +71,7 @@ class ArticleController extends Controller
             foreach ($validated['translations'] as $lang => $translationData) {
                 $article->translations()->create([
                     'language' => $lang,
-                    ...$translationData
+                    ...$translationData,
                 ]);
             }
 
@@ -91,7 +89,7 @@ class ArticleController extends Controller
         return new NewsArticleResource(
             $article->load([
                 'translations',
-                'coverImage'
+                'coverImage',
             ])
         );
     }
@@ -119,7 +117,7 @@ class ArticleController extends Controller
         $validated = $request->validate([
             'image' => 'sometimes|file|max:2048|mimes:png,jpg,jpeg,webp',
 
-            'slug' => 'sometimes|string|max:255|unique:news_articles,slug,' . $article->id,
+            'slug' => 'sometimes|string|max:255|unique:news_articles,slug,'.$article->id,
 
             'translations' => 'sometimes|array',
             'translations.*.id' => 'sometimes|exists:news_article_translations,id',

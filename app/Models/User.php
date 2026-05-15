@@ -10,7 +10,6 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
-use App\Models\NewsArticle;
 
 #[Fillable(['name', 'email', 'password'])]
 #[Hidden(['password', 'remember_token'])]
@@ -35,8 +34,14 @@ class User extends Authenticatable
         return $this->password_hash;
     }
 
-    public function article() 
+    public function article()
     {
         return $this->hasMany(NewsArticle::class, 'author_id');
+    }
+
+    public function roles()
+    {
+        return $this->belongsToMany(Role::class, 'user_roles')
+            ->withPivot('granted_by', 'granted_at');
     }
 }

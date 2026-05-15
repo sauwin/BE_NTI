@@ -23,8 +23,8 @@ class ArticleImageService
     }
 
     public function replaceCover(
-      UploadedFile $file,
-      NewsArticleImage $image
+        UploadedFile $file,
+        NewsArticleImage $image
     ): NewsArticleImage {
 
         Storage::disk('public')
@@ -33,7 +33,7 @@ class ArticleImageService
         $path = $file->store('images', 'public');
 
         $image->update([
-            'image_path' => $path
+            'image_path' => $path,
         ]);
 
         return $image;
