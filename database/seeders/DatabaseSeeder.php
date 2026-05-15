@@ -13,8 +13,6 @@ use Database\Seeders\UserSeeder;
 use App\Models\User;
 use App\Models\NewsArticle;
 use App\Models\NewsArticleTranslation;
-use App\Models\User;
-use Illuminate\Database\Seeder;
 
 class DatabaseSeeder extends Seeder
 {
