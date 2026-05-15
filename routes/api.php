@@ -1,17 +1,18 @@
 <?php
 
-use App\Http\Controllers\AdminController;
 use App\Http\Controllers\ApplicationController;
 use App\Http\Controllers\ArticleController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CallController;
 use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\DraftController;
-use App\Http\Controllers\MentorProfileController;
 use App\Http\Controllers\MentorshipController;
-use App\Http\Controllers\NotificationController;
-use App\Http\Controllers\OrganizationController;
 use App\Http\Controllers\StudentProfileController;
+use App\Http\Controllers\MentorProfileController;
+use App\Http\Controllers\OrganizationController;
+use App\Http\Controllers\AdminController;
+use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\OnboardingController;
 use App\Mail\RegistrationSubmit;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -26,6 +27,7 @@ Route::apiResource('articles', ArticleController::class);
 
 Route::get('/calls/active/{program_type}', [CallController::class, 'active']);
 
+// Do not "optimize import" here, it breaks verification
 Route::get('/email/continueRegistration/{id}/{hash}', function (Request $request, $id, $hash) {
     $user = User::findOrFail($id);
     if (! hash_equals(sha1($user->email), $hash)) {
@@ -35,7 +37,6 @@ Route::get('/email/continueRegistration/{id}/{hash}', function (Request $request
         return response()->json(['message' => 'Link expired'], 403);
     }
     $user->update(['email_verified_at' => now(), 'status' => 'active']);
-
     return redirect('http://localhost:5173/verified');
 })->name('verification.verify');
 
@@ -45,7 +46,6 @@ Route::post('/email/resend', function (Request $request) {
         return response()->json(['message' => 'Already verified'], 400);
     }
     Mail::to($user->email)->send(new RegistrationSubmit($user));
-
     return response()->json(['message' => 'Verification email sent']);
 })->middleware(['auth:sanctum', 'throttle:3,1']);
 
@@ -91,21 +91,18 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/company-profile', [OrganizationController::class, 'show']);
     Route::put('/company-profile', [OrganizationController::class, 'update']);
 
+    // Admin (nti_admin can see users/approvals)
     Route::get('/admin/users', [AdminController::class, 'users']);
+    Route::get('/admin/users/{id}', [AdminController::class, 'showUser']);
     Route::get('/admin/approvals', [AdminController::class, 'pendingApprovals']);
     Route::post('/admin/approve/{userId}', [AdminController::class, 'approveRole']);
     Route::post('/admin/block/{userId}', [AdminController::class, 'blockUser']);
+    Route::post('/admin/users/{userId}/roles', [AdminController::class, 'assignRole']);
+    Route::delete('/admin/users/{userId}/roles', [AdminController::class, 'removeRole']);
 
+    // Super Admin Only
     Route::middleware('super_admin')->group(function () {
         Route::post('/admin/create-admin', [AdminController::class, 'createAdmin']);
-        Route::post('/admin/users/{userId}/roles', [AdminController::class, 'assignRole']);
-        Route::delete('/admin/users/{userId}/roles', [AdminController::class, 'removeRole']);
         Route::delete('/admin/users/{userId}', [AdminController::class, 'deleteUser']);
     });
-
-    Route::get('/calls', [CallController::class, 'index']);
-    Route::post('/calls', [CallController::class, 'store']);
-    Route::get('/calls/{id}', [CallController::class, 'show']);
-    Route::patch('/calls/{id}', [CallController::class, 'update']);
-    Route::delete('/calls/{id}', [CallController::class, 'destroy']);
 });

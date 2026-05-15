@@ -2,7 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\CompanyProfile;
+use App\Models\MentorProfile;
 use App\Models\Role;
+use App\Models\StudentProfile;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -24,6 +27,35 @@ class AdminController extends Controller
             ->get();
 
         return response()->json($users);
+    }
+
+    /**
+     * Get user profile with related data.
+     */
+    public function showUser(int $id)
+    {
+        $user = User::with('roles')->findOrFail($id);
+
+        $data = [
+            'user' => $user,
+            'student_profile' => null,
+            'mentor_profile' => null,
+            'company_profile' => null,
+        ];
+
+        if ($user->roles()->where('slug', 'student')->exists()) {
+            $data['student_profile'] = StudentProfile::where('user_id', $id)->first();
+        }
+
+        if ($user->roles()->where('slug', 'mentor')->exists()) {
+            $data['mentor_profile'] = MentorProfile::where('user_id', $id)->first();
+        }
+
+        if ($user->roles()->where('slug', 'company')->exists()) {
+            $data['company_profile'] = CompanyProfile::where('user_id', $id)->first();
+        }
+
+        return response()->json($data);
     }
 
     /**
@@ -82,7 +114,7 @@ class AdminController extends Controller
     }
 
     /**
-     * Create a new admin user (super-admin only).
+     * Create new admin user (super-admin only).
      */
     public function createAdmin(Request $request)
     {
@@ -115,12 +147,12 @@ class AdminController extends Controller
     }
 
     /**
-     * Assign the role to an existing user (super-admin only).
+     * Assign role to existing user (admin can assign non-admin roles).
      */
     public function assignRole(Request $request, int $userId)
     {
         $data = $request->validate([
-            'role' => 'required|in:student,company,mentor,nti_admin,evaluator,content_editor',
+            'role' => 'required|in:student,company,mentor,evaluator,content_editor',
         ]);
 
         $user = User::findOrFail($userId);
@@ -141,13 +173,18 @@ class AdminController extends Controller
     }
 
     /**
-     * Remove the role from the user (super-admin only).
+     * Remove role from user (admin can remove non-admin roles).
      */
     public function removeRole(Request $request, int $userId)
     {
         $data = $request->validate([
             'role' => 'required|string',
         ]);
+
+        // Prevent removing admin roles
+        if (in_array($data['role'], ['nti_admin', 'super_admin'])) {
+            return response()->json(['message' => 'Cannot remove admin roles'], 403);
+        }
 
         $user = User::findOrFail($userId);
         $role = Role::where('slug', $data['role'])->firstOrFail();
@@ -170,6 +207,11 @@ class AdminController extends Controller
     public function deleteUser(int $userId)
     {
         $user = User::findOrFail($userId);
+
+        // Prevent deleting admin users
+        if ($user->roles()->whereIn('slug', ['nti_admin', 'super_admin'])->exists()) {
+            return response()->json(['message' => 'Cannot delete admin users'], 403);
+        }
 
         DB::table('user_roles')->where('user_id', $userId)->delete();
         $user->delete();
