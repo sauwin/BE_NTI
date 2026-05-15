@@ -13,9 +13,18 @@ use Illuminate\Support\Facades\Route;
 Route::post('/auth/register', [AuthController::class, 'register']);
 Route::post('/auth/login', [AuthController::class, 'login']);
 
-//Route::apiResource('translations', TranslationController::class);
-Route::apiResource('articles', ArticleController::class);
+//Articles
+Route::get('/articles', [ArticleController::class, 'index']);
+Route::get('/articles/{article}', [ArticleController::class, 'show']);
 
+Route::middleware('auth:sanctum')->group(function () {
+    Route::post('/articles', [ArticleController::class, 'store']);
+    Route::put('/articles/{article}', [ArticleController::class, 'update']);
+    Route::patch('/articles/{article}', [ArticleController::class, 'update']);
+    Route::delete('/articles/{article}', [ArticleController::class, 'destroy']);
+});
+
+//Authentification
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/auth/logout', [AuthController::class, 'logout']);
     Route::get('/auth/me', [AuthController::class, 'me']);

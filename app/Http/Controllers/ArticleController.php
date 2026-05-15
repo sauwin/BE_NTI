@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\DB;
 use App\Models\NewsArticle;
 use App\Http\Resources\NewsArticleResource;
 use App\Services\ArticleImageService;
+use Illuminate\Support\Facades\Gate;
 
 class ArticleController extends Controller
 {
@@ -32,6 +33,8 @@ class ArticleController extends Controller
      */
     public function store(Request $request, ArticleImageService $imageService)
     {
+        Gate::authorize('create', NewsArticle::class);
+
         $validated = $request->validate([
             'image' => 'required|file|max:2048|mimes:png,jpg,jpeg,webp',
 
@@ -98,7 +101,12 @@ class ArticleController extends Controller
      */
     public function show(NewsArticle $article)
     {
-        return new NewsArticleResource($article->load(['author', 'translations']));
+        // Ensure only published articles can be viewed publicly
+        if (!$article->is_published || !$article->published_at || $article->published_at > now()) {
+            abort(404);
+        }
+
+        return new NewsArticleResource($article->load(['author', 'translations', 'coverImage', 'contentImages']));
     }
 
     /**
@@ -106,6 +114,8 @@ class ArticleController extends Controller
      */
     public function update(Request $request, NewsArticle $article, ArticleImageService $imageService)
     {
+        Gate::authorize('update', $article);
+
         $validated = $request->validate([
             'image' => 'sometimes|file|max:2048|mimes:png,jpg,jpeg,webp',
 
@@ -174,6 +184,8 @@ class ArticleController extends Controller
      */
     public function destroy(NewsArticle $article, ArticleImageService $imageService)
     {
+        Gate::authorize('forceDelete', NewsArticle::class);
+
         DB::transaction(function () use (
             $article,
             $imageService
