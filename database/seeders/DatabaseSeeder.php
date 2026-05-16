@@ -2,7 +2,6 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
 use Database\Seeders\ArticleSeeder;
@@ -17,13 +16,13 @@ use App\Models\NewsArticleTranslation;
 
 class DatabaseSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     */
     public function run(): void
     {
-        User::factory(5)->create();
-
+        $this->call(RoleSeeder::class);
+        $this->call(ProgramSeeder::class);
+        $this->call(UserSeeder::class);
+        $this->call(AdminUserSeeder::class);
+        
         NewsArticle::factory(30)
             ->has(
                 NewsArticleTranslation::factory()->state(['language' => 'en']),

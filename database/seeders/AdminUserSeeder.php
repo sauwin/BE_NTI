@@ -28,11 +28,18 @@ class AdminUserSeeder extends Seeder
             DB::table('user_roles')->insert([
                 'user_id' => $user->id,
                 'role_id' => $superAdminRole->id,
-                'granted_by' => null,
+                'granted_by' => $user->id, 
                 'granted_at' => now(),
             ]);
         }
-        $this->command->info('✓ Super Admin created: admin@nti.sk');
-        $this->command->info('⚠ Change password immediately!');
+
+        DB::table('user_roles')
+            ->whereNull('granted_by')
+            ->where('user_id', '!=', $user->id)
+            ->update([
+                'granted_by' => $user->id,
+                'granted_at' => now(),
+            ]);
+
     }
 }
