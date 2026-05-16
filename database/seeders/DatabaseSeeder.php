@@ -8,6 +8,7 @@ use Database\Seeders\ArticleSeeder;
 use Database\Seeders\ProgramSeeder;
 use Database\Seeders\RoleSeeder;
 use Database\Seeders\UserSeeder;
+use Database\Seeders\AdminUserSeeder;
 use Database\Seeders\FaqSeeder;
 
 use App\Models\User;
@@ -18,10 +19,14 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
-        $this->call(RoleSeeder::class);
-        $this->call(ProgramSeeder::class);
-        $this->call(UserSeeder::class);
-        $this->call(AdminUserSeeder::class);
+        $this->call([
+            UserSeeder::class,
+            ProgramSeeder::class,
+            RoleSeeder::class,
+            NewsArticleSeeder::class,
+            AdminUserSeeder::class,
+            FaqSeeder::class,
+        ]);
         
         NewsArticle::factory(30)
             ->has(
@@ -33,14 +38,5 @@ class DatabaseSeeder extends Seeder
                 'translations'
             )
             ->create();
-
-        $this->call([
-            UserSeeder::class,
-            ProgramSeeder::class,
-            RoleSeeder::class,
-            NewsArticleSeeder::class,
-            AdminUserSeeder::class,
-            FaqSeeder::class,
-        ]);
     }
 }
