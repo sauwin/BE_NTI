@@ -2,14 +2,15 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\AdminActionLog;
 use App\Models\CompanyProfile;
 use App\Models\MentorProfile;
 use App\Models\Role;
 use App\Models\StudentProfile;
 use App\Models\User;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\DB;
 
 class AdminController extends Controller
 {
@@ -27,6 +28,27 @@ class AdminController extends Controller
             ->get();
 
         return response()->json($users);
+    }
+
+    /**
+     * Get admin action logs with filtering.
+     */
+    public function logs(Request $request)
+    {
+        $query = AdminActionLog::with(['admin', 'targetUser'])
+            ->orderBy('created_at', 'desc');
+
+        if ($request->has('action_type') && $request->action_type) {
+            $query->where('action_type', $request->action_type);
+        }
+
+        if ($request->has('user_id') && $request->user_id) {
+            $query->where('target_user_id', $request->user_id);
+        }
+
+        $logs = $query->paginate(50);
+
+        return response()->json($logs);
     }
 
     /**
@@ -100,17 +122,51 @@ class AdminController extends Controller
             return response()->json(['message' => 'No pending role found for this user'], 404);
         }
 
+        AdminActionLog::create([
+            'admin_id' => $request->user()->id,
+            'action' => 'approve',
+            'action_type' => 'approve',
+            'target_user_id' => $userId,
+            'ip_address' => $request->ip(),
+        ]);
+
         return response()->json(['message' => 'Role approved']);
     }
 
     /**
      * Block a user.
      */
-    public function blockUser(int $userId)
+    public function blockUser(Request $request, int $userId)
     {
         User::where('id', $userId)->update(['status' => 'blocked']);
 
+        AdminActionLog::create([
+            'admin_id' => $request->user()->id,
+            'action' => 'block',
+            'action_type' => 'block',
+            'target_user_id' => $userId,
+            'ip_address' => $request->ip(),
+        ]);
+
         return response()->json(['message' => 'User blocked']);
+    }
+
+    /**
+     * Unblock a user.
+     * */
+    public function unblockUser(Request $request, int $userId)
+    {
+        User::where('id', $userId)->update(['status' => 'active']);
+
+        AdminActionLog::create([
+            'admin_id' => $request->user()->id,
+            'action' => 'unblock',
+            'action_type' => 'unblock',
+            'target_user_id' => $userId,
+            'ip_address' => $request->ip(),
+        ]);
+
+        return response()->json(['message' => 'User unblocked']);
     }
 
     /**
@@ -143,6 +199,15 @@ class AdminController extends Controller
             'granted_at' => now(),
         ]);
 
+        AdminActionLog::create([
+            'admin_id' => $request->user()->id,
+            'action' => 'create',
+            'action_type' => 'create',
+            'target_user_id' => $user->id,
+            'details' => json_encode(['role' => $data['role'], 'email' => $data['email']]),
+            'ip_address' => $request->ip(),
+        ]);
+
         return response()->json(['message' => 'Admin created', 'user' => $user], 201);
     }
 
@@ -167,6 +232,15 @@ class AdminController extends Controller
             'role_id' => $role->id,
             'granted_by' => $request->user()->id,
             'granted_at' => now(),
+        ]);
+
+        AdminActionLog::create([
+            'admin_id' => $request->user()->id,
+            'action' => 'assign',
+            'action_type' => 'assign',
+            'target_user_id' => $userId,
+            'details' => json_encode(['role' => $data['role']]),
+            'ip_address' => $request->ip(),
         ]);
 
         return response()->json(['message' => 'Role assigned']);
@@ -198,13 +272,22 @@ class AdminController extends Controller
             return response()->json(['message' => 'User does not have this role'], 404);
         }
 
+        AdminActionLog::create([
+            'admin_id' => $request->user()->id,
+            'action' => 'remove',
+            'action_type' => 'remove',
+            'target_user_id' => $userId,
+            'details' => json_encode(['role' => $data['role']]),
+            'ip_address' => $request->ip(),
+        ]);
+
         return response()->json(['message' => 'Role removed']);
     }
 
     /**
      * Delete user (super-admin only).
      */
-    public function deleteUser(int $userId)
+    public function deleteUser(Request $request, int $userId)
     {
         $user = User::findOrFail($userId);
 
@@ -215,6 +298,15 @@ class AdminController extends Controller
 
         DB::table('user_roles')->where('user_id', $userId)->delete();
         $user->delete();
+
+        AdminActionLog::create([
+            'admin_id' => $request->user()->id,
+            'action' => 'delete',
+            'action_type' => 'delete',
+            'target_user_id' => $userId,
+            'details' => json_encode(['user_email' => $user->email]),
+            'ip_address' => $request->ip(),
+        ]);
 
         return response()->json(['message' => 'User deleted']);
     }
