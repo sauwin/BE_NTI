@@ -6,6 +6,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CallController;
 use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\DraftController;
+use App\Http\Controllers\FaqItemController;
 use App\Http\Controllers\MentorshipController;
 use App\Http\Controllers\StudentProfileController;
 use App\Http\Controllers\MentorProfileController;
@@ -26,6 +27,7 @@ Route::post('/auth/login', [AuthController::class, 'login']);
 Route::apiResource('articles', ArticleController::class);
 
 Route::get('/calls/active/{program_type}', [CallController::class, 'active']);
+Route::get('/faq-items', [FaqItemController::class, 'index']);
 
 // Do not "optimize import" here, it breaks verification
 Route::get('/email/continueRegistration/{id}/{hash}', function (Request $request, $id, $hash) {
@@ -90,6 +92,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/mentor-profile', [MentorProfileController::class, 'update']);
     Route::get('/company-profile', [OrganizationController::class, 'show']);
     Route::put('/company-profile', [OrganizationController::class, 'update']);
+
+    // FAQ items
+    Route::post('/faq-items', [FaqItemController::class, 'store']);
+    Route::put('/faq-items/{faqItem}', [FaqItemController::class, 'update']);
+    Route::delete('/faq-items/{faqItem}', [FaqItemController::class, 'destroy']);
 
     // Admin (nti_admin can see users/approvals)
     Route::get('/admin/users', [AdminController::class, 'users']);
