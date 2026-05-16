@@ -9,6 +9,7 @@ use Database\Seeders\ArticleSeeder;
 use Database\Seeders\ProgramSeeder;
 use Database\Seeders\RoleSeeder;
 use Database\Seeders\UserSeeder;
+use Database\Seeders\FaqSeeder;
 
 use App\Models\User;
 use App\Models\NewsArticle;
@@ -40,6 +41,7 @@ class DatabaseSeeder extends Seeder
             RoleSeeder::class,
             NewsArticleSeeder::class,
             AdminUserSeeder::class,
+            FaqSeeder::class,
         ]);
     }
 }
