@@ -14,6 +14,7 @@ use App\Http\Controllers\OrganizationController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\OnboardingController;
+use App\Http\Controllers\CallOrganizationController;
 use App\Mail\RegistrationSubmit;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -26,8 +27,9 @@ Route::post('/auth/login', [AuthController::class, 'login']);
 
 Route::apiResource('articles', ArticleController::class);
 
-Route::get('/calls/active/{program_type}', [CallController::class, 'active']);
+Route::get('/calls/active/{program_type?}', [CallController::class, 'active']);
 Route::get('/faq-items', [FaqItemController::class, 'index']);
+Route::get('/programs/b/tasks', [CallOrganizationController::class, 'publicTasks']);
 
 // Do not "optimize import" here, it breaks verification
 Route::get('/email/continueRegistration/{id}/{hash}', function (Request $request, $id, $hash) {
@@ -106,6 +108,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/admin/block/{userId}', [AdminController::class, 'blockUser']);
     Route::post('/admin/users/{userId}/roles', [AdminController::class, 'assignRole']);
     Route::delete('/admin/users/{userId}/roles', [AdminController::class, 'removeRole']);
+
+    // Роути для фірми (керування власними завданнями/викликами)
+    Route::get('/company/tasks', [CallOrganizationController::class, 'index']);
+    Route::post('/company/tasks', [CallOrganizationController::class, 'store']);
 
     // Super Admin Only
     Route::middleware('super_admin')->group(function () {

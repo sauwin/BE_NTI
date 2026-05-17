@@ -5,22 +5,36 @@ namespace App\Http\Controllers;
 use App\Models\Call;
 use App\Models\Program;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class CallController extends Controller
 {
     // Public — get active call for a program
-    public function active(string $program_type)
+    public function active(Request $request, string $program_type = null)
     {
-        $call = Call::whereHas('program', fn ($q) => $q->where('code', 'program_'.$program_type))
+        if (!$program_type) {
+            $program_type = $request->query('program', 'b'); 
+        }
+
+        $program_type = strtolower(trim($program_type));
+
+        $call = Call::whereHas('program', fn ($q) => $q->where('code', 'program_' . $program_type))
             ->where('status', 'open')
             ->latest()
             ->first();
-
         if (! $call) {
-            return response()->json(['message' => 'No active call found'], 404);
+            return response()->json([]);
         }
 
-        return response()->json($call);
+        $lang = $request->query('lang', 'sk');
+        $translation = DB::table('call_translations')
+            ->where('call_id', $call->id)
+            ->where('language', $lang)
+            ->first();
+
+        $call->name = $translation ? $translation->name : 'Letný semester 2026';
+        $call->label = $translation ? $translation->name : 'Letný semester 2026';
+        return response()->json([$call]);
     }
 
     // Admin — list all calls
