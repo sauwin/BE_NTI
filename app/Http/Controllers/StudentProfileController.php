@@ -28,7 +28,8 @@ class StudentProfileController extends Controller
 
         $user = $request->user();
         $studentRole = Role::where('slug', 'student')->first();
-        if ($studentRole && ! $user->roles()->where('role_id', $studentRole->id)->exists()) {
+        $existingRole = DB::table('user_roles')->where('user_id', $user->id)->first();
+        if ($studentRole && ! $existingRole) {
             DB::table('user_roles')->insert([
                 'user_id' => $user->id,
                 'role_id' => $studentRole->id,
@@ -88,7 +89,8 @@ class StudentProfileController extends Controller
 
             $user = $request->user();
             $studentRole = Role::where('slug', 'student')->first();
-            if ($studentRole && ! $user->roles()->where('role_id', $studentRole->id)->exists()) {
+            $existingRole = DB::table('user_roles')->where('user_id', $user->id)->first();
+            if ($studentRole && ! $existingRole) {
                 DB::table('user_roles')->insert([
                     'user_id' => $user->id,
                     'role_id' => $studentRole->id,

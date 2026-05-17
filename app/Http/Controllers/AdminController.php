@@ -162,12 +162,23 @@ class AdminController extends Controller
             return response()->json(['message' => 'User already has this role'], 422);
         }
 
-        DB::table('user_roles')->insert([
-            'user_id' => $user->id,
-            'role_id' => $role->id,
-            'granted_by' => $request->user()->id,
-            'granted_at' => now(),
-        ]);
+        $existingRole = DB::table('user_roles')->where('user_id', $user->id)->first();
+        if ($existingRole) {
+            DB::table('user_roles')
+                ->where('user_id', $user->id)
+                ->update([
+                    'role_id' => $role->id,
+                    'granted_by' => $request->user()->id,
+                    'granted_at' => now(),
+                ]);
+        } else {
+            DB::table('user_roles')->insert([
+                'user_id' => $user->id,
+                'role_id' => $role->id,
+                'granted_by' => $request->user()->id,
+                'granted_at' => now(),
+            ]);
+        }
 
         return response()->json(['message' => 'Role assigned']);
     }

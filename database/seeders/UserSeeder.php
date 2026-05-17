@@ -23,7 +23,7 @@ class UserSeeder extends Seeder
                 DB::table('user_roles')->insert([
                     'user_id'    => $user->id,
                     'role_id'    => $role->id,
-                    'granted_by' => null,
+                    'granted_by' => $user->id,
                     'granted_at' => now(),
                 ]);
             }
