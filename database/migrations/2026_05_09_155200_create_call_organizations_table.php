@@ -17,6 +17,7 @@ return new class extends Migration
             $table->foreignId('organization_id')->constrained('organizations')->onDelete('cascade');
             $table->foreignId('product_owner_user_id')->nullable()->constrained('users')->nullOnDelete();
             $table->decimal('budget', 10, 2)->nullable();
+            $table->string('title');
             $table->text('brief')->nullable();
             $table->enum('status', ['draft', 'published', 'in_matching', 'assigned', 'in_progress', 'closed'])->default('draft');
             $table->timestamps();
