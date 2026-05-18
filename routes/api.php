@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AdminController;
 use App\Http\Controllers\ApplicationController;
 use App\Http\Controllers\ArticleController;
 use App\Http\Controllers\AuthController;
@@ -10,9 +11,8 @@ use App\Http\Controllers\FaqItemController;
 use App\Http\Controllers\MentorshipController;
 use App\Http\Controllers\StudentProfileController;
 use App\Http\Controllers\MentorProfileController;
-use App\Http\Controllers\OrganizationController;
-use App\Http\Controllers\AdminController;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\OrganizationController;
 use App\Http\Controllers\OnboardingController;
 use App\Http\Controllers\CallOrganizationController;
 use App\Mail\RegistrationSubmit;
@@ -31,7 +31,6 @@ Route::get('/calls/active/{program_type?}', [CallController::class, 'active']);
 Route::get('/faq-items', [FaqItemController::class, 'index']);
 Route::get('/programs/b/tasks', [CallOrganizationController::class, 'publicTasks']);
 
-// Do not "optimize import" here, it breaks verification
 Route::get('/email/continueRegistration/{id}/{hash}', function (Request $request, $id, $hash) {
     $user = User::findOrFail($id);
     if (! hash_equals(sha1($user->email), $hash)) {
@@ -40,7 +39,27 @@ Route::get('/email/continueRegistration/{id}/{hash}', function (Request $request
     if (! $request->hasValidSignature()) {
         return response()->json(['message' => 'Link expired'], 403);
     }
-    $user->update(['email_verified_at' => now(), 'status' => 'active']);
+
+    $superAdmin = User::join('user_roles', 'users.id', '=', 'user_roles.user_id')
+        ->join('roles', 'user_roles.role_id', '=', 'roles.id')
+        ->where('roles.slug', 'super_admin')
+        ->select('users.id')
+        ->first();
+
+    if (! $superAdmin) {
+        return response()->json(['message' => 'System error: no super admin found'], 500);
+    }
+
+    DB::transaction(function () use ($user, $superAdmin) {
+        $user->update(['email_verified_at' => now(), 'status' => 'active']);
+        DB::table('user_roles')
+            ->where('user_id', $user->id)
+            ->update([
+                'granted_by' => $superAdmin->id,
+                'granted_at' => now(),
+            ]);
+    });
+
     return redirect('http://localhost:5173/verified');
 })->name('verification.verify');
 
@@ -50,6 +69,7 @@ Route::post('/email/resend', function (Request $request) {
         return response()->json(['message' => 'Already verified'], 400);
     }
     Mail::to($user->email)->send(new RegistrationSubmit($user));
+
     return response()->json(['message' => 'Verification email sent']);
 })->middleware(['auth:sanctum', 'throttle:3,1']);
 
@@ -104,8 +124,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/admin/users', [AdminController::class, 'users']);
     Route::get('/admin/users/{id}', [AdminController::class, 'showUser']);
     Route::get('/admin/approvals', [AdminController::class, 'pendingApprovals']);
+    Route::get('/admin/logs', [AdminController::class, 'logs']);
     Route::post('/admin/approve/{userId}', [AdminController::class, 'approveRole']);
     Route::post('/admin/block/{userId}', [AdminController::class, 'blockUser']);
+    Route::post('/admin/unblock/{userId}', [AdminController::class, 'unblockUser']);
     Route::post('/admin/users/{userId}/roles', [AdminController::class, 'assignRole']);
     Route::delete('/admin/users/{userId}/roles', [AdminController::class, 'removeRole']);
 
