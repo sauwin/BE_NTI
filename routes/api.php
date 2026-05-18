@@ -5,16 +5,16 @@ use App\Http\Controllers\ApplicationController;
 use App\Http\Controllers\ArticleController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CallController;
+use App\Http\Controllers\CallOrganizationController;
 use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\DraftController;
 use App\Http\Controllers\FaqItemController;
-use App\Http\Controllers\MentorshipController;
-use App\Http\Controllers\StudentProfileController;
 use App\Http\Controllers\MentorProfileController;
+use App\Http\Controllers\MentorshipController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\OrganizationController;
-use App\Http\Controllers\OnboardingController;
-use App\Http\Controllers\CallOrganizationController;
+use App\Http\Controllers\PasswordResetController;
+use App\Http\Controllers\StudentProfileController;
 use App\Mail\RegistrationSubmit;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -72,6 +72,10 @@ Route::post('/email/resend', function (Request $request) {
 
     return response()->json(['message' => 'Verification email sent']);
 })->middleware(['auth:sanctum', 'throttle:3,1']);
+
+Route::post('/auth/forgot-password', [PasswordResetController::class, 'forgot']);
+Route::post('/auth/reset-password', [PasswordResetController::class, 'reset']);
+Route::post('/auth/verify-reset-token', [PasswordResetController::class, 'verify']);
 
 // Authenticated
 Route::middleware('auth:sanctum')->group(function () {
@@ -139,5 +143,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::middleware('super_admin')->group(function () {
         Route::post('/admin/create-admin', [AdminController::class, 'createAdmin']);
         Route::delete('/admin/users/{userId}', [AdminController::class, 'deleteUser']);
+
+        Route::post('/admin/users/{userId}/reset-password', [AdminController::class, 'resetAdminPassword']);
     });
 });
