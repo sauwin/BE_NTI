@@ -15,6 +15,7 @@ use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\OrganizationController;
 use App\Http\Controllers\OnboardingController;
 use App\Http\Controllers\CallOrganizationController;
+use App\Http\Controllers\Admin\ProgramController;
 use App\Mail\RegistrationSubmit;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -141,5 +142,20 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::middleware('super_admin')->group(function () {
         Route::post('/admin/create-admin', [AdminController::class, 'createAdmin']);
         Route::delete('/admin/users/{userId}', [AdminController::class, 'deleteUser']);
+    });
+
+    // Admin Only
+    Route::prefix('admin')->group(function () {
+        Route::get('/programs', [App\Http\Controllers\Admin\ProgramController::class, 'index']);
+        Route::post('/programs', [App\Http\Controllers\Admin\ProgramController::class, 'store']);
+        Route::get('/programs/{program}', [App\Http\Controllers\Admin\ProgramController::class, 'show']);
+        Route::put('/programs/{program}', [App\Http\Controllers\Admin\ProgramController::class, 'update']);
+        Route::delete('/programs/{program}', [App\Http\Controllers\Admin\ProgramController::class, 'destroy']);
+
+        Route::get('/calls', [CallController::class, 'index']);
+        Route::post('/calls', [CallController::class, 'store']);
+        Route::get('/calls/{id}', [CallController::class, 'show']);
+        Route::put('/calls/{id}', [CallController::class, 'update']);
+        Route::delete('/calls/{id}', [CallController::class, 'destroy']);
     });
 });
