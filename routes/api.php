@@ -134,6 +134,8 @@ Route::middleware('auth:sanctum')->group(function () {
     // Роути для фірми (керування власними завданнями/викликами)
     Route::get('/company/tasks', [CallOrganizationController::class, 'index']);
     Route::post('/company/tasks', [CallOrganizationController::class, 'store']);
+    Route::put('/company/tasks/{id}', [CallOrganizationController::class, 'update']);
+    Route::delete('/company/tasks/{id}', [CallOrganizationController::class, 'destroy']);
 
     // Super Admin Only
     Route::middleware('super_admin')->group(function () {

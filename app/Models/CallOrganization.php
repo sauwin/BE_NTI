@@ -13,6 +13,7 @@ class CallOrganization extends Model
         'organization_id',
         'product_owner_user_id',
         'budget',
+        'title',
         'brief',
         'status',
     ];
