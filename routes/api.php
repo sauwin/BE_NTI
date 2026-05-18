@@ -34,7 +34,26 @@ Route::get('/email/continueRegistration/{id}/{hash}', function (Request $request
     if (! $request->hasValidSignature()) {
         return response()->json(['message' => 'Link expired'], 403);
     }
-    $user->update(['email_verified_at' => now(), 'status' => 'active']);
+
+    $superAdmin = User::join('user_roles', 'users.id', '=', 'user_roles.user_id')
+        ->join('roles', 'user_roles.role_id', '=', 'roles.id')
+        ->where('roles.slug', 'super_admin')
+        ->select('users.id')
+        ->first();
+
+    if (! $superAdmin) {
+        return response()->json(['message' => 'System error: no super admin found'], 500);
+    }
+
+    DB::transaction(function () use ($user, $superAdmin) {
+        $user->update(['email_verified_at' => now(), 'status' => 'active']);
+        DB::table('user_roles')
+            ->where('user_id', $user->id)
+            ->update([
+                'granted_by' => $superAdmin->id,
+                'granted_at' => now(),
+            ]);
+    });
 
     return redirect('http://localhost:5173/verified');
 })->name('verification.verify');
