@@ -11,6 +11,10 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
+use App\Mail\AdminPasswordResetMail;
+use App\Models\PasswordResetToken;
+
 
 class AdminController extends Controller
 {
@@ -240,7 +244,6 @@ class AdminController extends Controller
             }
         }
 
-
         $user = User::findOrFail($userId);
         $role = Role::where('slug', $data['role'])->firstOrFail();
 
@@ -293,7 +296,6 @@ class AdminController extends Controller
                 return response()->json(['message' => 'Admin cannot assign admin roles'], 403);
             }
         }
-
 
         // Prevent removing admin roles
         if (in_array($data['role'], ['nti_admin', 'super_admin'])) {
@@ -352,5 +354,35 @@ class AdminController extends Controller
         $user->delete();
 
         return response()->json(['message' => 'User deleted']);
+    }
+
+    /**
+     * Super admin only: Reset nti_admin password
+     */
+    public function resetAdminPassword(Request $request, $userId)
+    {
+        $this->authorize('isSuperAdmin');
+
+        $targetUser = User::findOrFail($userId);
+        if (! $targetUser->roles()->where('slug', 'nti_admin')->exists()) {
+            return response()->json(['message' => 'Target user is not nti_admin'], 400);
+        }
+
+        $newPassword = Str::random(12);
+        $targetUser->update(['password_hash' => Hash::make($newPassword)]);
+
+        AdminActionLog::create([
+            'admin_id' => $request->user()->id,
+            'action_type' => 'admin_password_reset',
+            'target_user_id' => $userId,
+            'details' => ['new_password_set' => true],
+        ]);
+
+        Mail::to($targetUser->email)->send(new AdminPasswordResetMail($targetUser, $newPassword));
+
+        return response()->json([
+            'message' => 'Password reset. Email sent to admin.',
+            'temporary_password' => $newPassword,
+        ]);
     }
 }
