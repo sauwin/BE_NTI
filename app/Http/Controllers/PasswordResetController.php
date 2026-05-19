@@ -30,7 +30,7 @@ class PasswordResetController extends Controller
                 'token' => hash('sha256', $token),
                 'expires_at' => now()->addHour(),
             ]);
-            Mail::to($user->email)->send(new PasswordResetMail($user, $token));
+            Mail::to($user->email)->queue(new PasswordResetMail($user, $token));
         });
 
         return response()->json(['message' => 'Password reset link sent to email'], 200);

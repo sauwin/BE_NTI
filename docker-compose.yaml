@@ -7,11 +7,13 @@ services:
       - "8000:8000"
     depends_on:
       - db
+      - redis
     environment:
       DB_HOST: db
       DB_DATABASE: laravel
       DB_USERNAME: laravel
       DB_PASSWORD: secret
+      REDIS_HOST: redis
 
   db:
     image: mysql:8
@@ -25,6 +27,13 @@ services:
       - "3306:3306"
     volumes:
       - db_data:/var/lib/mysql
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
 
 volumes:
   db_data:
+  redis_data:

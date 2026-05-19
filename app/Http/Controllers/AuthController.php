@@ -53,7 +53,7 @@ class AuthController extends Controller
             return $user;
         });
 
-        Mail::to($user->email)->send(new RegistrationSubmit($user));
+        Mail::to($user->email)->queue(new RegistrationSubmit($user));
         NotificationController::log($user->id, $user->email, 'registration',
             'Welcome to NTI! Please verify your email to continue.',
             ['email' => $user->email]

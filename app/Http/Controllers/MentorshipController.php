@@ -29,7 +29,7 @@ class MentorshipController extends Controller
         $mentor = User::findOrFail($data['mentor_id']);
         $student = User::findOrFail($data['student_id']);
 
-        Mail::to($student->email)->send(new MentorAssignedMail($student, $mentor));
+        Mail::to($student->email)->queue(new MentorAssignedMail($student, $mentor));
 
         return response()->json(['message' => 'Mentor assigned']);
     }

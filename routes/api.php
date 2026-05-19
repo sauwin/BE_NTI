@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\ProgramController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\ApplicationController;
 use App\Http\Controllers\ArticleController;
@@ -13,19 +14,18 @@ use App\Http\Controllers\MentorProfileController;
 use App\Http\Controllers\MentorshipController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\OrganizationController;
-use App\Http\Controllers\OnboardingController;
-use App\Http\Controllers\Admin\ProgramController;
 use App\Http\Controllers\PasswordResetController;
 use App\Http\Controllers\StudentProfileController;
 use App\Mail\RegistrationSubmit;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Route;
 
 // Public
-Route::post('/auth/register', [AuthController::class, 'register']);
-Route::post('/auth/login', [AuthController::class, 'login']);
+Route::post('/auth/register', [AuthController::class, 'register'])->middleware('throttle:5,15');
+Route::post('/auth/login', [AuthController::class, 'login'])->middleware('throttle:5,15');
 
 Route::apiResource('articles', ArticleController::class);
 
@@ -70,14 +70,14 @@ Route::post('/email/resend', function (Request $request) {
     if ($user->email_verified_at) {
         return response()->json(['message' => 'Already verified'], 400);
     }
-    Mail::to($user->email)->send(new RegistrationSubmit($user));
+    Mail::to($user->email)->queue(new RegistrationSubmit($user));
 
     return response()->json(['message' => 'Verification email sent']);
 })->middleware(['auth:sanctum', 'throttle:3,1']);
 
-Route::post('/auth/forgot-password', [PasswordResetController::class, 'forgot']);
-Route::post('/auth/reset-password', [PasswordResetController::class, 'reset']);
-Route::post('/auth/verify-reset-token', [PasswordResetController::class, 'verify']);
+Route::post('/auth/forgot-password', [PasswordResetController::class, 'forgot'])->middleware('throttle:3,15');
+Route::post('/auth/reset-password', [PasswordResetController::class, 'reset'])->middleware('throttle:3,15');
+Route::post('/auth/verify-reset-token', [PasswordResetController::class, 'verify'])->middleware('throttle:5,15');
 
 // Authenticated
 Route::middleware('auth:sanctum')->group(function () {
@@ -153,11 +153,11 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Admin Only
     Route::prefix('admin')->group(function () {
-        Route::get('/programs', [App\Http\Controllers\Admin\ProgramController::class, 'index']);
-        Route::post('/programs', [App\Http\Controllers\Admin\ProgramController::class, 'store']);
-        Route::get('/programs/{program}', [App\Http\Controllers\Admin\ProgramController::class, 'show']);
-        Route::put('/programs/{program}', [App\Http\Controllers\Admin\ProgramController::class, 'update']);
-        Route::delete('/programs/{program}', [App\Http\Controllers\Admin\ProgramController::class, 'destroy']);
+        Route::get('/programs', [ProgramController::class, 'index']);
+        Route::post('/programs', [ProgramController::class, 'store']);
+        Route::get('/programs/{program}', [ProgramController::class, 'show']);
+        Route::put('/programs/{program}', [ProgramController::class, 'update']);
+        Route::delete('/programs/{program}', [ProgramController::class, 'destroy']);
 
         Route::get('/calls', [CallController::class, 'index']);
         Route::post('/calls', [CallController::class, 'store']);

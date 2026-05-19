@@ -9,6 +9,7 @@ use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\URL;
 use App\Models\User;
+use Illuminate\Contracts\Queue\ShouldQueue;
 
 class RegistrationSubmit extends Mailable
 {

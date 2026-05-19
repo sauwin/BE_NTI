@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
 class NotificationController extends Controller
@@ -15,10 +16,12 @@ class NotificationController extends Controller
             ->limit(50)
             ->get();
 
-        $unread = DB::table('notification_log')
-            ->where('user_id', $request->user()->id)
-            ->where('status', 'queued')
-            ->count();
+        $unread = Cache::remember("notifications.unread.{$request->user()->id}", 60, function () use ($request) {
+            return DB::table('notification_log')
+                ->where('user_id', $request->user()->id)
+                ->where('status', 'queued')
+                ->count();
+        });
 
         return response()->json([
             'notifications' => $notifications,
@@ -42,6 +45,8 @@ class NotificationController extends Controller
             ->where('user_id', $request->user()->id)
             ->where('status', 'queued')
             ->update(['status' => 'sent']);
+
+        Cache::forget("notifications.unread.{$request->user()->id}");
 
         return response()->json(['message' => 'All marked as read']);
     }

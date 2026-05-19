@@ -54,7 +54,7 @@ class ApplicationController extends Controller
             'status' => 'draft',
         ]);
 
-        Mail::to($request->user()->email)->send(
+        Mail::to($request->user()->email)->queue(
             new ApplicationSubmittedMail($request->user(), $application)
         );
 
@@ -79,13 +79,13 @@ class ApplicationController extends Controller
         $user = $request->user();
 
         if ($data['status'] === 'closed') {
-            Mail::to($user->email)->send(new ProjectClosedMail($user, $application));
+            Mail::to($user->email)->queue(new ProjectClosedMail($user, $application));
             NotificationController::log($user->id, $user->email, 'project_closed',
                 'Your project #'.$application->id.' has been closed.',
                 ['application_id' => $application->id]
             );
         } else {
-            Mail::to($user->email)->send(new StatusChangedMail($user, $application, $oldStatus));
+            Mail::to($user->email)->queue(new StatusChangedMail($user, $application, $oldStatus));
             NotificationController::log($user->id, $user->email, 'status_changed',
                 'Your application #'.$application->id.' status changed from '.$oldStatus.' to '.$data['status'].'.',
                 ['application_id' => $application->id, 'old_status' => $oldStatus, 'new_status' => $data['status']]

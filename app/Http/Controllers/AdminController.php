@@ -11,6 +11,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use App\Mail\AdminPasswordResetMail;
 use App\Models\PasswordResetToken;
@@ -378,7 +379,7 @@ class AdminController extends Controller
             'details' => ['new_password_set' => true],
         ]);
 
-        Mail::to($targetUser->email)->send(new AdminPasswordResetMail($targetUser, $newPassword));
+        Mail::to($targetUser->email)->queue(new AdminPasswordResetMail($targetUser, $newPassword));
 
         return response()->json([
             'message' => 'Password reset. Email sent to admin.',

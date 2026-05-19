@@ -34,7 +34,7 @@ class SendDeadlineReminders extends Command
                     continue;
                 }
 
-                Mail::to($user->email)->send(new DeadlineReminderMail($user, $call));
+                Mail::to($user->email)->queue(new DeadlineReminderMail($user, $call));
             }
         }
 
