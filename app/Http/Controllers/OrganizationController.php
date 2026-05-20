@@ -3,21 +3,20 @@
 namespace App\Http\Controllers;
 
 use App\Models\Organization;
-use App\Models\OrganizationMember;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 
 class OrganizationController extends Controller
 {
     public function show(Request $request)
     {
-        $member = OrganizationMember::where('user_id', $request->user()->id)->first();
+        $org = $request->user()->organization;
 
-        if (!$member) {
+        if (!$org) {
             return response()->json(null);
         }
 
-        $org = Organization::find($member->organization_id);
         return response()->json($org);
     }
 
@@ -32,10 +31,13 @@ class OrganizationController extends Controller
         ]);
 
         DB::transaction(function () use ($request) {
-            $member = OrganizationMember::where('user_id', $request->user()->id)->first();
+            $user = $request->user();
+            $org = $user->organization;
 
-            if ($member) {
-                Organization::where('id', $member->organization_id)->update([
+            if ($org) {
+                Gate::authorize('update', $org);
+
+                $org->update([
                     'name' => $request->name,
                     'registration_number' => $request->registration_number,
                     'sector' => $request->sector,
@@ -43,6 +45,8 @@ class OrganizationController extends Controller
                     'website' => $request->website,
                 ]);
             } else {
+                Gate::authorize('create');
+
                 $org = Organization::create([
                     'name' => $request->name,
                     'registration_number' => $request->registration_number,
@@ -53,9 +57,8 @@ class OrganizationController extends Controller
                     'is_public_partner' => false,
                 ]);
 
-                OrganizationMember::create([
+                $user->update([
                     'organization_id' => $org->id,
-                    'user_id' => $request->user()->id,
                     'role_in_org' => 'owner',
                 ]);
             }

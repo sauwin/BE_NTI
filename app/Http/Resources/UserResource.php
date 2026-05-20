@@ -1,0 +1,44 @@
+<?php
+
+namespace App\Http\Resources;
+
+use Illuminate\Http\Request;
+use Illuminate\Http\Resources\Json\JsonResource;
+
+use App\Models\User;
+use App\Models\Role;
+use App\Models\Organization;
+
+class UserResource extends JsonResource
+{
+    public static $wrap = null;
+
+    /**
+     * Transform the resource into an array.
+     *
+     * @return array<string, mixed>
+     */
+    public function toArray(Request $request): array
+    {
+        $role = optional($this->roles)->first();
+        $organization = $this->organization;
+
+        return [
+            'id' => $this->id,
+            'first_name' => $this->first_name,
+            'last_name' => $this->last_name,
+            'email' => $this->email,
+            'status' => $this->status,
+
+            'role_slug' => $role?->slug,
+
+            'organization' => $role?->slug === 'company' && $organization
+                ? [
+                    'id' => $organization->id,
+                    'name' => $organization->name,
+                    'role_in_org' => $this->role_in_org,
+                ]
+                : null,
+        ];
+    }
+}

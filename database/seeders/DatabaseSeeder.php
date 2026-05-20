@@ -11,7 +11,6 @@ use Database\Seeders\UserSeeder;
 use Database\Seeders\AdminUserSeeder;
 use Database\Seeders\FaqSeeder;
 use Database\Seeders\CallPeriodSeeder;
-use Database\Seeders\OrganizationMemberSeeder;
 
 use App\Models\User;
 use App\Models\NewsArticle;
@@ -28,8 +27,7 @@ class DatabaseSeeder extends Seeder
             NewsArticleSeeder::class,
             AdminUserSeeder::class,
             FaqSeeder::class,
-            CallPeriodSeeder::class,
-            OrganizationMemberSeeder::class
+            CallPeriodSeeder::class
         ]);
         
         NewsArticle::factory(30)

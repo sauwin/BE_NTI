@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 
 class Organization extends Model
@@ -14,6 +15,6 @@ class Organization extends Model
 
     public function members()
     {
-        return $this->hasMany(OrganizationMember::class);
+        return $this->hasMany(User::class, 'organization_id');
     }
 }
