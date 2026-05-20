@@ -22,6 +22,12 @@ return new class extends Migration
             $table->string('last_name');
             $table->enum('language_preference', ['sk', 'en'])
                 ->default('sk');
+            $table->foreignId('organization_id')
+                ->nullable()
+                ->constrained('organizations')
+                ->onDelete('set null');
+            $table->enum('role_in_org', ['owner', 'contact', 'product_owner', 'viewer'])
+                ->nullable();
             $table->index('email');
             $table->index('status');
             $table->timestamps();

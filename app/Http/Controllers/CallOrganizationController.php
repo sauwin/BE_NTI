@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Models\Call;
 use App\Models\CallOrganization;
-use App\Models\OrganizationMember;
 use Illuminate\Http\Request;
 
 class CallOrganizationController extends Controller
@@ -40,9 +39,9 @@ class CallOrganizationController extends Controller
             'status' => 'nullable|in:draft,published',
         ]);
 
-        $member = OrganizationMember::where('user_id', $request->user()->id)->first();
+        $organizationId = $request->user()->organization_id;
 
-        if (!$member) {
+        if (! $organizationId) {
             return response()->json(['message' => 'You must belong to an organization.'], 403);
         }
 
@@ -53,7 +52,7 @@ class CallOrganizationController extends Controller
 
         $task = CallOrganization::create([
             'call_id' => $data['call_id'],
-            'organization_id' => $member->organization_id,
+            'organization_id' => $organizationId,
             'product_owner_user_id' => $request->user()->id,
             'title' => $data['title'],
             'budget' => $data['budget'],

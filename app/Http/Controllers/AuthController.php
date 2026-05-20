@@ -3,8 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Mail\RegistrationSubmit;
+use App\Models\Organization;
 use App\Models\Role;
 use App\Models\User;
+use App\Http\Resources\UserResource;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -20,6 +22,12 @@ class AuthController extends Controller
             'email' => 'required|email|unique:users,email',
             'password' => 'required|string|min:8|confirmed',
             'role' => 'required|in:student,company,mentor',
+            'company_type' => 'required_if:role,company|in:owner,member',
+            'registration_number' => 'required_if:company_type,member|nullable|integer|exists:organizations,registration_number',
+            'organization_name' => 'nullable|string|max:255',
+            'sector' => 'nullable|string|max:100',
+            'description' => 'nullable|string|max:2000',
+            'website' => 'nullable|url|max:255',
         ]);
 
         if ($data['role'] === 'student') {
@@ -50,6 +58,30 @@ class AuthController extends Controller
                 'granted_at' => now(),
             ]);
 
+            if ($data['role'] === 'company' && $data['company_type'] === 'member' && ! empty($data['registration_number'])) {
+                $user->update([
+                    'organization_id' => Organization::where('registration_number', $data['registration_number'])->value('id'),
+                    'role_in_org' => 'contact',
+                ]);
+            }
+
+            if ($data['role'] === 'company' && $data['company_type'] === 'owner' && ! empty($data['organization_name'])) {
+                $organization = Organization::create([
+                    'name' => $data['organization_name'],
+                    'registration_number' => $data['registration_number'] ?? null,
+                    'sector' => $data['sector'] ?? null,
+                    'description' => $data['description'] ?? null,
+                    'website' => $data['website'] ?? null,
+                    'status' => 'pending',
+                    'is_public_partner' => false,
+                ]);
+
+                $user->update([
+                    'organization_id' => $organization->id,
+                    'role_in_org' => 'owner',
+                ]);
+            }
+
             return $user;
         });
 
@@ -60,7 +92,12 @@ class AuthController extends Controller
         );
         $token = $user->createToken('auth_token')->plainTextToken;
 
-        return response()->json(['token' => $token, 'user' => $this->userWithRole($user)], 201);
+        $user->load(['roles', 'organization']);
+
+        return response()->json([
+            'token' => $token,
+            'user' => new UserResource($user),
+        ], 201);
     }
 
     public function login(Request $request)
@@ -86,7 +123,12 @@ class AuthController extends Controller
 
         $token = $user->createToken('auth_token')->plainTextToken;
 
-        return response()->json(['token' => $token, 'user' => $this->userWithRole($user)]);
+        $user->load(['roles', 'organization']);
+
+        return response()->json([
+            'token' => $token,
+            'user' => new UserResource($user),
+        ]);
     }
 
     public function logout(Request $request)
@@ -98,17 +140,12 @@ class AuthController extends Controller
 
     public function me(Request $request)
     {
-        return response()->json($this->userWithRole($request->user()));
-    }
+        $user = $request->user()->load([
+            'roles',
+            'organization',
+        ]);
 
-    private function userWithRole(User $user): array
-    {
-        $row = DB::table('user_roles')->where('user_id', $user->id)->first();
-        $role = $row ? Role::find($row->role_id) : null;
-        $data = $user->toArray();
-        $data['role_slug'] = $role?->slug;
-
-        return $data;
+        return new UserResource($user);
     }
 
     public function roleStatus(Request $request)

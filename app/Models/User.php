@@ -11,6 +11,8 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 
+use App\Models\Organization;
+
 #[Fillable(['name', 'email', 'password'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
@@ -19,7 +21,7 @@ class User extends Authenticatable
     use HasApiTokens, HasFactory, Notifiable;
 
     protected $fillable = [
-        'first_name', 'last_name', 'email', 'password_hash', 'status', 'language_preference', 'email_verified_at',
+        'first_name', 'last_name', 'email', 'password_hash', 'status', 'language_preference', 'email_verified_at', 'organization_id', 'role_in_org',
     ];
 
     protected $hidden = ['password_hash'];
@@ -43,5 +45,15 @@ class User extends Authenticatable
     {
         return $this->belongsToMany(Role::class, 'user_roles')
             ->withPivot('granted_by', 'granted_at');
+    }
+
+    public function organization()
+    {
+        return $this->belongsTo(Organization::class);
+    }
+
+    public function hasOrgRole($organizationId, $role): bool
+    {
+        return $this->organization_id === $organizationId && $this->role_in_org === $role;
     }
 }
