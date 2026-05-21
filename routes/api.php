@@ -7,6 +7,7 @@ use App\Http\Controllers\ArticleController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CallController;
 use App\Http\Controllers\CallOrganizationController;
+use App\Http\Controllers\OrganizationMembershipController;
 use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\DraftController;
 use App\Http\Controllers\FaqItemController;
@@ -139,9 +140,15 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Роути для фірми (керування власними завданнями/викликами)
     Route::get('/company/tasks', [CallOrganizationController::class, 'index']);
+    Route::get('/company/{companyId}/tasks', [CallOrganizationController::class, 'byOrganization']);
     Route::post('/company/tasks', [CallOrganizationController::class, 'store']);
     Route::put('/company/tasks/{id}', [CallOrganizationController::class, 'update']);
     Route::delete('/company/tasks/{id}', [CallOrganizationController::class, 'destroy']);
+
+    // Company members
+    Route::get('/company/members/pending', [OrganizationMembershipController::class, 'pendingMembers']);
+    Route::post('/company/members/{userId}/approve', [OrganizationMembershipController::class, 'approveMember']);
+    Route::post('/company/members/{userId}/reject', [OrganizationMembershipController::class, 'rejectMember']);
 
     // Super Admin Only
     Route::middleware('super_admin')->group(function () {
