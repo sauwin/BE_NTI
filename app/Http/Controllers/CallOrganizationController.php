@@ -8,6 +8,15 @@ use Illuminate\Http\Request;
 
 class CallOrganizationController extends Controller
 {
+    public function byOrganization($organizationId)
+    {
+        $tasks = CallOrganization::with(['call.program', 'organization'])
+            ->where('organization_id', $organizationId)
+            ->get();
+
+        return response()->json($tasks);
+    }
+
     public function publicTasks()
     {
         $tasks = CallOrganization::with(['call.program', 'organization'])

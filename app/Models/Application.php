@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Application extends Model
 {
@@ -23,4 +24,19 @@ class Application extends Model
         'submitted_at' => 'datetime',
         'decision_at' => 'datetime',
     ];
+
+    public function call(): BelongsTo
+    {
+        return $this->belongsTo(Call::class);
+    }
+
+    public function studentProfile(): BelongsTo
+    {
+        return $this->belongsTo(StudentProfile::class);
+    }
+
+    public function decisionMaker(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'decision_by');
+    }
 }
