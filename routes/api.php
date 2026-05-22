@@ -176,6 +176,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/calls/{id}', [CallController::class, 'show']);
         Route::put('/calls/{id}', [CallController::class, 'update']);
         Route::delete('/calls/{id}', [CallController::class, 'destroy']);
+        Route::patch('/calls/{id}/status', [CallController::class, 'updateStatus']);
         Route::get('/reporting/dashboard-stats', [ReportingController::class, 'dashboardStats']);
     });
 });

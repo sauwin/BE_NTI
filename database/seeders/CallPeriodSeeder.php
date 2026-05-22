@@ -24,8 +24,8 @@ class CallPeriodSeeder extends Seeder
         $adminRole = DB::table('roles')->where('slug', 'nti_admin')->first();
         if ($adminRole) {
             DB::table('user_roles')->insert([
-                'user_id'    => $adminId,
-                'role_id'    => $adminRole->id,
+                'user_id' => $adminId,
+                'role_id' => $adminRole->id,
                 'granted_by' => null,
                 'granted_at' => now(),
             ]);
@@ -35,24 +35,24 @@ class CallPeriodSeeder extends Seeder
         $programBId = $programB ? $programB->id : 2;
 
         $callId = DB::table('calls')->insertGetId([
-            'program_id'          => $programBId,
-            'status'              => 'open',
-            'opens_at'            => now()->subDays(2),
-            'deadline_at'         => now()->addMonths(3),
-            'min_team_size'       => 3,
-            'max_team_size'       => 5,
+            'program_id' => $programBId,
+            'status' => 'open',
+            'opens_at' => now()->subDays(2),
+            'deadline_at' => now()->addMonths(3),
+            'min_team_size' => 3,
+            'max_team_size' => 5,
             'evaluation_criteria' => json_encode([
-                'tech_stack'      => 0.4, 
+                'tech_stack' => 0.4, 
                 'solution_design' => 0.6
             ]),
-            'required_documents'  => json_encode([
+            'required_documents' => json_encode([
                 'cv', 
                 'motivation_letter', 
                 'technical_proposal'
             ]),
-            'created_by'          => $adminId,
-            'created_at'          => now(),
-            'updated_at'          => now(),
+            'created_by' => $adminId,
+            'created_at' => now(),
+            'updated_at' => now(),
         ]);
 
         DB::table('call_translations')->insert([
