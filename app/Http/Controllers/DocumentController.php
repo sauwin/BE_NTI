@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\ApplicationDocument;
 use App\Models\Document;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 
 class DocumentController extends Controller
 {
@@ -54,5 +55,77 @@ class DocumentController extends Controller
             'document_id' => $document->id,
             'file_name' => $document->file_name,
         ], 201);
+    }
+
+    public function index(Request $request)
+    {
+        $user = $request->user();
+
+        if (! $user || ! $user->roles()->whereIn('slug', ['super_admin', 'nti_admin', 'mentor'])->exists()) {
+            return response()->json(['message' => 'Unauthorized. Admin or mentor required.'], 403);
+        }
+
+        $documents = Document::query()
+            ->select(['id', 'file_name', 'mime_type', 'file_size_bytes', 'created_at', 'uploaded_by'])
+            ->when($request->query('search'), function ($query, $search) {
+                $query->where('file_name', 'like', '%' . trim($search) . '%');
+            })
+            ->when($request->query('date'), function ($query, $date) {
+                $query->whereDate('created_at', $date);
+            })
+            ->orderBy('created_at', 'desc')
+            ->paginate(15);
+
+        return response()->json($documents);
+    }
+
+    public function download(Request $request, int $id)
+    {
+        $document = Document::findOrFail($id);
+        $this->authorizeDocumentAccess($request, $document);
+
+        if (! Storage::disk('local')->exists($document->file_path)) {
+            return response()->json(['message' => 'File not found'], 404);
+        }
+
+        return Storage::disk('local')->download($document->file_path, $document->file_name);
+    }
+
+    public function preview(Request $request, int $id)
+    {
+        $document = Document::findOrFail($id);
+        $this->authorizeDocumentAccess($request, $document);
+
+        if (! str_starts_with(strtolower($document->mime_type), 'application/pdf')) {
+            return response()->json(['message' => 'Preview is only available for PDF files'], 415);
+        }
+
+        if (! Storage::disk('local')->exists($document->file_path)) {
+            return response()->json(['message' => 'File not found'], 404);
+        }
+
+        return Storage::disk('local')->response(
+            $document->file_path,
+            $document->file_name,
+            [
+                'Content-Type' => 'application/pdf',
+                'Content-Disposition' => 'inline; filename="' . $document->file_name . '"',
+            ]
+        );
+    }
+
+    private function authorizeDocumentAccess(Request $request, Document $document): void
+    {
+        $user = $request->user();
+
+        if ($user->roles()->whereIn('slug', ['super_admin', 'nti_admin', 'mentor'])->exists()) {
+            return;
+        }
+
+        if ($document->uploaded_by === $user->id) {
+            return;
+        }
+
+        abort(403, 'Forbidden');
     }
 }
