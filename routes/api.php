@@ -17,6 +17,7 @@ use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\OrganizationController;
 use App\Http\Controllers\PasswordResetController;
 use App\Http\Controllers\StudentProfileController;
+use App\Http\Controllers\TeamController;
 use App\Mail\RegistrationSubmit;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -87,6 +88,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/auth/logout', [AuthController::class, 'logout']);
     Route::get('/auth/me', [AuthController::class, 'me']);
     Route::get('/auth/role-status', [AuthController::class, 'roleStatus']);
+
+    //Teams
+    Route::apiResource('teams', TeamController::class);
 
     // Documents
     Route::post('/documents/upload', [DocumentController::class, 'upload']);

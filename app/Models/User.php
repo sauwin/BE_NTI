@@ -12,6 +12,7 @@ use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 
 use App\Models\Organization;
+use App\Models\Team;
 
 #[Fillable(['name', 'email', 'password'])]
 #[Hidden(['password', 'remember_token'])]
@@ -55,5 +56,10 @@ class User extends Authenticatable
     public function hasOrgRole($organizationId, $role): bool
     {
         return $this->organization_id === $organizationId && $this->role_in_org === $role;
+    }
+
+    public function teams()
+    {
+        return $this->belongsToMany(Team::class, 'team_members');
     }
 }
