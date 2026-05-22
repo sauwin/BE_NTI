@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin\ProgramController;
 use App\Http\Controllers\AdminController;
+use App\Http\Controllers\ReportingController;
 use App\Http\Controllers\ApplicationController;
 use App\Http\Controllers\ArticleController;
 use App\Http\Controllers\AuthController;
@@ -90,6 +91,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Documents
     Route::post('/documents/upload', [DocumentController::class, 'upload']);
+    Route::get('/documents/{id}/download', [DocumentController::class, 'download']);
+    Route::get('/documents/{id}/preview', [DocumentController::class, 'preview']);
 
     // Applications
     Route::post('/applications', [ApplicationController::class, 'store']);
@@ -159,17 +162,20 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 
     // Admin Only
-    Route::prefix('admin')->group(function () {
+    Route::middleware('admin')->prefix('admin')->group(function () {
         Route::get('/programs', [ProgramController::class, 'index']);
         Route::post('/programs', [ProgramController::class, 'store']);
         Route::get('/programs/{program}', [ProgramController::class, 'show']);
         Route::put('/programs/{program}', [ProgramController::class, 'update']);
         Route::delete('/programs/{program}', [ProgramController::class, 'destroy']);
 
+        Route::get('/documents', [DocumentController::class, 'index']);
+
         Route::get('/calls', [CallController::class, 'index']);
         Route::post('/calls', [CallController::class, 'store']);
         Route::get('/calls/{id}', [CallController::class, 'show']);
         Route::put('/calls/{id}', [CallController::class, 'update']);
         Route::delete('/calls/{id}', [CallController::class, 'destroy']);
+        Route::get('/reporting/dashboard-stats', [ReportingController::class, 'dashboardStats']);
     });
 });
