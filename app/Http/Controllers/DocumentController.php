@@ -13,7 +13,7 @@ class DocumentController extends Controller
     {
         $request->validate([
             'file' => 'required|file|max:20480|mimes:pdf,doc,docx,ppt,pptx',
-            'type' => 'required|in:cv,executive_summary,technical_architecture,roadmap,budget,risk_analysis,monetization,motivation_letter,technical_proposal,final_presentation,other',
+            'type' => 'required|string|max:100',
             'classification' => 'in:public,internal,confidential',
             'application_id' => 'required|exists:applications,id',
         ]);

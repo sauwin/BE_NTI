@@ -3,12 +3,10 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\DB;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::create('documents', function (Blueprint $table) {
@@ -16,18 +14,7 @@ return new class extends Migration
             $table->foreignId('uploaded_by')
                 ->constrained('users')
                 ->onDelete('cascade');
-            $table->enum('type', [
-                'cv',
-                'executive_summary',
-                'technical_architecture',
-                'roadmap',
-                'budget',
-                'risk_analysis',
-                'monetization',
-                'motivation_letter',
-                'final_presentation',
-                'other',
-            ]);
+            $table->string('type', 100);
             $table->enum('classification', [
                 'public',
                 'internal',
@@ -44,9 +31,6 @@ return new class extends Migration
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('documents');
