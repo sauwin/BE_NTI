@@ -19,6 +19,7 @@ use App\Http\Controllers\OrganizationController;
 use App\Http\Controllers\PasswordResetController;
 use App\Http\Controllers\StudentProfileController;
 use App\Http\Controllers\TeamController;
+use App\Http\Controllers\Admin\ExportController;
 use App\Mail\RegistrationSubmit;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -186,5 +187,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('/calls/{id}', [CallController::class, 'destroy']);
         Route::patch('/calls/{id}/status', [CallController::class, 'updateStatus']);
         Route::get('/reporting/dashboard-stats', [ReportingController::class, 'dashboardStats']);
+
+        // Експорти
+        Route::get('/export/applications', [ExportController::class, 'applications']);
+        Route::get('/export/users', [ExportController::class, 'users']);
     });
 });
