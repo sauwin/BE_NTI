@@ -49,7 +49,6 @@ class AdminController extends Controller
         $query = \App\Models\Audit::with('user');
 
         if ($request->filled('action_type')) {
-            // Support grouped export filter: 'export' matches all export_* variants too
             if ($request->action_type === 'export') {
                 $query->where(function ($q) {
                     $q->where('action', 'export')
@@ -70,6 +69,10 @@ class AdminController extends Controller
 
         if ($request->filled('date_to')) {
             $query->whereDate('created_at', '<=', $request->date_to);
+        }
+
+        if ($request->has('export')) {
+            return response()->json($query->orderByDesc('created_at')->get());
         }
 
         $logs = $query->orderByDesc('created_at')->paginate(15);
