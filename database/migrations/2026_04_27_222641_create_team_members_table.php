@@ -19,7 +19,10 @@ return new class extends Migration
             $table->foreignId('user_id')
                 ->constrained('users')
                 ->onDelete('cascade');
-            $table->date('joined_at');
+            $table->date('joined_at')
+                ->nullable();
+            $table->enum('status', ['pending', 'accepted'])
+                ->default('pending');
             $table->timestamps();
             $table->unique(['team_id', 'user_id']);
             $table->index('team_id');

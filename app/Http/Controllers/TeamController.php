@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 
 use App\Models\Team;
 use App\Models\User;
@@ -17,7 +18,8 @@ class TeamController extends Controller
     {
         $teams = $request->user()
         ->teams()
-        ->with('leader')
+        ->with(['leader', 'members'])
+        ->withCount('members')
         ->get();
 
         return response()->json($teams);
@@ -41,11 +43,12 @@ class TeamController extends Controller
 
         $team->members()->syncWithoutDetaching([
             $request->user()->id => [
+                'status' => 'accepted',
                 'joined_at' => now(),
             ]
         ]);
 
-        return response()->json($team, 201);
+        return response()->json($team->load('members'), 201);
     }
 
     /**
@@ -91,9 +94,6 @@ class TeamController extends Controller
         return response()->noContent();
     }
 
-    /**
-     * Invite a user to the team by email.
-     */
     public function invite(Request $request, Team $team) 
     {
         Gate::authorize('manageMembers', $team);
@@ -104,14 +104,28 @@ class TeamController extends Controller
 
         $userToInvite = User::where('email', $validated['email'])->firstOrFail();
 
+        if (!$userToInvite->isStudent()) {
+            return response()->json([
+                'message' => 'You can only invite users who have the student role.'
+            ], 422);
+        }
+
+        $alreadyMember = $team->members()->where('user_id', $userToInvite->id)->exists();
+        if ($alreadyMember) {
+            return response()->json([
+                'message' => 'User is already a member or has a pending invitation.'
+            ], 422);
+        }
+
         $team->members()->syncWithoutDetaching([
             $userToInvite->id => [
-                'joined_at' => now(),
+                'status' => 'pending',
+                'joined_at' => null
             ]
         ]);
 
         return response()->json([
-            'message' => 'User was removed from the team successfully.',
+            'message' => 'Invitation sent successfully.',
             'user' => $userToInvite
         ], 200);
     }
@@ -125,8 +139,8 @@ class TeamController extends Controller
 
         if ($team->leader_id === $user->id) {
             return response()->json([
-                'error' => 'You are not allowed to perform this action.'
-            ], 422);
+                'error' => 'You cannot remove the team leader.'
+            ], 403); 
         }
 
         $team->members()->detach($user->id);
@@ -134,5 +148,50 @@ class TeamController extends Controller
         return response()->json([
             'message' => 'User was successfully removed from the team.'
         ], 200);
+    }
+
+    public function myInvitations(Request $request)
+    {
+        $invitations = $request->user()
+            ->teams()
+            ->wherePivot('status', 'pending')
+            ->with('leader')
+            ->get();
+
+        return response()->json($invitations);
+    }
+
+    public function respondToInvitation(Request $request, Team $team)
+    {
+        $validated = $request->validate([
+            'status' => 'required|in:accepted,rejected',
+        ]);
+
+        $user = $request->user();
+
+        $membership = $team->members()->where('user_id', $user->id)->first();
+
+        if (!$membership || $membership->pivot->status !== 'pending') {
+            return response()->json([
+                'message' => 'You do not have a pending invitation to this team.'
+            ], 404);
+        }
+
+        if ($validated['status'] === 'accepted') {
+            $team->members()->updateExistingPivot($user->id, [
+                'status' => 'accepted',
+                'joined_at' => now(),
+            ]);
+
+            return response()->json([
+                'message' => 'You have successfully joined the team.'
+            ], 200);
+        } else {
+            $team->members()->detach($user->id);
+
+            return response()->json([
+                'message' => 'Invitation declined successfully.'
+            ], 200);
+        }
     }
 }

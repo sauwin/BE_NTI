@@ -13,7 +13,21 @@ class UserSeeder extends Seeder
     public function run(): void
     {
         $roles = Role::all()->keyBy('slug');
+        $studentRole = $roles->get('student');
 
+        //More students for teams test
+        if ($studentRole) {
+            User::factory(6)->create()->each(function (User $student) use ($studentRole) {
+                DB::table('user_roles')->insert([
+                    'user_id' => $student->id,
+                    'role_id' => $studentRole->id,
+                    'granted_by' => $student->id,
+                    'granted_at' => now(),
+                ]);
+            });
+        }
+
+        //More different test roles
         $slugs = ['student', 'company', 'mentor', 'evaluator', 'content_editor'];
 
         User::factory(10)->create()->each(function (User $user) use ($roles, $slugs) {

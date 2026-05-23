@@ -96,6 +96,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('teams/{team}/invite', [TeamController::class, 'invite'])->middleware('throttle:10,1');
     Route::delete('teams/{team}/members/{user}', [TeamController::class, 'removeMember']);
 
+    Route::get('user/invitations', [TeamController::class, 'myInvitations']);
+    Route::post('user/invitations/{team}', [TeamController::class, 'respondToInvitation']);
+
     // Documents
     Route::post('/documents/upload', [DocumentController::class, 'upload'])->middleware('throttle:20,1');
     Route::get('/documents/{id}/download', [DocumentController::class, 'download']);
