@@ -6,7 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
-use Http\App\Models\User;
+use App\Models\User;
 
 class OrganizationMembershipController extends Controller
 {
@@ -144,6 +144,7 @@ class OrganizationMembershipController extends Controller
                 'users.email',
                 'users.status',
                 'users.created_at',
+                'users.role_in_org',
                 'roles.slug as role_slug'
             )
             ->orderBy('users.first_name', 'asc')
@@ -156,6 +157,7 @@ class OrganizationMembershipController extends Controller
                 'last_name' => $row->last_name,
                 'email' => $row->email,
                 'status' => $row->status,
+                'role_in_org' => $row->role_in_org,
                 'roles' => [
                     ['id' => 1, 'slug' => $row->role_slug]
                 ]
@@ -190,7 +192,6 @@ class OrganizationMembershipController extends Controller
             })
             ->update([
                 'granted_by' => null,
-                'granted_at' => null,
             ]);
 
         if (!$updated) {

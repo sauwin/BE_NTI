@@ -163,6 +163,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/company/members/{userId}/kick', [OrganizationMembershipController::class, 'kickMember'])->middleware('throttle:10,1');
 
     Route::get('/admin/admin-users', [AdminController::class, 'adminUsers']);
+    Route::delete('/company/members/{userId}/kick', [OrganizationMembershipController::class, 'kickMember']);
 
     // Super Admin Only
     Route::middleware('super_admin')->group(function () {
