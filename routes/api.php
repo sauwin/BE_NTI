@@ -162,6 +162,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/company/members/active', [OrganizationMembershipController::class, 'activeMembers']);
     Route::post('/company/members/{userId}/kick', [OrganizationMembershipController::class, 'kickMember']);
 
+    Route::get('/admin/admin-users', [AdminController::class, 'adminUsers']);
+
     // Super Admin Only
     Route::middleware('super_admin')->group(function () {
         Route::post('/admin/create-admin', [AdminController::class, 'createAdmin']);
@@ -177,6 +179,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/programs/{program}', [ProgramController::class, 'show']);
         Route::put('/programs/{program}', [ProgramController::class, 'update']);
         Route::delete('/programs/{program}', [ProgramController::class, 'destroy']);
+
+        Route::get('/applications', [ApplicationController::class, 'index']);
+        Route::patch('/applications/{id}/status', [ApplicationController::class, 'updateStatus']);
 
         Route::get('/documents', [DocumentController::class, 'index']);
 
