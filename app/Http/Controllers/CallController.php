@@ -146,19 +146,23 @@ class CallController extends Controller
         $call = Call::findOrFail($id);
 
         $data = $request->validate([
+            'title' => 'sometimes|string|max:255',
+            'program_type' => 'sometimes|in:a,b',
             'status' => 'sometimes|in:draft,open,closed,archived',
-            'opens_at' => 'sometimes|date',
-            'deadline_at' => 'sometimes|date|after_or_equal:opens_at',
+            'opens_at' => 'nullable|date',
+            'deadline_at' => 'nullable|date|after_or_equal:opens_at',
             'min_team_size' => 'sometimes|integer|min:1',
             'max_team_size' => 'nullable|integer|min:1',
             'evaluation_criteria' => 'nullable|array',
+            'form_config' => 'nullable|string',
             'required_documents' => 'nullable|array',
-            'form_config' => 'nullable|array',
         ]);
 
-        if (isset($data['form_config'])) {
-            $data['required_documents'] = $data['form_config'];
-            unset($data['form_config']);
+        if (isset($data['program_type'])) {
+            $program = Program::where('code', 'program_' . $data['program_type'])->first();
+            if ($program) {
+                $call->program_id = $program->id;
+            }
         }
 
         if (isset($data['max_team_size']) && $data['max_team_size'] !== null) {
@@ -166,9 +170,38 @@ class CallController extends Controller
             if ($data['max_team_size'] < $min) {
                 return response()->json(['message' => 'Max team size cannot be less than min team size.'], 422);
             }
+            $call->max_team_size = $data['max_team_size'];
+        } elseif (array_key_exists('max_team_size', $data)) {
+            $call->max_team_size = null;
         }
 
-        $call->update($data);
+        $documents = $data['form_config'] ?? null;
+        if (is_string($documents)) {
+            $documents = json_decode($documents, true) ?? [];
+        } elseif (isset($data['required_documents'])) {
+            $documents = $data['required_documents'];
+        }
+        
+        if ($documents !== null) {
+            $call->required_documents = $documents;
+        }
+
+        if (isset($data['min_team_size'])) $call->min_team_size = $data['min_team_size'];
+        if (isset($data['status'])) $call->status = $data['status'];
+        if (array_key_exists('opens_at', $data)) $call->opens_at = $data['opens_at'] ? now()->parse($data['opens_at']) : null;
+        if (array_key_exists('deadline_at', $data)) $call->deadline_at = $data['deadline_at'] ? now()->parse($data['deadline_at']) : null;
+
+        $call->save();
+
+        if (isset($data['title'])) {
+            DB::table('call_translations')
+                ->where('call_id', $call->id)
+                ->where('language', 'sk') 
+                ->update([
+                    'name' => $data['title'],
+                    'updated_at' => now()
+                ]);
+        }
 
         return response()->json($call);
     }
