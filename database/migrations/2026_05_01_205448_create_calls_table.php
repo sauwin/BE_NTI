@@ -16,6 +16,7 @@ return new class extends Migration
             $table->foreignId('program_id')
                 ->constrained('programs')
                 ->onDelete('cascade');
+            $table->string('name');
             $table->enum('status', ['draft', 'open', 'closed', 'archived'])->default('draft');
             $table->timestamp('opens_at')->nullable();
             $table->timestamp('deadline_at')->nullable();

@@ -11,6 +11,8 @@ use App\Models\Document;
 use App\Models\StudentProfile;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 
 class ApplicationController extends Controller
 {
@@ -32,6 +34,12 @@ class ApplicationController extends Controller
         }
 
         $profile = StudentProfile::where('user_id', $request->user()->id)->first();
+
+        if (! $profile) {
+            return response()->json([
+                'message' => 'Pred odoslaním prihlášky si musíte vytvoriť študentský profil.'
+            ], 403);
+        }
 
         $maxApps = (int) env('MAX_ACTIVE_APPLICATIONS', 0);
         if ($maxApps > 0) {
@@ -69,7 +77,7 @@ class ApplicationController extends Controller
     public function updateStatus(Request $request, int $id)
     {
         $data = $request->validate([
-            'status' => 'required|in:draft,submitted,formally_verified,under_evaluation,pending_revision,approved,rejected,onboarding,active,suspended,closed',
+            'status' => 'required|in:draft,submitted,formal_check,formally_verified,under_evaluation,pending_revision,approved,rejected,onboarding,active,suspended,closed',
         ]);
 
         $application = Application::findOrFail($id);
@@ -157,15 +165,15 @@ class ApplicationController extends Controller
             ], 422);
         }
 
-        $docs = \DB::table('application_documents')
+        $docs = DB::table('application_documents')
             ->join('documents', 'documents.id', '=', 'application_documents.document_id')
             ->where('application_documents.application_id', $id)
             ->select('documents.id', 'documents.file_path')
             ->get();
 
         foreach ($docs as $doc) {
-            \Storage::disk('local')->delete($doc->file_path);
-            \DB::table('application_documents')->where('document_id', $doc->id)->delete();
+            Storage::disk('local')->delete($doc->file_path);
+            DB::table('application_documents')->where('document_id', $doc->id)->delete();
             Document::find($doc->id)?->delete();
         }
 
@@ -181,7 +189,7 @@ class ApplicationController extends Controller
             ->where('student_profile_id', $profile?->id)
             ->firstOrFail();
 
-        $docs = \DB::table('application_documents')
+        $docs = DB::table('application_documents')
             ->join('documents', 'documents.id', '=', 'application_documents.document_id')
             ->where('application_documents.application_id', $id)
             ->select('documents.id', 'documents.type', 'documents.file_name', 'documents.created_at')
@@ -194,7 +202,7 @@ class ApplicationController extends Controller
     {
         $query = Application::with(['call', 'studentProfile.user', 'team']);
 
-        if ($request->has('call_id') && $request->call_id) {
+        if ($request->has('call_id') && is_numeric($request->call_id)) {
             $query->where('call_id', $request->call_id);
         }
 
@@ -216,7 +224,7 @@ class ApplicationController extends Controller
     public function adminUpdateStatus(Request $request, int $id)
     {
         $data = $request->validate([
-            'status' => 'required|in:draft,submitted,formal_check,evaluation,approved,rejected,needs_info',
+            'status' => 'required|in:draft,submitted,formal_check,formally_verified,evaluation,under_evaluation,pending_revision,approved,rejected,needs_info,onboarding,active,suspended,closed',
         ]);
 
         $application = Application::findOrFail($id);

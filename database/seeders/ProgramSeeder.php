@@ -14,6 +14,7 @@ class ProgramSeeder extends Seeder
         $user = User::factory()->create();
 
         $callState = [
+            'name' => 'Generovaná výzva seedera',
             'created_by' => $user->id,
             'status' => 'open',
             'min_team_size' => 3,

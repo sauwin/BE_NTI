@@ -102,6 +102,7 @@ class CallController extends Controller
         $call = DB::transaction(function () use ($program, $request, $documents, $callName) {
             $newCall = Call::create([
                 'program_id' => $program->id,
+                'name' => $callName,
                 'status' => $request->input('status') ?? 'draft',
                 'opens_at' => $request->input('opens_at') ? now()->parse($request->input('opens_at')) : null,
                 'deadline_at' => $request->input('deadline_at') ? now()->parse($request->input('deadline_at')) : null,
