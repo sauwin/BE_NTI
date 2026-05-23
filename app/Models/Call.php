@@ -12,6 +12,7 @@ class Call extends Model
 
     protected $fillable = [
         'program_id',
+        'name',
         'status',
         'opens_at',
         'deadline_at',

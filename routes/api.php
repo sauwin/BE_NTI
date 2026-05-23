@@ -181,7 +181,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('/programs/{program}', [ProgramController::class, 'update'])->middleware('throttle:10,1');
         Route::delete('/programs/{program}', [ProgramController::class, 'destroy'])->middleware('throttle:10,1');
 
-        Route::get('/applications', [ApplicationController::class, 'index']);
+        Route::get('/applications', [ApplicationController::class, 'adminIndex']);
         Route::patch('/applications/{id}/status', [ApplicationController::class, 'updateStatus'])->middleware('throttle:10,1');
 
         Route::get('/documents', [DocumentController::class, 'index']);
