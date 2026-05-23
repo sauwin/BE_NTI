@@ -28,7 +28,7 @@ use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Route;
 
 // Public
-Route::post('/auth/register', [AuthController::class, 'register'])->middleware('throttle:5,15');
+Route::post('/auth/register', [AuthController::class, 'register'])->middleware('throttle:3,15');
 Route::post('/auth/login', [AuthController::class, 'login'])->middleware('throttle:5,15');
 
 Route::apiResource('articles', ArticleController::class);
@@ -93,47 +93,47 @@ Route::middleware('auth:sanctum')->group(function () {
 
     //Teams
     Route::apiResource('teams', TeamController::class);
-    Route::post('teams/{team}/invite', [TeamController::class, 'invite']);
+    Route::post('teams/{team}/invite', [TeamController::class, 'invite'])->middleware('throttle:10,1');
     Route::delete('teams/{team}/members/{user}', [TeamController::class, 'removeMember']);
 
     // Documents
-    Route::post('/documents/upload', [DocumentController::class, 'upload']);
+    Route::post('/documents/upload', [DocumentController::class, 'upload'])->middleware('throttle:20,1');
     Route::get('/documents/{id}/download', [DocumentController::class, 'download']);
     Route::get('/documents/{id}/preview', [DocumentController::class, 'preview']);
 
     // Applications
-    Route::post('/applications', [ApplicationController::class, 'store']);
+    Route::post('/applications', [ApplicationController::class, 'store'])->middleware('throttle:10,1');
     Route::get('/applications', [ApplicationController::class, 'index']);
     Route::get('/applications/{id}', [ApplicationController::class, 'show']);
-    Route::patch('/applications/{id}', [ApplicationController::class, 'update']);
-    Route::delete('/applications/{id}', [ApplicationController::class, 'destroy']);
-    Route::patch('/applications/{id}/status', [ApplicationController::class, 'updateStatus']);
+    Route::patch('/applications/{id}', [ApplicationController::class, 'update'])->middleware('throttle:10,1');
+    Route::delete('/applications/{id}', [ApplicationController::class, 'destroy'])->middleware('throttle:10,1');
+    Route::patch('/applications/{id}/status', [ApplicationController::class, 'updateStatus'])->middleware('throttle:10,1');
     Route::get('/applications/{id}/documents', [ApplicationController::class, 'documents']);
 
-    Route::post('/profile/student', [StudentProfileController::class, 'store']);
+    Route::post('/profile/student', [StudentProfileController::class, 'store'])->middleware('throttle:10,1');
     Route::get('/profile/student', [StudentProfileController::class, 'show']);
 
     // Mentorships
-    Route::post('/mentorships', [MentorshipController::class, 'assign']);
+    Route::post('/mentorships', [MentorshipController::class, 'assign'])->middleware('throttle:10,1');
 
     Route::get('/notifications', [NotificationController::class, 'index']);
     Route::patch('/notifications/{id}/read', [NotificationController::class, 'markRead']);
     Route::patch('/notifications/read-all', [NotificationController::class, 'markAllRead']);
 
     // Drafts
-    Route::post('/drafts', [DraftController::class, 'store']);
+    Route::post('/drafts', [DraftController::class, 'store'])->middleware('throttle:10,1');
     Route::get('/drafts/{program_type}', [DraftController::class, 'show']);
 
     // Profiles
     Route::get('/profile', [StudentProfileController::class, 'show']);
-    Route::put('/profile', [StudentProfileController::class, 'update']);
+    Route::put('/profile', [StudentProfileController::class, 'update'])->middleware('throttle:10,1');
     Route::get('/mentor-profile', [MentorProfileController::class, 'show']);
-    Route::put('/mentor-profile', [MentorProfileController::class, 'update']);
+    Route::put('/mentor-profile', [MentorProfileController::class, 'update'])->middleware('throttle:10,1');
     Route::get('/company-profile', [OrganizationController::class, 'show']);
-    Route::put('/company-profile', [OrganizationController::class, 'update']);
+    Route::put('/company-profile', [OrganizationController::class, 'update'])->middleware('throttle:10,1');
 
     // FAQ items
-    Route::post('/faq-items', [FaqItemController::class, 'store']);
+    Route::post('/faq-items', [FaqItemController::class, 'store'])->middleware('throttle:10,1');
     Route::put('/faq-items/{faqItem}', [FaqItemController::class, 'update']);
     Route::delete('/faq-items/{faqItem}', [FaqItemController::class, 'destroy']);
 
@@ -142,25 +142,25 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/admin/users/{id}', [AdminController::class, 'showUser']);
     Route::get('/admin/approvals', [AdminController::class, 'pendingApprovals']);
     Route::get('/admin/logs', [AdminController::class, 'logs']);
-    Route::post('/admin/approve/{userId}', [AdminController::class, 'approveRole']);
-    Route::post('/admin/block/{userId}', [AdminController::class, 'blockUser']);
-    Route::post('/admin/unblock/{userId}', [AdminController::class, 'unblockUser']);
-    Route::post('/admin/users/{userId}/roles', [AdminController::class, 'assignRole']);
-    Route::delete('/admin/users/{userId}/roles', [AdminController::class, 'removeRole']);
+    Route::post('/admin/approve/{userId}', [AdminController::class, 'approveRole'])->middleware('throttle:10,1');
+    Route::post('/admin/block/{userId}', [AdminController::class, 'blockUser'])->middleware('throttle:10,1');
+    Route::post('/admin/unblock/{userId}', [AdminController::class, 'unblockUser'])->middleware('throttle:10,1');
+    Route::post('/admin/users/{userId}/roles', [AdminController::class, 'assignRole'])->middleware('throttle:10,1');
+    Route::delete('/admin/users/{userId}/roles', [AdminController::class, 'removeRole'])->middleware('throttle:10,1');
 
     // Роути для фірми (керування власними завданнями/викликами)
     Route::get('/company/tasks', [CallOrganizationController::class, 'index']);
     Route::get('/company/{companyId}/tasks', [CallOrganizationController::class, 'byOrganization']);
-    Route::post('/company/tasks', [CallOrganizationController::class, 'store']);
-    Route::put('/company/tasks/{id}', [CallOrganizationController::class, 'update']);
-    Route::delete('/company/tasks/{id}', [CallOrganizationController::class, 'destroy']);
+    Route::post('/company/tasks', [CallOrganizationController::class, 'store'])->middleware('throttle:10,1');
+    Route::put('/company/tasks/{id}', [CallOrganizationController::class, 'update'])->middleware('throttle:10,1');
+    Route::delete('/company/tasks/{id}', [CallOrganizationController::class, 'destroy'])->middleware('throttle:10,1');
 
     // Company members
     Route::get('/company/members/pending', [OrganizationMembershipController::class, 'pendingMembers']);
-    Route::post('/company/members/{userId}/approve', [OrganizationMembershipController::class, 'approveMember']);
-    Route::post('/company/members/{userId}/reject', [OrganizationMembershipController::class, 'rejectMember']);
+    Route::post('/company/members/{userId}/approve', [OrganizationMembershipController::class, 'approveMember'])->middleware('throttle:10,1');
+    Route::post('/company/members/{userId}/reject', [OrganizationMembershipController::class, 'rejectMember'])->middleware('throttle:10,1');
     Route::get('/company/members/active', [OrganizationMembershipController::class, 'activeMembers']);
-    Route::post('/company/members/{userId}/kick', [OrganizationMembershipController::class, 'kickMember']);
+    Route::post('/company/members/{userId}/kick', [OrganizationMembershipController::class, 'kickMember'])->middleware('throttle:10,1');
 
     Route::get('/admin/admin-users', [AdminController::class, 'adminUsers']);
 
@@ -175,22 +175,22 @@ Route::middleware('auth:sanctum')->group(function () {
     // Admin Only
     Route::middleware('admin')->prefix('admin')->group(function () {
         Route::get('/programs', [ProgramController::class, 'index']);
-        Route::post('/programs', [ProgramController::class, 'store']);
+        Route::post('/programs', [ProgramController::class, 'store'])->middleware('throttle:10,1');
         Route::get('/programs/{program}', [ProgramController::class, 'show']);
-        Route::put('/programs/{program}', [ProgramController::class, 'update']);
-        Route::delete('/programs/{program}', [ProgramController::class, 'destroy']);
+        Route::put('/programs/{program}', [ProgramController::class, 'update'])->middleware('throttle:10,1');
+        Route::delete('/programs/{program}', [ProgramController::class, 'destroy'])->middleware('throttle:10,1');
 
         Route::get('/applications', [ApplicationController::class, 'index']);
-        Route::patch('/applications/{id}/status', [ApplicationController::class, 'updateStatus']);
+        Route::patch('/applications/{id}/status', [ApplicationController::class, 'updateStatus'])->middleware('throttle:10,1');
 
         Route::get('/documents', [DocumentController::class, 'index']);
 
         Route::get('/calls', [CallController::class, 'index']);
-        Route::post('/calls', [CallController::class, 'store']);
+        Route::post('/calls', [CallController::class, 'store'])->middleware('throttle:10,1');
         Route::get('/calls/{id}', [CallController::class, 'show']);
-        Route::put('/calls/{id}', [CallController::class, 'update']);
-        Route::delete('/calls/{id}', [CallController::class, 'destroy']);
-        Route::patch('/calls/{id}/status', [CallController::class, 'updateStatus']);
+        Route::put('/calls/{id}', [CallController::class, 'update'])->middleware('throttle:10,1');
+        Route::delete('/calls/{id}', [CallController::class, 'destroy'])->middleware('throttle:10,1');
+        Route::patch('/calls/{id}/status', [CallController::class, 'updateStatus'])->middleware('throttle:10,1');
         Route::get('/reporting/dashboard-stats', [ReportingController::class, 'dashboardStats']);
 
         // export
