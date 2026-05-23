@@ -188,8 +188,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::patch('/calls/{id}/status', [CallController::class, 'updateStatus']);
         Route::get('/reporting/dashboard-stats', [ReportingController::class, 'dashboardStats']);
 
-        // Експорти
-        Route::get('/export/applications', [ExportController::class, 'applications']);
-        Route::get('/export/users', [ExportController::class, 'users']);
+        // export
+        Route::get('/export/applications', [ExportController::class, 'exportApplications']);
+        Route::get('/export/users', [ExportController::class, 'exportUsers']);
+        Route::get('/export/calls', [ExportController::class, 'exportCalls']);
     });
 });

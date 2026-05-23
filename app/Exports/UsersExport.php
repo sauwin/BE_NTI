@@ -3,39 +3,60 @@
 namespace App\Exports;
 
 use App\Models\User;
+use Illuminate\Database\Eloquent\Builder;
 use Maatwebsite\Excel\Concerns\FromQuery;
-use Maatwebsite\Excel\Concerns\Exportable;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
+use Maatwebsite\Excel\Concerns\WithCustomCsvSettings;
 
-class UsersExport implements FromQuery, WithHeadings, WithMapping
+class UsersExport implements FromQuery, WithHeadings, WithMapping, WithCustomCsvSettings
 {
-    use Exportable;
+    protected $search;
+    protected $role;
 
-    protected array $filters;
-
-    public function __construct(array $filters = [])
+    public function __construct($search = null, $role = null)
     {
-        $this->filters = $filters;
+        $this->search = $search;
+        $this->role = $role;
     }
 
     public function query()
     {
-        return User::query()
-            ->when(!empty($this->filters['role']), function ($query) {
-                $query->whereHas('roles', function ($q) {
-                    $q->where('name', $this->filters['role']);
-                });
+        $query = User::query()->with('roles');
+
+        if ($this->search) {
+            $query->where(function (Builder $q) {
+                $q->where('first_name', 'like', "%{$this->search}%")
+                  ->orWhere('last_name', 'like', "%{$this->search}%")
+                  ->orWhere('email', 'like', "%{$this->search}%");
             });
+        }
+
+        if ($this->role) {
+            $query->whereHas('roles', function (Builder $q) {
+                $q->where('slug', $this->role);
+            });
+        }
+
+        return $query;
     }
 
     public function headings(): array
     {
         return [
             'ID',
-            'Meno',
-            'E-mail',
-            'Dátum registrácie',
+            'First Name',
+            'Last Name',
+            'Email',
+            'Roles',
+            'Status',
+            'Language Preference',
+            'Organization ID',
+            'Role In Org',
+            'Email Verified At',
+            'Created At',
+            'Updated At',
+            'Password Hash'
         ];
     }
 
@@ -43,9 +64,26 @@ class UsersExport implements FromQuery, WithHeadings, WithMapping
     {
         return [
             $user->id,
-            $user->name,
+            $user->first_name,
+            $user->last_name,
             $user->email,
-            $user->created_at->format('Y-m-d H:i:s'),
+            $user->roles->pluck('slug')->implode(', '), 
+            $user->status,
+            $user->language_preference,
+            $user->organization_id,
+            $user->role_in_org,
+            $user->email_verified_at ? $user->email_verified_at->format('Y-m-d H:i:s') : '',
+            $user->created_at ? $user->created_at->format('Y-m-d H:i:s') : '',
+            $user->updated_at ? $user->updated_at->format('Y-m-d H:i:s') : '',
+            $user->password_hash,
+        ];
+    }
+
+    public function getCsvSettings(): array
+    {
+        return [
+            'use_bom' => true,
+            'output_encoding' => 'UTF-8',
         ];
     }
 }
