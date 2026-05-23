@@ -13,23 +13,17 @@ return new class extends Migration
     {
         Schema::create('audit', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('actor_id')
-                ->nullable()
-                ->constrained('users')
-                ->onDelete('set null');
+            $table->foreignId('user_id')->nullable()->constrained('users')->onDelete('set null');
             $table->string('action');
-            $table->string('target_type');
-            $table->unsignedBigInteger('target_id');
-            $table->json('old_value')
-                ->nullable();
-            $table->json('new_value')
-                ->nullable();
+            $table->string('object')->nullable();
+            $table->json('details')->nullable();
+            $table->string('ip_address')->nullable();
             $table->timestamp('created_at')->useCurrent();
-            $table->index('actor_id');
+            $table->index('user_id');
             $table->index('action');
-            $table->index('target_type');
+            $table->index('object');
             $table->index('created_at');
-            $table->index(['target_type', 'target_id']);
+            $table->index(['object', 'user_id']);
         });
     }
 
