@@ -189,4 +189,48 @@ class ApplicationController extends Controller
 
         return response()->json($docs);
     }
+
+    public function adminIndex(Request $request)
+    {
+        $query = Application::with(['call', 'studentProfile.user', 'team']);
+
+        if ($request->has('call_id') && $request->call_id) {
+            $query->where('call_id', $request->call_id);
+        }
+
+        $applications = $query->orderByDesc('created_at')->get()->map(function ($app) {
+            return [
+                'id' => $app->id,
+                'call_id' => $app->call_id,
+                'call_name' => $app->call ? $app->call->name : 'Neznáma výzva',
+                'applicant_name' => ($app->studentProfile && $app->studentProfile->user) ? $app->studentProfile->user->name : 'N/A',
+                'team_name' => $app->team ? $app->team->name : 'Jednotlivec',
+                'status' => $app->status,
+                'submitted_at' => $app->created_at->format('Y-m-d'),
+            ];
+        });
+
+        return response()->json($applications);
+    }
+
+    public function adminUpdateStatus(Request $request, int $id)
+    {
+        $data = $request->validate([
+            'status' => 'required|in:draft,submitted,formal_check,evaluation,approved,rejected,needs_info',
+        ]);
+
+        $application = Application::findOrFail($id);
+        $oldStatus = $application->status;
+        $application->update(['status' => $data['status']]);
+        $applicantUser = $application->studentProfile->user ?? null;
+
+        if ($applicantUser) {
+            NotificationController::log($applicantUser->id, $applicantUser->email, 'status_changed_by_admin',
+                'Status vašej prihlášky #'.$application->id.' bol zmenený z '.$oldStatus.' na '.$data['status'].'.',
+                ['application_id' => $application->id, 'old_status' => $oldStatus, 'new_status' => $data['status']]
+            );
+        }
+
+        return response()->json(['status' => $application->status]);
+    }
 }

@@ -48,18 +48,17 @@ class AdminController extends Controller
      */
     public function logs(Request $request)
     {
-        $query = AdminActionLog::with(['admin', 'targetUser'])
-            ->orderBy('created_at', 'desc');
+        $query = \App\Models\Audit::with('user');
 
         if ($request->has('action_type') && $request->action_type) {
-            $query->where('action_type', $request->action_type);
+            $query->where('action', $request->action_type);
         }
 
         if ($request->has('user_id') && $request->user_id) {
-            $query->where('target_user_id', $request->user_id);
+            $query->where('user_id', $request->user_id);
         }
 
-        $logs = $query->paginate(50);
+        $logs = $query->orderByDesc('created_at')->paginate(15);
 
         return response()->json($logs);
     }

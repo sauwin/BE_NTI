@@ -39,4 +39,9 @@ class Application extends Model
     {
         return $this->belongsTo(User::class, 'decision_by');
     }
+
+    public function team(): BelongsTo
+    {
+        return $this->belongsTo(Team::class);
+    }
 }
