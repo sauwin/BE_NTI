@@ -8,13 +8,13 @@ class Team extends Model
 {
     protected $fillable = [
         'name',
-        'leader_user_id',
+        'leader_id',
         'description'
     ];
 
     public function leader()
     {
-        return $this->belongsTo(User::class, 'leader_user_id');
+        return $this->belongsTo(User::class, 'leader_id');
     }
 
     public function members()
@@ -22,7 +22,6 @@ class Team extends Model
         return $this->belongsToMany(User::class, 'team_members')
         ->withPivot([
             'joined_at',
-            'left_at'
         ])
         ->withTimestamps();
     }

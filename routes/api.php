@@ -92,6 +92,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
     //Teams
     Route::apiResource('teams', TeamController::class);
+    Route::post('teams/{team}/invite', [TeamController::class, 'invite']);
+    Route::delete('teams/{team}/members/{user}', [TeamController::class, 'removeMember']);
 
     // Documents
     Route::post('/documents/upload', [DocumentController::class, 'upload']);
@@ -156,6 +158,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/company/members/pending', [OrganizationMembershipController::class, 'pendingMembers']);
     Route::post('/company/members/{userId}/approve', [OrganizationMembershipController::class, 'approveMember']);
     Route::post('/company/members/{userId}/reject', [OrganizationMembershipController::class, 'rejectMember']);
+    Route::get('/company/members/active', [OrganizationMembershipController::class, 'activeMembers']);
+    Route::post('/company/members/{userId}/kick', [OrganizationMembershipController::class, 'kickMember']);
 
     // Super Admin Only
     Route::middleware('super_admin')->group(function () {

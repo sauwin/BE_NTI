@@ -15,14 +15,14 @@ return new class extends Migration
             $table->id();
             $table->string('name')
                 ->unique();
-            $table->foreignId('leader_user_id')
+            $table->foreignId('leader_id')
                 ->nullable()
                 ->constrained('users')
                 ->onDelete('set null');
             $table->text('description')
                 ->nullable();
             $table->timestamps();
-            $table->index('leader_user_id');
+            $table->index('leader_id');
         });
     }
 

@@ -20,8 +20,6 @@ return new class extends Migration
                 ->constrained('users')
                 ->onDelete('cascade');
             $table->date('joined_at');
-            $table->date('left_at')
-                ->nullable();
             $table->timestamps();
             $table->unique(['team_id', 'user_id']);
             $table->index('team_id');
