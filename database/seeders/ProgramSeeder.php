@@ -11,23 +11,12 @@ class ProgramSeeder extends Seeder
 {
     public function run(): void
     {
-        $user = User::factory()->create();
-
-        $callState = [
-            'name' => 'Generovaná výzva seedera',
-            'created_by' => $user->id,
-            'status' => 'open',
-            'min_team_size' => 3,
-        ];
-
         Program::factory()
             ->programA()
-            ->has(Call::factory()->state($callState), 'calls')
             ->create();
 
         Program::factory()
             ->programB()
-            ->has(Call::factory()->state($callState), 'calls')
             ->create();
     }
 }

@@ -13,12 +13,11 @@ class AdminUserSeeder extends Seeder
     public function run(): void
     {
         $user = User::firstOrCreate(
-            ['email' => 'admin@nti.sk'],
             [
                 'first_name' => 'Super',
                 'last_name' => 'Admin',
-                'email' => 'zih8d7lxf@mozmail.com',
-                'password_hash' => Hash::make('ChangeMe123!'),
+                'email' => 'superadmin@nti.sk',
+                'password_hash' => Hash::make('password'),
                 'status' => 'active',
                 'email_verified_at' => now(),
             ]
@@ -39,7 +38,6 @@ class AdminUserSeeder extends Seeder
             ->update([
                 'granted_by' => $user->id,
                 'granted_at' => now(),
-            ]);
-
+        ]);
     }
 }

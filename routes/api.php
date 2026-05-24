@@ -98,6 +98,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('teams', TeamController::class);
     Route::post('teams/{team}/invite', [TeamController::class, 'invite'])->middleware('throttle:10,1');
     Route::delete('teams/{team}/members/{user}', [TeamController::class, 'removeMember']);
+    Route::get('user/invitations', [TeamController::class, 'myInvitations']);
 
     // Documents
     Route::post('/documents/upload', [DocumentController::class, 'upload'])->middleware('throttle:20,1');
@@ -130,7 +131,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/profile/student', [StudentProfileController::class, 'show']);
 
     // Mentorships
-    Route::post('/mentorships', [MentorshipController::class, 'assign'])->middleware('throttle:10,1');
+    Route::get('/mentorships', [MentorshipController::class, 'index'])->middleware('throttle:10,1');
+    Route::get('/mentorships/{id}', [MentorshipController::class, 'show'])->middleware('throttle:10,1');
+    Route::post('/mentorships/{id}/consultations', [MentorshipController::class, 'logConsultation'])->middleware('throttle:10,1');
+    Route::get('/mentorships/{id}/consultations', [MentorshipController::class, 'consultations'])->middleware('throttle:10,1');
+    Route::post('/mentorships/assign', [MentorshipController::class, 'assign'])->middleware('throttle:10,1');
 
     Route::get('/notifications', [NotificationController::class, 'index']);
     Route::patch('/notifications/{id}/read', [NotificationController::class, 'markRead']);
@@ -163,8 +168,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/admin/unblock/{userId}', [AdminController::class, 'unblockUser'])->middleware('throttle:10,1');
     Route::post('/admin/users/{userId}/roles', [AdminController::class, 'assignRole'])->middleware('throttle:10,1');
     Route::delete('/admin/users/{userId}/roles', [AdminController::class, 'removeRole'])->middleware('throttle:10,1');
+    Route::get('/admin/mentorships', [MentorshipController::class, 'adminIndex'])->middleware('throttle:10,1');
 
-    // Роути для фірми (керування власними завданнями/викликами)
+    // Organization
     Route::get('/company/tasks', [CallOrganizationController::class, 'index']);
     Route::get('/company/{companyId}/tasks', [CallOrganizationController::class, 'byOrganization']);
     Route::post('/company/tasks', [CallOrganizationController::class, 'store'])->middleware('throttle:10,1');
