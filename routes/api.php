@@ -168,6 +168,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/admin/users/{userId}/roles', [AdminController::class, 'assignRole'])->middleware('throttle:10,1');
     Route::delete('/admin/users/{userId}/roles', [AdminController::class, 'removeRole'])->middleware('throttle:10,1');
     Route::get('/admin/mentorships', [MentorshipController::class, 'adminIndex'])->middleware('throttle:10,1');
+    Route::delete('/mentorships/{id}', [MentorshipController::class, 'destroy'])->middleware('throttle:10,1');
 
     // Organization
     Route::get('/company/tasks', [CallOrganizationController::class, 'index']);

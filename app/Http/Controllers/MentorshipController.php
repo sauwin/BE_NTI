@@ -15,8 +15,16 @@ class MentorshipController extends Controller
     {
         $data = $request->validate([
             'application_id' => 'required|exists:applications,id',
-            'mentor_id' => 'required|exists:users,id',
+            'mentor_id' => [
+                'required',
+                'exists:users,id',
+                \Illuminate\Validation\Rule::unique('mentorships', 'mentor_id')->where(function ($query) use ($request) {
+                    return $query->where('application_id', $request->application_id);
+                }),
+            ],
             'student_id' => 'required|exists:users,id',
+        ], [
+            'mentor_id.unique' => 'This mentor was already assigned to this application.',
         ]);
 
         $mentorship = Mentorship::create([
@@ -35,7 +43,7 @@ class MentorshipController extends Controller
 
     public function index(Request $request)
     {
-        $mentorships = Mentorship::with(['application.team', 'application.program']) 
+        $mentorships = Mentorship::with(['application.team', 'application.call']) 
             ->where('mentor_id', $request->user()->id)
             ->whereNull('ended_at')
             ->get();
@@ -45,7 +53,7 @@ class MentorshipController extends Controller
 
     public function show(Request $request, $id)
     {
-        $mentorship = Mentorship::with(['application.team', 'application.program', 'consultations'])
+        $mentorship = Mentorship::with(['application.team', 'application.call', 'consultations'])
             ->where('mentor_id', $request->user()->id)
             ->findOrFail($id);
 
@@ -80,7 +88,7 @@ class MentorshipController extends Controller
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
-        $query = Mentorship::with(['mentor', 'application.team', 'application.program']);
+        $query = Mentorship::with(['mentor', 'application.team', 'application.call']);
 
         if ($request->has('program_id')) {
             $query->whereHas('application', function ($q) use ($request) {
@@ -95,5 +103,17 @@ class MentorshipController extends Controller
         }
 
         return response()->json($query->get());
+    }
+
+    public function destroy(Request $request, $id)
+    {
+        if (!$request->user()->tokenCan('admin') && $request->user()->role !== 'admin') {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        $mentorship = Mentorship::findOrFail($id);
+        $mentorship->delete();
+
+        return response()->json(['message' => 'Mentorship removed successfully']);
     }
 }
