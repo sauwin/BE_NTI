@@ -12,7 +12,7 @@ class IsAdmin
     {
         $user = $request->user();
 
-        if (! $user || ! $user->roles()->whereIn('slug', ['nti_admin', 'super_admin'])->exists()) {
+        if (! $user || ! $user->roles()->whereIn('slug', ['nti_admin', 'super_admin', 'evaluator'])->exists()) {
             return response()->json(['message' => 'Unauthorized. Admin required.'], 403);
         }
 

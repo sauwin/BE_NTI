@@ -48,16 +48,6 @@ class User extends Authenticatable
             ->withPivot('granted_by', 'granted_at');
     }
 
-    public function hasRole(string $slug): bool
-    {
-        return $this->roles->contains('slug', $slug);
-    }
-
-    public function isStudent(): bool
-    {
-        return $this->hasRole('student');
-    }
-
     public function organization()
     {
         return $this->belongsTo(Organization::class);
@@ -70,8 +60,13 @@ class User extends Authenticatable
 
     public function teams()
     {
-        return $this->belongsToMany(Team::class, 'team_members')
-                ->withPivot('status', 'joined_at')
-                ->withTimestamps();
+        return $this->belongsToMany(Team::class, 'team_members');
+    }
+
+    public function hasRole($roles): bool
+    {
+        $roles = is_array($roles) ? $roles : [$roles];
+
+        return $this->roles()->whereIn('slug', $roles)->exists();
     }
 }

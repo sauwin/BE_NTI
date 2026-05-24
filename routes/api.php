@@ -1,25 +1,27 @@
 <?php
 
+use App\Http\Controllers\Admin\ExportController;
 use App\Http\Controllers\Admin\ProgramController;
 use App\Http\Controllers\AdminController;
-use App\Http\Controllers\ReportingController;
 use App\Http\Controllers\ApplicationController;
 use App\Http\Controllers\ArticleController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CallController;
+use App\Http\Controllers\CallEvaluatorController;
 use App\Http\Controllers\CallOrganizationController;
-use App\Http\Controllers\OrganizationMembershipController;
 use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\DraftController;
+use App\Http\Controllers\EvaluationController;
 use App\Http\Controllers\FaqItemController;
 use App\Http\Controllers\MentorProfileController;
 use App\Http\Controllers\MentorshipController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\OrganizationController;
+use App\Http\Controllers\OrganizationMembershipController;
 use App\Http\Controllers\PasswordResetController;
+use App\Http\Controllers\ReportingController;
 use App\Http\Controllers\StudentProfileController;
 use App\Http\Controllers\TeamController;
-use App\Http\Controllers\Admin\ExportController;
 use App\Mail\RegistrationSubmit;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -91,13 +93,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/auth/me', [AuthController::class, 'me']);
     Route::get('/auth/role-status', [AuthController::class, 'roleStatus']);
 
-    //Teams
+    // Teams
     Route::apiResource('teams', TeamController::class);
     Route::post('teams/{team}/invite', [TeamController::class, 'invite'])->middleware('throttle:10,1');
     Route::delete('teams/{team}/members/{user}', [TeamController::class, 'removeMember']);
-
-    Route::get('user/invitations', [TeamController::class, 'myInvitations']);
-    Route::post('user/invitations/{team}', [TeamController::class, 'respondToInvitation']);
 
     // Documents
     Route::post('/documents/upload', [DocumentController::class, 'upload'])->middleware('throttle:20,1');
@@ -112,6 +111,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/applications/{id}', [ApplicationController::class, 'destroy'])->middleware('throttle:10,1');
     Route::patch('/applications/{id}/status', [ApplicationController::class, 'updateStatus'])->middleware('throttle:10,1');
     Route::get('/applications/{id}/documents', [ApplicationController::class, 'documents']);
+
+    // Evaluations
+    Route::get('/evaluations', [EvaluationController::class, 'index'])->middleware('throttle:30,1');
+    Route::post('/evaluations', [EvaluationController::class, 'store'])->middleware('throttle:10,1');
+    Route::get('/evaluations/{id}', [EvaluationController::class, 'show']);
+    Route::patch('/evaluations/{id}', [EvaluationController::class, 'update'])->middleware('throttle:10,1');
 
     Route::post('/profile/student', [StudentProfileController::class, 'store'])->middleware('throttle:10,1');
     Route::get('/profile/student', [StudentProfileController::class, 'show']);
@@ -196,6 +201,11 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('/calls/{id}', [CallController::class, 'destroy'])->middleware('throttle:10,1');
         Route::patch('/calls/{id}/status', [CallController::class, 'updateStatus'])->middleware('throttle:10,1');
         Route::get('/reporting/dashboard-stats', [ReportingController::class, 'dashboardStats']);
+
+        // Call Evaluators
+        Route::get('/calls/{id}/evaluators', [CallEvaluatorController::class, 'index']);
+        Route::post('/calls/{id}/evaluators', [CallEvaluatorController::class, 'assign'])->middleware('throttle:10,1');
+        Route::delete('/calls/{id}/evaluators/{userId}', [CallEvaluatorController::class, 'remove'])->middleware('throttle:10,1');
 
         // export
         Route::get('/export/applications', [ExportController::class, 'exportApplications']);
