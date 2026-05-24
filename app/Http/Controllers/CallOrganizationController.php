@@ -44,8 +44,22 @@ class CallOrganizationController extends Controller
             'call_id' => 'required|integer|exists:calls,id',
             'title' => 'required|string|max:255',
             'budget' => 'nullable|numeric|min:0',
-            'brief' => 'required|string|max:2000',
+            'brief' => 'nullable|string|max:2000',
             'status' => 'nullable|in:draft,published',
+            'short_description' => 'nullable|string|max:500',
+            'project_goal' => 'nullable|string',
+            'expected_outcome' => 'nullable|string',
+            'detailed_technical_description' => 'nullable|string',
+            'required_technologies' => 'nullable|array',
+            'architecture_requirements' => 'nullable|string',
+            'integrations_apis' => 'nullable|string',
+            'platforms' => 'nullable|string',
+            'required_skills' => 'nullable|array',
+            'preferred_team_size' => 'nullable|integer',
+            'required_experience' => 'nullable|string',
+            'expected_duration' => 'nullable|string',
+            'milestones' => 'nullable|string',
+            'deadline' => 'nullable|date',
         ]);
 
         $organizationId = $request->user()->organization_id;
@@ -59,15 +73,11 @@ class CallOrganizationController extends Controller
             return response()->json(['message' => 'Only Program B calls can receive company tasks.'], 422);
         }
 
-        $task = CallOrganization::create([
-            'call_id' => $data['call_id'],
+        $task = CallOrganization::create(array_merge($data, [
             'organization_id' => $organizationId,
             'product_owner_user_id' => $request->user()->id,
-            'title' => $data['title'],
-            'budget' => $data['budget'],
-            'brief' => $data['brief'],
             'status' => $data['status'] ?? 'draft',
-        ]);
+        ]));
 
         return response()->json($task, 201);
     }
@@ -81,9 +91,23 @@ class CallOrganizationController extends Controller
 
         $data = $request->validate([
             'title' => 'sometimes|required|string|max:255',
-            'brief' => 'sometimes|required|string|max:2000',
+            'brief' => 'nullable|string|max:2000',
             'budget' => 'nullable|numeric|min:0',
             'status' => 'sometimes|required|in:draft,published,in_matching,assigned,in_progress,closed',
+            'short_description' => 'nullable|string|max:500',
+            'project_goal' => 'nullable|string',
+            'expected_outcome' => 'nullable|string',
+            'detailed_technical_description' => 'nullable|string',
+            'required_technologies' => 'nullable|array',
+            'architecture_requirements' => 'nullable|string',
+            'integrations_apis' => 'nullable|string',
+            'platforms' => 'nullable|string',
+            'required_skills' => 'nullable|array',
+            'preferred_team_size' => 'nullable|integer',
+            'required_experience' => 'nullable|string',
+            'expected_duration' => 'nullable|string',
+            'milestones' => 'nullable|string',
+            'deadline' => 'nullable|date',
         ]);
 
         $task->update($data);

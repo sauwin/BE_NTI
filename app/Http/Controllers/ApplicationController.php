@@ -122,7 +122,7 @@ class ApplicationController extends Controller
     public function updateStatus(Request $request, int $id)
     {
         $data = $request->validate([
-            'status' => 'required|in:draft,submitted,formal_check,formally_verified,under_evaluation,pending_revision,approved,rejected,onboarding,active,suspended,closed',
+            'status' => 'required|in:draft,submitted,,formally_verified,under_evaluation,pending_revision,approved,rejected,onboarding,active,suspended,closed',
         ]);
 
         $application = Application::findOrFail($id);
@@ -279,7 +279,7 @@ class ApplicationController extends Controller
     public function adminUpdateStatus(Request $request, int $id)
     {
         $data = $request->validate([
-            'status' => 'required|in:draft,submitted,formal_check,formally_verified,evaluation,under_evaluation,pending_revision,approved,rejected,needs_info,onboarding,active,suspended,closed',
+            'status' => 'required|in:draft,submitted,,formally_verified,evaluation,under_evaluation,pending_revision,approved,rejected,needs_info,onboarding,active,suspended,closed',
         ]);
 
         $application = Application::findOrFail($id);

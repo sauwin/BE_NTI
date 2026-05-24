@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
@@ -12,14 +13,31 @@ class CallOrganization extends Model
         'call_id',
         'organization_id',
         'product_owner_user_id',
-        'budget',
         'title',
         'brief',
+        'budget',
         'status',
+        'short_description',
+        'project_goal',
+        'expected_outcome',
+        'detailed_technical_description',
+        'required_technologies',
+        'architecture_requirements',
+        'integrations_apis',
+        'platforms',
+        'required_skills',
+        'preferred_team_size',
+        'required_experience',
+        'expected_duration',
+        'milestones',
+        'deadline',
     ];
 
     protected $casts = [
         'budget' => 'decimal:2',
+        'deadline' => 'date',
+        'required_technologies' => 'array',
+        'required_skills' => 'array',
     ];
 
     public function call(): BelongsTo
