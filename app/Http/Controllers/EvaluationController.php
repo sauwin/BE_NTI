@@ -15,6 +15,10 @@ class EvaluationController extends Controller
     {
         $query = Evaluation::query();
 
+        if (! Auth::user()->hasRole(['evaluator', 'nti_admin', 'super_admin'])) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
         if ($request->has('application_id')) {
             $query->where('application_id', $request->application_id);
         }

@@ -145,8 +145,8 @@ test('update sets status completed and evaluated_at', function () {
         ->assertStatus(200);
 
     $evaluation = Evaluation::find($id);
-    expect($evaluation->status)->toBe('completed');
-    expect($evaluation->evaluated_at)->not->toBeNull();
+    expect($evaluation->status)->toBe('completed')
+        ->and($evaluation->evaluated_at)->not->toBeNull();
 });
 
 // Duplicate guard

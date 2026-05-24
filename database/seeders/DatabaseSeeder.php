@@ -2,20 +2,9 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
-
-use Database\Seeders\ArticleSeeder;
-use Database\Seeders\ProgramSeeder;
-use Database\Seeders\RoleSeeder;
-use Database\Seeders\UserSeeder;
-use Database\Seeders\AdminUserSeeder;
-use Database\Seeders\FaqSeeder;
-use Database\Seeders\CallPeriodSeeder;
-use Database\Seeders\TeamAndApplicationSeeder;
-
-use App\Models\User;
 use App\Models\NewsArticle;
 use App\Models\NewsArticleTranslation;
+use Illuminate\Database\Seeder;
 
 class DatabaseSeeder extends Seeder
 {
@@ -29,9 +18,10 @@ class DatabaseSeeder extends Seeder
             AdminUserSeeder::class,
             FaqSeeder::class,
             CallPeriodSeeder::class,
+            ApplicationSeeder::class,
             TeamAndApplicationSeeder::class,
         ]);
-        
+
         NewsArticle::factory(30)
             ->has(
                 NewsArticleTranslation::factory()->state(['language' => 'en']),
