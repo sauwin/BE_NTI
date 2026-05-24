@@ -21,6 +21,8 @@ return new class extends Migration
                 ->onDelete('set null');
             $table->text('description')
                 ->nullable();
+            $table->enum('status', ['forming', 'ready'])
+                ->default('forming');
             $table->timestamps();
             $table->index('leader_id');
         });

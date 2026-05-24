@@ -9,7 +9,8 @@ class Team extends Model
     protected $fillable = [
         'name',
         'leader_id',
-        'description'
+        'description',
+        'status'
     ];
 
     public function leader()

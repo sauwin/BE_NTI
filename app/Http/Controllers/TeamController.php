@@ -39,6 +39,7 @@ class TeamController extends Controller
             'name' => $validated['name'],
             'description' => $validated['description'] ?? null,
             'leader_id' => $request->user()->id,
+            'status' => 'forming'
         ]);
 
         $team->members()->syncWithoutDetaching([
@@ -89,6 +90,12 @@ class TeamController extends Controller
     {
         Gate::authorize('delete', $team);
 
+        if ($team->status !== 'forming') {
+            return response()->json([
+                'message' => 'You cannot delete ready teams.'
+            ], 422);
+        }
+
         $team->delete();
 
         return response()->noContent();
@@ -97,6 +104,12 @@ class TeamController extends Controller
     public function invite(Request $request, Team $team) 
     {
         Gate::authorize('manageMembers', $team);
+
+        if ($team->status !== 'forming') {
+            return response()->json([
+                'message' => 'You cannot invite members to ready team.'
+            ], 422);
+        }
 
         $validated = $request->validate([
             'email' => 'required|email|exists:users,email',
@@ -137,6 +150,12 @@ class TeamController extends Controller
     {
         Gate::authorize('manageMembers', $team);
 
+        if ($team->status !== 'forming') {
+            return response()->json([
+                'message' => 'You cannot remove members in ready teams.'
+            ], 422);
+        }
+
         if ($team->leader_id === $user->id) {
             return response()->json([
                 'error' => 'You cannot remove the team leader.'
@@ -166,6 +185,12 @@ class TeamController extends Controller
         $validated = $request->validate([
             'status' => 'required|in:accepted,rejected',
         ]);
+
+        if ($team->status !== 'forming') {
+            return response()->json([
+                'message' => 'You cannot accept the invitation, because this team is in state ready.'
+            ], 422);
+        }
 
         $user = $request->user();
 

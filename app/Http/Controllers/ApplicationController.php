@@ -22,7 +22,16 @@ class ApplicationController extends Controller
             'applicant_type' => 'required|in:student,team',
             'program_type' => 'required|in:a,b',
             'team_id' => 'nullable|exists:teams,id',
+            'submit_type' => 'nullable|in:draft,final',
         ]);
+
+        $isFinalSubmit = ($data['submit_type'] ?? 'final') === 'final';
+
+        if ($data['applicant_type'] === 'team' && empty($data['team_id'])) {
+            return response()->json([
+                'message' => 'Team specification is required for team aplication'
+            ], 422);
+        }
 
         $call = Call::whereHas('program', fn ($q) => $q->where('code', 'program_'.$data['program_type']))
             ->where('status', 'open')
@@ -41,10 +50,36 @@ class ApplicationController extends Controller
             ], 403);
         }
 
+        $team = null;
+
+        if ($data['applicant_type'] === 'team') {
+            $team = \App\Models\Team::withCount(['members' => function ($query) {
+                $query->where('team_members.status', 'accepted'); 
+            }])->find($data['team_id']);
+
+            if ($isFinalSubmit && $team->status !== 'forming') {
+                return response()->json([
+                    'message' => 'Táto prihláška nemôže byť odoslaná, pretože tím už je v stave ready (uzamknutý).'
+                ], 422);
+            }
+
+            if ($team->leader_id !== $request->user()->id) {
+                return response()->json([
+                    'message' => 'Iba líder tímu môže podať prihlášku za tento tím.'
+                ], 403);
+            }
+
+            if ($isFinalSubmit && $team->members_count < 3) {
+                return response()->json([
+                    'message' => 'Tím mustí mať minimálne 3 členov s potvrdeným statusom (accepted) pre prihlásenie do Programu A.'
+                ], 422);
+            }
+        }
+
         $maxApps = (int) env('MAX_ACTIVE_APPLICATIONS', 0);
-        if ($maxApps > 0) {
+        if ($maxApps > 0 && $isFinalSubmit) {
             $activeCount = Application::where('student_profile_id', $profile?->id)
-                ->whereNotIn('status', ['rejected', 'closed'])
+                ->whereNotIn('status', ['rejected', 'closed', 'draft'])
                 ->count();
             if ($activeCount >= $maxApps) {
                 return response()->json([
@@ -53,23 +88,33 @@ class ApplicationController extends Controller
             }
         }
 
-        $application = Application::create([
-            'call_id' => $call->id,
-            'applicant_type' => $data['applicant_type'],
-            'program_type' => $data['program_type'],
-            'team_id' => $data['team_id'] ?? null,
-            'student_profile_id' => $profile?->id,
-            'status' => 'draft',
-        ]);
+        $application = DB::transaction(function () use ($call, $data, $profile, $team, $isFinalSubmit) {
+            $app = Application::create([
+                'call_id' => $call->id,
+                'applicant_type' => $data['applicant_type'],
+                'program_type' => $data['program_type'],
+                'team_id' => $data['team_id'] ?? null,
+                'student_profile_id' => $profile?->id,
+                'status' => $isFinalSubmit ? 'submitted' : 'draft',
+            ]);
 
-        Mail::to($request->user()->email)->queue(
-            new ApplicationSubmittedMail($request->user(), $application)
-        );
+            if ($team && $isFinalSubmit) {
+                $team->update(['status' => 'ready']);
+            }
 
-        NotificationController::log($request->user()->id, $request->user()->email, 'application_submitted',
-            'Your application #'.$application->id.' for Program '.strtoupper($application->program_type).' was submitted.',
-            ['application_id' => $application->id]
-        );
+            return $app;
+        });
+
+        if ($isFinalSubmit) {
+            Mail::to($request->user()->email)->queue(
+                new ApplicationSubmittedMail($request->user(), $application)
+            );
+
+            NotificationController::log($request->user()->id, $request->user()->email, 'application_submitted',
+                'Your application #'.$application->id.' for Program '.strtoupper($application->program_type).' was submitted.',
+                ['application_id' => $application->id]
+            );
+        }
 
         return response()->json(['application_id' => $application->id], 201);
     }
@@ -165,19 +210,29 @@ class ApplicationController extends Controller
             ], 422);
         }
 
-        $docs = DB::table('application_documents')
-            ->join('documents', 'documents.id', '=', 'application_documents.document_id')
-            ->where('application_documents.application_id', $id)
-            ->select('documents.id', 'documents.file_path')
-            ->get();
+        DB::transaction(function () use ($application, $id) {
+            
+            if ($application->applicant_type === 'team' && $application->team_id) {
+                $team = \App\Models\Team::find($application->team_id);
+                if ($team) {
+                    $team->update(['status' => 'forming']);
+                }
+            }
 
-        foreach ($docs as $doc) {
-            Storage::disk('local')->delete($doc->file_path);
-            DB::table('application_documents')->where('document_id', $doc->id)->delete();
-            Document::find($doc->id)?->delete();
-        }
+            $docs = DB::table('application_documents')
+                ->join('documents', 'documents.id', '=', 'application_documents.document_id')
+                ->where('application_documents.application_id', $id)
+                ->select('documents.id', 'documents.file_path')
+                ->get();
 
-        $application->delete();
+            foreach ($docs as $doc) {
+                Storage::disk('local')->delete($doc->file_path);
+                DB::table('application_documents')->where('document_id', $doc->id)->delete();
+                Document::find($doc->id)?->delete();
+            }
+
+            $application->delete();
+        });
 
         return response()->json(['message' => 'Application deleted']);
     }
