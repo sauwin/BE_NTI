@@ -44,12 +44,11 @@ class EvaluationController extends Controller
             'comment' => 'nullable|string',
         ]);
 
-        $application = Application::findOrFail($validated['application_id']);
-
-        if (! Auth::user()->hasRole(['evaluator', 'admin', 'super_admin'])) {
+        if (! Auth::user()->hasRole(['evaluator', 'nti_admin', 'super_admin'])) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
+        $application = Application::findOrFail($validated['application_id']);
         $existing = Evaluation::where('application_id', $application->id)
             ->where('evaluator_id', $user->id)
             ->first();
@@ -59,16 +58,17 @@ class EvaluationController extends Controller
         }
 
         try {
-            DB::transaction(function () use ($user, $application, $validated) {
-                $overallScore = collect($validated['scores'])->avg('score');
+            $evaluation = DB::transaction(function () use ($user, $application, $validated) {
+                $overallScore = collect($validated['scores'])->sum(fn ($s) => $s['score'] * $s['weight_at_moment'] / 100);
 
                 $evaluation = Evaluation::create([
                     'application_id' => $application->id,
                     'evaluator_id' => $user->id,
-                    'status' => 'in_progress',
+                    'status' => 'completed',
                     'overall_score' => $overallScore,
                     'recommendation' => $validated['recommendation'],
                     'comment' => $validated['comment'] ?? null,
+                    'evaluated_at' => now(),
                 ]);
 
                 foreach ($validated['scores'] as $score) {
@@ -80,9 +80,11 @@ class EvaluationController extends Controller
                         'comment' => $score['comment'] ?? null,
                     ]);
                 }
+
+                return $evaluation;
             });
 
-            return response()->json(['message' => 'Evaluation created'], 201);
+            return response()->json(['message' => 'Evaluation created', 'id' => $evaluation->id], 201);
         } catch (\Exception $e) {
             return response()->json(['message' => $e->getMessage()], 500);
         }
@@ -145,6 +147,8 @@ class EvaluationController extends Controller
                     $evaluation->comment = $validated['comment'];
                 }
 
+                $evaluation->status = 'completed';
+                $evaluation->evaluated_at = now();
                 $evaluation->save();
             });
 
