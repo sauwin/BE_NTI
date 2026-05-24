@@ -28,6 +28,8 @@ class AuthController extends Controller
             'sector' => 'nullable|string|max:100',
             'description' => 'nullable|string|max:2000',
             'website' => 'nullable|url|max:255',
+            'agreed_terms' => 'required|accepted',
+            'gdpr_consent' => 'required|accepted',
         ]);
 
         if ($data['role'] === 'student') {
@@ -41,13 +43,21 @@ class AuthController extends Controller
             }
         }
 
-        $user = DB::transaction(function () use ($data) {
+        $user = DB::transaction(function () use ($data, $request) {
             $user = User::create([
                 'first_name' => $data['first_name'],
                 'last_name' => $data['last_name'],
                 'email' => $data['email'],
                 'password_hash' => Hash::make($data['password']),
                 'status' => 'pending_verification',
+            ]);
+
+            \App\Models\GdprConsent::create([
+                'user_id' => $user->id,
+                'purpose' => 'registration_general_terms_and_gdpr',
+                'version' => '1.0',
+                'ip_address' => $request->ip() ?? '127.0.0.1',
+                'consented_at' => now(),
             ]);
 
             $role = Role::where('slug', $data['role'])->firstOrFail();
