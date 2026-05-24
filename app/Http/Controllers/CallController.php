@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Models\Call;
 use App\Models\Program;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 
 class CallController extends Controller
 {
@@ -26,30 +25,15 @@ class CallController extends Controller
             return response()->json(null);
         }
 
-        $lang = $request->query('lang', 'sk');
-        $translation = DB::table('call_translations')
-            ->where('call_id', $call->id)
-            ->where('language', $lang)
-            ->first();
-
-        $callName = $translation ? $translation->name : 'Výzva #' . $call->id;
-        $call->name = $callName;
-        $call->label = $callName;
+        $call->label = $call->name;
 
         return response()->json($call);
     }
 
     public function index(Request $request)
     {
-        $lang = $request->query('lang', 'sk');
-
-        $calls = Call::select('calls.*', 'call_translations.name as name')
-            ->leftJoin('call_translations', function ($join) use ($lang) {
-                $join->on('calls.id', '=', 'call_translations.call_id')
-                     ->where('call_translations.language', '=', $lang);
-            })
-            ->with('program')
-            ->orderByDesc('calls.created_at')
+        $calls = Call::with('program')
+            ->orderByDesc('created_at')
             ->get();
 
         return response()->json($calls);
@@ -99,43 +83,19 @@ class CallController extends Controller
 
         $callName = $request->input('title') ?? $request->input('name') ?? 'Bez názvu';
 
-        $call = DB::transaction(function () use ($program, $request, $documents, $callName) {
-            $newCall = Call::create([
-                'program_id' => $program->id,
-                'name' => $callName,
-                'status' => $request->input('status') ?? 'draft',
-                'opens_at' => $request->input('opens_at') ? now()->parse($request->input('opens_at')) : null,
-                'deadline_at' => $request->input('deadline_at') ? now()->parse($request->input('deadline_at')) : null,
-                'min_team_size' => $request->input('min_team_size') ?? 1,
-                'max_team_size' => $request->input('max_team_size') ?? null,
-                'evaluation_criteria' => $request->input('evaluation_criteria') ?? [],
-                'required_documents' => $documents,
-                'created_by' => $request->user()->id ?? 1, 
-            ]);
+        $call = Call::create([
+            'program_id' => $program->id,
+            'name' => $callName,
+            'status' => $request->input('status') ?? 'draft',
+            'opens_at' => $request->input('opens_at') ? now()->parse($request->input('opens_at')) : null,
+            'deadline_at' => $request->input('deadline_at') ? now()->parse($request->input('deadline_at')) : null,
+            'min_team_size' => $request->input('min_team_size') ?? 1,
+            'max_team_size' => $request->input('max_team_size') ?? null,
+            'evaluation_criteria' => $request->input('evaluation_criteria') ?? [],
+            'required_documents' => $documents,
+            'created_by' => $request->user()->id ?? 1, 
+        ]);
 
-            DB::table('call_translations')->insert([
-                [
-                    'call_id' => $newCall->id,
-                    'language' => 'sk',
-                    'name' => $callName,
-                    'description' => 'Vytvorené cez central administráciu',
-                    'created_at' => now(),
-                    'updated_at' => now()
-                ],
-                [
-                    'call_id' => $newCall->id,
-                    'language' => 'en',
-                    'name' => $callName . ' (EN)',
-                    'description' => 'Created via central administration',
-                    'created_at' => now(),
-                    'updated_at' => now()
-                ]
-            ]);
-
-            return $newCall;
-        });
-
-        $call->name = $callName;
         $call->label = $callName;
 
         return response()->json($call, 201);
@@ -163,6 +123,10 @@ class CallController extends Controller
             if ($program) {
                 $call->program_id = $program->id;
             }
+        }
+
+        if (isset($data['title'])) {
+            $call->name = $data['title'];
         }
 
         if (isset($data['max_team_size']) && $data['max_team_size'] !== null) {
@@ -193,16 +157,6 @@ class CallController extends Controller
 
         $call->save();
 
-        if (isset($data['title'])) {
-            DB::table('call_translations')
-                ->where('call_id', $call->id)
-                ->where('language', 'sk') 
-                ->update([
-                    'name' => $data['title'],
-                    'updated_at' => now()
-                ]);
-        }
-
         return response()->json($call);
     }
 
@@ -214,7 +168,6 @@ class CallController extends Controller
             return response()->json(['message' => 'Only draft calls can be deleted.'], 422);
         }
 
-        DB::table('call_translations')->where('call_id', $id)->delete();
         $call->delete();
 
         return response()->json(['message' => 'Call deleted']);
@@ -222,15 +175,8 @@ class CallController extends Controller
 
     public function show(int $id)
     {
-        $lang = request()->query('lang', 'sk');
-
-        $call = Call::select('calls.*', 'call_translations.name as name', 'call_translations.description as description')
-            ->leftJoin('call_translations', function ($join) use ($lang) {
-                $join->on('calls.id', '=', 'call_translations.call_id')
-                     ->where('call_translations.language', '=', $lang);
-            })
-            ->with('program')
-            ->findOrFail($id);
+        // Простий запит без leftJoin
+        $call = Call::with('program')->findOrFail($id);
 
         return response()->json($call);
     }

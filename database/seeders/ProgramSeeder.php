@@ -22,18 +22,12 @@ class ProgramSeeder extends Seeder
 
         Program::factory()
             ->programA()
-            ->has(
-                Call::factory()->state($callState),
-                'calls'
-            )
+            ->has(Call::factory()->state($callState), 'calls')
             ->create();
 
         Program::factory()
             ->programB()
-            ->has(
-                Call::factory()->state($callState),
-                'calls'
-            )
+            ->has(Call::factory()->state($callState), 'calls')
             ->create();
     }
 }
