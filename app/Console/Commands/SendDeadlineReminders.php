@@ -3,7 +3,9 @@
 namespace App\Console\Commands;
 
 use App\Mail\DeadlineReminderMail;
+use App\Mail\MilestoneDeadlineReminderMail;
 use App\Models\Application;
+use App\Models\Milestone;
 use App\Models\User;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
@@ -36,6 +38,19 @@ class SendDeadlineReminders extends Command
 
                 Mail::to($user->email)->queue(new DeadlineReminderMail($user, $call));
             }
+        }
+
+        $milestones = Milestone::with('application.studentProfile.user')
+            ->whereIn('status', ['pending', 'in_progress'])
+            ->whereBetween('due_date', [now()->toDateString(), now()->addDays(7)->toDateString()])
+            ->get();
+
+        foreach ($milestones as $milestone) {
+            $recipientUser = $milestone->application->studentProfile->user ?? null;
+            if (! $recipientUser) {
+                continue;
+            }
+            Mail::to($recipientUser->email)->queue(new MilestoneDeadlineReminderMail($recipientUser, $milestone));
         }
 
         $this->info('Deadline reminders sent.');

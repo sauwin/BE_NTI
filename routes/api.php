@@ -28,6 +28,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\MilestoneController;
 
 // Public
 Route::post('/auth/register', [AuthController::class, 'register'])->middleware('throttle:3,15');
@@ -111,6 +112,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/applications/{id}', [ApplicationController::class, 'destroy'])->middleware('throttle:10,1');
     Route::patch('/applications/{id}/status', [ApplicationController::class, 'updateStatus'])->middleware('throttle:10,1');
     Route::get('/applications/{id}/documents', [ApplicationController::class, 'documents']);
+
+    // Milestones
+    Route::get('/applications/{id}/milestones', [MilestoneController::class, 'index']);
+    Route::post('/applications/{id}/milestones', [MilestoneController::class, 'store'])->middleware('throttle:10,1');
+    Route::get('/milestones/{id}', [MilestoneController::class, 'show']);
+    Route::patch('/milestones/{id}', [MilestoneController::class, 'update'])->middleware('throttle:10,1');
+    Route::post('/milestones/{id}/documents', [MilestoneController::class, 'uploadDocument'])->middleware('throttle:20,1');
 
     // Evaluations
     Route::get('/evaluations', [EvaluationController::class, 'index'])->middleware('throttle:30,1');

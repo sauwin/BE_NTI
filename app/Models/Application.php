@@ -50,4 +50,9 @@ class Application extends Model
     {
         return $this->hasMany(Evaluation::class);
     }
+
+    public function milestones(): HasMany
+    {
+        return $this->hasMany(Milestone::class);
+    }
 }
