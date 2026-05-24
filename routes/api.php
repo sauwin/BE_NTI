@@ -1,5 +1,4 @@
 <?php
-
 use App\Http\Controllers\Admin\ExportController;
 use App\Http\Controllers\Admin\ProgramController;
 use App\Http\Controllers\AdminController;
@@ -187,11 +186,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/admin/admin-users', [AdminController::class, 'adminUsers']);
     Route::delete('/company/members/{userId}/kick', [OrganizationMembershipController::class, 'kickMember']);
 
+    Route::get('/applications/{id}/history', [ApplicationController::class, 'getHistory']);
+    Route::get('/applications/{id}/revision-request', [ApplicationController::class, 'getRevisionRequest']);
+
     // Super Admin Only
     Route::middleware('super_admin')->group(function () {
         Route::post('/admin/create-admin', [AdminController::class, 'createAdmin']);
         Route::delete('/admin/users/{userId}', [AdminController::class, 'deleteUser']);
-
         Route::post('/admin/users/{userId}/reset-password', [AdminController::class, 'resetAdminPassword']);
     });
 
@@ -203,11 +204,12 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('/programs/{program}', [ProgramController::class, 'update'])->middleware('throttle:10,1');
         Route::delete('/programs/{program}', [ProgramController::class, 'destroy'])->middleware('throttle:10,1');
 
-        Route::get('/applications', [ApplicationController::class, 'adminIndex']);
-        Route::patch('/applications/{id}/status', [ApplicationController::class, 'updateStatus'])->middleware('throttle:10,1');
+        // Керування заявками (Applications Management)
+        Route::get('/applications', [ApplicationController::class, 'adminIndex']); // Список з пагінацією та фільтрами
+        Route::get('/applications/{id}', [ApplicationController::class, 'adminShow']); // Детальний перегляд (документи, оцінки)
+        Route::patch('/applications/{id}/status', [ApplicationController::class, 'updateStatus'])->middleware('throttle:10,1'); // Зміна статусу адміном
 
         Route::get('/documents', [DocumentController::class, 'index']);
-
         Route::get('/calls', [CallController::class, 'index']);
         Route::post('/calls', [CallController::class, 'store'])->middleware('throttle:10,1');
         Route::get('/calls/{id}', [CallController::class, 'show']);
@@ -225,7 +227,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/export/applications', [ExportController::class, 'exportApplications']);
         Route::get('/export/users', [ExportController::class, 'exportUsers']);
         Route::get('/export/calls', [ExportController::class, 'exportCalls']);
-
         Route::put('/admin/calls/{call}', [CallController::class, 'update']);
+
+        Route::post('/applications/{id}/revision-request', [ApplicationController::class, 'createRevisionRequest']);
     });
 });
