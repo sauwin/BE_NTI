@@ -15,6 +15,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
             $table->string('purpose');
+            $table->string('version', 50)->nullable();
             $table->timestamp('consented_at');
             $table->timestamp('withdrawn_at')->nullable();
             $table->string('ip_address')->nullable();

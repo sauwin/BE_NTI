@@ -21,13 +21,14 @@ use App\Http\Controllers\PasswordResetController;
 use App\Http\Controllers\ReportingController;
 use App\Http\Controllers\StudentProfileController;
 use App\Http\Controllers\TeamController;
+use App\Http\Controllers\MilestoneController;
+use App\Http\Controllers\GdprController;
 use App\Mail\RegistrationSubmit;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\MilestoneController;
 
 // Public
 Route::post('/auth/register', [AuthController::class, 'register'])->middleware('throttle:3,15');
@@ -136,9 +137,16 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/mentorships/{id}/consultations', [MentorshipController::class, 'consultations'])->middleware('throttle:10,1');
     Route::post('/mentorships/assign', [MentorshipController::class, 'assign'])->middleware('throttle:10,1');
 
+    // Notifications
     Route::get('/notifications', [NotificationController::class, 'index']);
     Route::patch('/notifications/{id}/read', [NotificationController::class, 'markRead']);
     Route::patch('/notifications/read-all', [NotificationController::class, 'markAllRead']);
+
+    // GDPR
+    Route::post('/gdpr/consent', [GdprController::class, 'store'])->middleware('throttle:5,1');
+    Route::get('/gdpr/consents', [GdprController::class, 'index']);
+    Route::post('/gdpr/export', [GdprController::class, 'export'])->middleware('throttle:3,60');
+    Route::delete('/gdpr/account', [GdprController::class, 'anonymize'])->middleware('throttle:1,60');
 
     // Drafts
     Route::post('/drafts', [DraftController::class, 'store'])->middleware('throttle:10,1');
