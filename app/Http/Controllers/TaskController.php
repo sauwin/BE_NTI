@@ -40,7 +40,11 @@ class TaskController extends Controller
 
     public function show($id)
     {
-        $task = Task::with(['call.program', 'organization'])->findOrFail($id);
+        $task = Task::with(['organization', 'call', 'documents'])->find($id);
+
+        if (!$task) {
+            return response()->json(['message' => 'Task not found'], 404);
+        }
 
         return response()->json($task);
     }
