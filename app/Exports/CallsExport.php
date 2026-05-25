@@ -9,9 +9,30 @@ use Maatwebsite\Excel\Concerns\WithMapping;
 
 class CallsExport implements FromQuery, WithHeadings, WithMapping
 {
+    protected $filters;
+
+    public function __construct($filters = [])
+    {
+        $this->filters = $filters;
+    }
+
     public function query()
     {
-        return Call::query();
+        $query = Call::with('program');
+
+        if (!empty($this->filters['status'])) {
+            $query->where('status', $this->filters['status']);
+        }
+
+        if (!empty($this->filters['program_type'])) {
+            $programType = $this->filters['program_type'];
+            
+            $query->whereHas('program', function ($q) use ($programType) {
+                $q->where('code', 'program_' . $programType);
+            });
+        }
+
+        return $query;
     }
 
     public function headings(): array
@@ -19,7 +40,7 @@ class CallsExport implements FromQuery, WithHeadings, WithMapping
         return [
             'ID',
             'Call name',
-            'Program ID',
+            'Program',
             'Status',
             'Opening date',
             'Deadline',
@@ -30,15 +51,26 @@ class CallsExport implements FromQuery, WithHeadings, WithMapping
 
     public function map($call): array
     {
+        $programLabel = '—';
+        if ($call->program) {
+            if ($call->program->code === 'program_a') {
+                $programLabel = 'Program A';
+            } elseif ($call->program->code === 'program_b') {
+                $programLabel = 'Program B';
+            } else {
+                $programLabel = $call->program->title ?? $call->program->name ?? '—';
+            }
+        }
+
         return [
             $call->id,
             $call->name,
-            $call->program_id,
-            $call->status,
+            $programLabel,
+            strtoupper($call->status), 
             $call->opens_at,
             $call->deadline_at,
             $call->min_team_size,
-            $call->max_team_size,
+            $call->max_team_size ?? '∞',
         ];
     }
 }
