@@ -4,24 +4,26 @@ namespace App\Http\Controllers;
 
 use App\Models\Call;
 use App\Models\Program;
+use App\Services\AuditService;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 
 class CallController extends Controller
 {
-    public function active(Request $request, string $program_type = null)
+    public function active(Request $request, ?string $program_type = null)
     {
-        if (!$program_type) {
-            $program_type = $request->query('program', 'a'); 
+        if (! $program_type) {
+            $program_type = $request->query('program', 'a');
         }
 
         $program_type = strtolower(trim($program_type));
 
-        $call = Call::whereHas('program', fn ($q) => $q->where('code', 'program_' . $program_type))
+        $call = Call::whereHas('program', fn ($q) => $q->where('code', 'program_'.$program_type))
             ->where('status', 'open')
             ->latest()
             ->first();
 
-        if (!$call) {
+        if (! $call) {
             return response()->json(null);
         }
 
@@ -52,30 +54,30 @@ class CallController extends Controller
         try {
             $data = $request->validate([
                 'program_type' => 'required|in:a,b',
-                'title' => 'nullable|string|max:255', 
-                'name' => 'nullable|string|max:255',  
+                'title' => 'nullable|string|max:255',
+                'name' => 'nullable|string|max:255',
                 'status' => 'sometimes|required|in:draft,open,closed,archived',
-                'opens_at' => 'nullable|date', 
-                'deadline_at' => 'nullable|date', 
+                'opens_at' => 'nullable|date',
+                'deadline_at' => 'nullable|date',
                 'min_team_size' => 'nullable|integer|min:1',
-                'max_team_size' => 'nullable|integer', 
+                'max_team_size' => 'nullable|integer',
                 'evaluation_criteria' => 'nullable',
-                'required_documents' => 'nullable', 
-                'form_config' => 'nullable', 
+                'required_documents' => 'nullable',
+                'form_config' => 'nullable',
             ]);
-        } catch (\Illuminate\Validation\ValidationException $e) {
+        } catch (ValidationException $e) {
             return response()->json([
                 'error' => 'Validation Failed',
                 'messages' => $e->errors(),
-                'received_data' => $request->all()
+                'received_data' => $request->all(),
             ], 422);
         }
 
-        $program = Program::where('code', 'program_' . $data['program_type'])->first();
-        if (!$program) {
-            return response()->json(['error' => 'Program not found for type: ' . $data['program_type']], 422);
+        $program = Program::where('code', 'program_'.$data['program_type'])->first();
+        if (! $program) {
+            return response()->json(['error' => 'Program not found for type: '.$data['program_type']], 422);
         }
-        
+
         $documents = $request->input('form_config') ?? $request->input('required_documents') ?? [];
         if (is_string($documents)) {
             $documents = json_decode($documents, true) ?? [];
@@ -93,10 +95,16 @@ class CallController extends Controller
             'max_team_size' => $request->input('max_team_size') ?? null,
             'evaluation_criteria' => $request->input('evaluation_criteria') ?? [],
             'required_documents' => $documents,
-            'created_by' => $request->user()->id ?? 1, 
+            'created_by' => $request->user()->id ?? 1,
         ]);
 
         $call->label = $callName;
+
+        AuditService::log('create_call', 'call', [
+            'call_id' => $call->id,
+            'program_type' => $call->program_type,
+            'name' => $callName,
+        ]);
 
         return response()->json($call, 201);
     }
@@ -119,7 +127,7 @@ class CallController extends Controller
         ]);
 
         if (isset($data['program_type'])) {
-            $program = Program::where('code', 'program_' . $data['program_type'])->first();
+            $program = Program::where('code', 'program_'.$data['program_type'])->first();
             if ($program) {
                 $call->program_id = $program->id;
             }
@@ -145,15 +153,23 @@ class CallController extends Controller
         } elseif (isset($data['required_documents'])) {
             $documents = $data['required_documents'];
         }
-        
+
         if ($documents !== null) {
             $call->required_documents = $documents;
         }
 
-        if (isset($data['min_team_size'])) $call->min_team_size = $data['min_team_size'];
-        if (isset($data['status'])) $call->status = $data['status'];
-        if (array_key_exists('opens_at', $data)) $call->opens_at = $data['opens_at'] ? now()->parse($data['opens_at']) : null;
-        if (array_key_exists('deadline_at', $data)) $call->deadline_at = $data['deadline_at'] ? now()->parse($data['deadline_at']) : null;
+        if (isset($data['min_team_size'])) {
+            $call->min_team_size = $data['min_team_size'];
+        }
+        if (isset($data['status'])) {
+            $call->status = $data['status'];
+        }
+        if (array_key_exists('opens_at', $data)) {
+            $call->opens_at = $data['opens_at'] ? now()->parse($data['opens_at']) : null;
+        }
+        if (array_key_exists('deadline_at', $data)) {
+            $call->deadline_at = $data['deadline_at'] ? now()->parse($data['deadline_at']) : null;
+        }
 
         $call->save();
 
@@ -168,7 +184,12 @@ class CallController extends Controller
             return response()->json(['message' => 'Only draft calls can be deleted.'], 422);
         }
 
+        $callId = $call->id;
         $call->delete();
+
+        AuditService::log('delete_call', 'call', [
+            'call_id' => $callId,
+        ]);
 
         return response()->json(['message' => 'Call deleted']);
     }
@@ -193,7 +214,7 @@ class CallController extends Controller
 
         return response()->json([
             'message' => 'Call status updated successfully',
-            'call' => $call
+            'call' => $call,
         ]);
     }
 }

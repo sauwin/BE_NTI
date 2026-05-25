@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Mail\AdminPasswordResetMail;
+use App\Models\Audit;
 use App\Models\CompanyProfile;
 use App\Models\MentorProfile;
 use App\Models\Role;
@@ -13,7 +15,6 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
-use App\Mail\AdminPasswordResetMail;
 
 class AdminController extends Controller
 {
@@ -46,13 +47,13 @@ class AdminController extends Controller
      */
     public function logs(Request $request)
     {
-        $query = \App\Models\Audit::with('user');
+        $query = Audit::with('user');
 
         if ($request->filled('action_type')) {
             if ($request->action_type === 'export') {
                 $query->where(function ($q) {
                     $q->where('action', 'export')
-                      ->orWhere('action', 'like', 'export_%');
+                        ->orWhere('action', 'like', 'export_%');
                 });
             } else {
                 $query->where('action', $request->action_type);
@@ -88,9 +89,9 @@ class AdminController extends Controller
         $user = User::with('roles')->findOrFail($id);
 
         $data = [
-            'user'            => $user,
+            'user' => $user,
             'student_profile' => null,
-            'mentor_profile'  => null,
+            'mentor_profile' => null,
             'company_profile' => null,
         ];
 
@@ -353,7 +354,9 @@ class AdminController extends Controller
      */
     public function resetAdminPassword(Request $request, int $userId)
     {
-        $this->authorize('isSuperAdmin');
+        if (! $request->user()->roles()->where('slug', 'super_admin')->exists()) {
+            abort(403);
+        }
 
         $targetUser = User::findOrFail($userId);
 
@@ -382,8 +385,8 @@ class AdminController extends Controller
         $adminRoles = ['nti_admin', 'super_admin', 'evaluator', 'content_editor'];
 
         $users = User::select('id', 'first_name', 'last_name', 'email')
-            ->whereHas('roles', fn($q) => $q->whereIn('slug', $adminRoles))
-            ->with(['roles' => fn($q) => $q->select('roles.id', 'roles.name', 'roles.slug')])
+            ->whereHas('roles', fn ($q) => $q->whereIn('slug', $adminRoles))
+            ->with(['roles' => fn ($q) => $q->select('roles.id', 'roles.name', 'roles.slug')])
             ->orderBy('first_name')
             ->get();
 

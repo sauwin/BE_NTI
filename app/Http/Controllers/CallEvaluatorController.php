@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Notifications\EvaluationAssigned;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use App\Services\AuditService;
 
 class CallEvaluatorController extends Controller
 {
@@ -63,6 +64,12 @@ class CallEvaluatorController extends Controller
 
         $user->notify(new EvaluationAssigned($call));
 
+        AuditService::log('assign_evaluator', 'call', [
+            'call_id' => $call->id,
+            'user_id' => $user->id,
+            'user_email' => $user->email,
+        ]);
+
         return response()->json(['message' => 'Evaluator assigned'], 201);
     }
 
@@ -77,6 +84,11 @@ class CallEvaluatorController extends Controller
         CallEvaluator::where('call_id', $call->id)
             ->where('user_id', $userId)
             ->delete();
+
+        AuditService::log('remove_evaluator', 'call', [
+            'call_id' => $call->id,
+            'user_id' => $userId,
+        ]);
 
         return response()->json(['message' => 'Evaluator removed']);
     }
