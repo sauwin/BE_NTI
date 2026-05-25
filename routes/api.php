@@ -24,6 +24,7 @@ use App\Http\Controllers\TeamController;
 use App\Http\Controllers\MilestoneController;
 use App\Http\Controllers\GdprController;
 use App\Mail\RegistrationSubmit;
+use App\Http\Controllers\Admin\BulkNotificationController;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -207,6 +208,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Admin Only
     Route::middleware('admin')->prefix('admin')->group(function () {
+        Route::post('/notifications/bulk', [BulkNotificationController::class, 'send'])->middleware('throttle:5,1');
         Route::get('/programs', [ProgramController::class, 'index']);
         Route::post('/programs', [ProgramController::class, 'store'])->middleware('throttle:10,1');
         Route::get('/programs/{program}', [ProgramController::class, 'show']);

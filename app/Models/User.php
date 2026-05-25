@@ -13,6 +13,7 @@ use Laravel\Sanctum\HasApiTokens;
 
 use App\Models\Organization;
 use App\Models\Team;
+use App\Models\StudentProfile;
 
 #[Fillable(['name', 'email', 'password'])]
 #[Hidden(['password', 'remember_token'])]
@@ -68,5 +69,10 @@ class User extends Authenticatable
         $roles = is_array($roles) ? $roles : [$roles];
 
         return $this->roles()->whereIn('slug', $roles)->exists();
+    }
+
+    public function studentProfile()
+    {
+        return $this->hasOne(StudentProfile::class);
     }
 }

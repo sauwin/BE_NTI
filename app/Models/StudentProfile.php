@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use App\Models\Application;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class StudentProfile extends Model
@@ -32,5 +33,10 @@ class StudentProfile extends Model
     public function skills()
     {
         return $this->hasMany(StudentSkill::class);
+    }
+
+    public function applications()
+    {
+        return $this->hasMany(Application::class);
     }
 }
