@@ -4,51 +4,58 @@ namespace App\Http\Controllers;
 
 use App\Models\ApplicationDocument;
 use App\Models\Document;
+use App\Models\Task;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use App\Http\Requests\UploadDocumentRequest;
+
+use Illuminate\Support\Facades\DB;
 
 class DocumentController extends Controller
 {
     public function upload(UploadDocumentRequest $request)
     {
-        $existing = ApplicationDocument::join('documents', 'documents.id', '=', 'application_documents.document_id')
-            ->where('application_documents.application_id', $request->application_id)
-            ->where('documents.type', $request->type)
-            ->select('application_documents.document_id', 'documents.file_path')
-            ->first();
-
-        if ($existing) {
-            Storage::disk('local')->delete($existing->file_path);
-            ApplicationDocument::where('application_id', $request->application_id)
-                ->where('document_id', $existing->document_id)
-                ->delete();
-            Document::find($existing->document_id)?->delete();
-        }
-
+        $userId = $request->user()->id ?? 1;
         $file = $request->file('file');
-        $path = $file->store('documents', 'local');
+        $type = $request->type;
 
-        $document = Document::create([
-            'uploaded_by' => $request->user()->id ?? 1,
-            'type' => $request->type,
-            'classification' => $request->input('classification', 'internal'),
-            'version' => 1,
-            'file_path' => $path,
-            'file_name' => $file->getClientOriginalName(),
-            'mime_type' => $file->getMimeType(),
-            'file_size_bytes' => $file->getSize(),
-        ]);
+        return DB::transaction(function () use ($request, $file, $type, $userId) {
+            
+            if ($request->has('application_id')) {
+                $this->deleteExistingApplicationDocument($request->application_id, $type);
+            }
+            
+            if ($request->has('task_id')) {
+                $this->deleteExistingTaskDocument($request->task_id, $type);
+            }
 
-        ApplicationDocument::create([
-            'application_id' => $request->application_id,
-            'document_id' => $document->id,
-        ]);
+            $path = $file->store('documents', 'local');
 
-        return response()->json([
-            'document_id' => $document->id,
-            'file_name' => $document->file_name,
-        ], 201);
+            $document = Document::create([
+                'uploaded_by' => $userId,
+                'type' => $type,
+                'classification' => $request->input('classification', 'internal'),
+                'version' => 1,
+                'file_path' => $path,
+                'file_name' => $file->getClientOriginalName(),
+                'mime_type' => $file->getClientMimeType(),
+                'file_size_bytes' => $file->getSize(),
+            ]);
+
+            if ($request->has('application_id')) {
+                ApplicationDocument::create([
+                    'application_id' => $request->application_id,
+                    'document_id' => $document->id,
+                ]);
+            }
+
+            if ($request->has('task_id')) {
+                $task = Task::findOrFail($request->task_id);
+                $task->documents()->attach($document->id);
+            }
+
+            return response()->json($document, 201);
+        });
     }
 
     public function index(Request $request)
@@ -116,10 +123,50 @@ class DocumentController extends Controller
             return;
         }
 
-        if ($document->uploaded_by === $user->id) {
+        if ($request->has('application_id') && $document->uploaded_by === $user->id) {
             return;
         }
 
+        $associatedTask = DB::table('task_documents')
+            ->join('tasks', 'tasks.id', '=', 'task_documents.task_id')
+            ->where('task_documents.document_id', $document->id)
+            ->first();
+
+        if ($associatedTask && $associatedTask->product_owner_user_id === $user->id) {
+            return;
+        }
+        
         abort(403, 'Forbidden');
+    }
+
+    public function deleteExistingApplicationDocument(int $applicationId, string $type): void
+    {
+        $existing = ApplicationDocument::join('documents', 'documents.id', '=', 'application_documents.document_id')
+            ->where('application_documents.application_id', $applicationId)
+            ->where('documents.type', $type)
+            ->select('application_documents.document_id', 'documents.file_path')
+            ->first();
+
+        if ($existing) {
+            Storage::disk('local')->delete($existing->file_path);
+            ApplicationDocument::where('application_id', $applicationId)
+                ->where('document_id', $existing->document_id)
+                ->delete();
+            Document::find($existing->document_id)?->delete();
+        }
+    }
+
+    public function deleteExistingTaskDocument(int $taskId, string $type): void
+    {
+        $task = Task::findOrFail($taskId);
+        
+
+        $existing = $task->documents()->where('type', $type)->first();
+
+        if ($existing) {
+            Storage::disk('local')->delete($existing->file_path);
+            $task->documents()->detach($existing->id); 
+            $existing->delete(); 
+        }
     }
 }

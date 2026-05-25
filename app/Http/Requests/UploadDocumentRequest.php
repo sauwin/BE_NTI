@@ -76,7 +76,9 @@ class UploadDocumentRequest extends FormRequest
             ],
             'type' => 'required|string|max:100',
             'classification' => 'in:public,internal,confidential',
-            'application_id' => 'required|exists:applications,id',
+
+            'application_id' => 'required_without:task_id|integer|exists:applications,id',
+            'task_id' => 'required_without:application_id|integer|exists:tasks,id',
         ];
     }
 

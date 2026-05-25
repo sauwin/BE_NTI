@@ -33,9 +33,19 @@ class TeamAndApplicationSeeder extends Seeder
         }
 
         foreach ($students as $student) {
-            StudentProfile::factory()
-              ->for($student) 
-              ->create();
+            // Only create StudentProfile if it doesn't already exist
+            StudentProfile::firstOrCreate(
+                ['user_id' => $student->id],
+                [
+                    'study_program' => fake()->word(),
+                    'year_of_study' => fake()->numberBetween(1, 4),
+                    'university' => fake()->sentence(),
+                    'bio' => fake()->paragraph(),
+                    'github_url' => fake()->url(),
+                    'academic_declaration_confirmed' => true,
+                    'cv_document_id' => null,
+                ]
+            );
         }
 
         $profiles = StudentProfile::whereIn('user_id', $students->pluck('id'))->get();

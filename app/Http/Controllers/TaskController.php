@@ -3,14 +3,14 @@
 namespace App\Http\Controllers;
 
 use App\Models\Call;
-use App\Models\CallOrganization;
+use App\Models\Task;
 use Illuminate\Http\Request;
 
-class CallOrganizationController extends Controller
+class TaskController extends Controller
 {
     public function byOrganization($organizationId)
     {
-        $tasks = CallOrganization::with(['call.program', 'organization'])
+        $tasks = Task::with(['call.program', 'organization'])
             ->where('organization_id', $organizationId)
             ->get();
 
@@ -19,7 +19,7 @@ class CallOrganizationController extends Controller
 
     public function publicTasks()
     {
-        $tasks = CallOrganization::with(['call.program', 'organization'])
+        $tasks = Task::with(['call.program', 'organization'])
             ->where('status', 'published')
             ->whereHas('call.program', function ($query) {
                 $query->where('code', 'program_b');
@@ -31,11 +31,18 @@ class CallOrganizationController extends Controller
 
     public function index(Request $request)
     {
-        $tasks = CallOrganization::with(['call.program', 'organization'])
+        $tasks = Task::with(['call.program', 'organization'])
             ->where('product_owner_user_id', $request->user()->id)
             ->get();
 
         return response()->json($tasks);
+    }
+
+    public function show($id)
+    {
+        $task = Task::with(['call.program', 'organization'])->findOrFail($id);
+
+        return response()->json($task);
     }
 
     public function store(Request $request)
@@ -73,7 +80,7 @@ class CallOrganizationController extends Controller
             return response()->json(['message' => 'Only Program B calls can receive company tasks.'], 422);
         }
 
-        $task = CallOrganization::create(array_merge($data, [
+        $task = Task::create(array_merge($data, [
             'organization_id' => $organizationId,
             'product_owner_user_id' => $request->user()->id,
             'status' => $data['status'] ?? 'draft',
@@ -84,7 +91,7 @@ class CallOrganizationController extends Controller
 
     public function update(Request $request, $id)
     {
-        $task = CallOrganization::findOrFail($id);
+        $task = Task::findOrFail($id);
         if ($task->product_owner_user_id !== $request->user()->id) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
@@ -117,7 +124,7 @@ class CallOrganizationController extends Controller
 
     public function destroy(Request $request, $id)
     {
-        $task = CallOrganization::findOrFail($id);
+        $task = Task::findOrFail($id);
 
         if ($task->product_owner_user_id !== $request->user()->id) {
             return response()->json(['message' => 'Unauthorized'], 403);

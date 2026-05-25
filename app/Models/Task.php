@@ -4,10 +4,16 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
-class CallOrganization extends Model
+use App\Models\Document;
+use App\Models\Call;
+use App\Models\Organization;
+use App\Models\User;
+
+class Task extends Model
 {
-    protected $table = 'call_organizations';
+    protected $table = 'tasks';
 
     protected $fillable = [
         'call_id',
@@ -39,6 +45,11 @@ class CallOrganization extends Model
         'required_technologies' => 'array',
         'required_skills' => 'array',
     ];
+
+    public function documents(): BelongsToMany
+    {
+        return $this->belongsToMany(Document::class, 'task_documents');
+    }
 
     public function call(): BelongsTo
     {

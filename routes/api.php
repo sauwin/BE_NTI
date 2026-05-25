@@ -7,7 +7,7 @@ use App\Http\Controllers\ArticleController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CallController;
 use App\Http\Controllers\CallEvaluatorController;
-use App\Http\Controllers\CallOrganizationController;
+use App\Http\Controllers\TaskController;
 use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\DraftController;
 use App\Http\Controllers\EvaluationController;
@@ -23,6 +23,7 @@ use App\Http\Controllers\StudentProfileController;
 use App\Http\Controllers\TeamController;
 use App\Http\Controllers\MilestoneController;
 use App\Http\Controllers\GdprController;
+use App\Http\Controllers\CallTaskController;
 use App\Mail\RegistrationSubmit;
 use App\Http\Controllers\Admin\BulkNotificationController;
 use App\Models\User;
@@ -39,7 +40,7 @@ Route::apiResource('articles', ArticleController::class);
 
 Route::get('/calls/active/{program_type?}', [CallController::class, 'active']);
 Route::get('/faq-items', [FaqItemController::class, 'index']);
-Route::get('/programs/b/tasks', [CallOrganizationController::class, 'publicTasks']);
+Route::get('/programs/b/tasks', [TaskController::class, 'publicTasks']);
 
 Route::get('/email/continueRegistration/{id}/{hash}', function (Request $request, $id, $hash) {
     $user = User::findOrFail($id);
@@ -90,6 +91,15 @@ Route::post('/auth/verify-reset-token', [PasswordResetController::class, 'verify
 // Authenticated
 Route::middleware('auth:sanctum')->group(function () {
 
+    //Programs
+    Route::get('/programs', [ProgramController::class, 'index']);
+
+    //Tasks
+    Route::get('/tasks/{id}', [TaskController::class, 'show']);
+
+    //Сalls
+    Route::get('/calls/{id}', [CallController::class, 'show']);
+
     // Auth
     Route::post('/auth/logout', [AuthController::class, 'logout']);
     Route::get('/auth/me', [AuthController::class, 'me']);
@@ -100,11 +110,15 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('teams/{team}/invite', [TeamController::class, 'invite'])->middleware('throttle:10,1');
     Route::delete('teams/{team}/members/{user}', [TeamController::class, 'removeMember']);
     Route::get('user/invitations', [TeamController::class, 'myInvitations']);
+    Route::post('/teams/{team}/invitation/respond', [TeamController::class, 'respondToInvitation']);
 
     // Documents
     Route::post('/documents/upload', [DocumentController::class, 'upload'])->middleware('throttle:20,1');
     Route::get('/documents/{id}/download', [DocumentController::class, 'download']);
     Route::get('/documents/{id}/preview', [DocumentController::class, 'preview']);
+
+    Route::delete('/applications/{applicationId}/documents/{type}', [DocumentController::class, 'deleteApplicationDocument']);
+    Route::delete('/tasks/{taskId}/documents/{type}', [DocumentController::class, 'deleteTaskDocument']);
 
     // Applications
     Route::post('/applications', [ApplicationController::class, 'store'])->middleware('throttle:10,1');
@@ -180,11 +194,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/mentorships/{id}', [MentorshipController::class, 'destroy'])->middleware('throttle:10,1');
 
     // Organization
-    Route::get('/company/tasks', [CallOrganizationController::class, 'index']);
-    Route::get('/company/{companyId}/tasks', [CallOrganizationController::class, 'byOrganization']);
-    Route::post('/company/tasks', [CallOrganizationController::class, 'store'])->middleware('throttle:10,1');
-    Route::put('/company/tasks/{id}', [CallOrganizationController::class, 'update'])->middleware('throttle:10,1');
-    Route::delete('/company/tasks/{id}', [CallOrganizationController::class, 'destroy'])->middleware('throttle:10,1');
+    Route::get('/company/tasks', [TaskController::class, 'index']);
+    Route::get('/company/{companyId}/tasks', [TaskController::class, 'byOrganization']);
+    Route::post('/company/tasks', [TaskController::class, 'store'])->middleware('throttle:10,1');
+    Route::put('/company/tasks/{id}', [TaskController::class, 'update'])->middleware('throttle:10,1');
+    Route::delete('/company/tasks/{id}', [TaskController::class, 'destroy'])->middleware('throttle:10,1');
+    Route::post('/calls-with-tasks', [CallTaskController::class, 'storeCallWithTask'])->middleware('throttle:10,1');
 
     // Company members
     Route::get('/company/members/pending', [OrganizationMembershipController::class, 'pendingMembers']);
@@ -223,7 +238,6 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/documents', [DocumentController::class, 'index']);
         Route::get('/calls', [CallController::class, 'index']);
         Route::post('/calls', [CallController::class, 'store'])->middleware('throttle:10,1');
-        Route::get('/calls/{id}', [CallController::class, 'show']);
         Route::put('/calls/{id}', [CallController::class, 'update'])->middleware('throttle:10,1');
         Route::delete('/calls/{id}', [CallController::class, 'destroy'])->middleware('throttle:10,1');
         Route::patch('/calls/{id}/status', [CallController::class, 'updateStatus'])->middleware('throttle:10,1');

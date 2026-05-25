@@ -71,6 +71,11 @@ class User extends Authenticatable
         return $this->roles()->whereIn('slug', $roles)->exists();
     }
 
+    public function isStudent(): bool
+    {
+        return $this->hasRole('student');
+    }
+
     public function studentProfile()
     {
         return $this->hasOne(StudentProfile::class);
