@@ -33,6 +33,7 @@ class ApplicationController extends Controller
             'program_type' => 'required|in:a,b',
             'team_id' => 'nullable|exists:teams,id',
             'submit_type' => 'nullable|in:draft,final',
+            'category' => 'nullable|string|max:255',
         ]);
 
         $isFinalSubmit = ($data['submit_type'] ?? 'final') === 'final';
@@ -86,6 +87,12 @@ class ApplicationController extends Controller
             }
         }
 
+        if ($isFinalSubmit && $data['program_type'] === 'a' && empty($data['category'])) {
+            return response()->json([
+                'message' => 'Focus category is required for Program A submission.'
+            ], 422);
+        }
+
         $maxApps = (int) env('MAX_ACTIVE_APPLICATIONS', 0);
         if ($maxApps > 0 && $isFinalSubmit) {
             $activeCount = Application::where('student_profile_id', $profile?->id)
@@ -108,9 +115,9 @@ class ApplicationController extends Controller
                 'team_id' => $data['team_id'] ?? null,
                 'student_profile_id' => $profile?->id,
                 'status' => $initialStatus,
+                'category' => $data['category'] ?? null,
             ]);
 
-            // Автоматичний запис первинного створення в історію
             ApplicationStatusHistory::create([
                 'application_id' => $app->id,
                 'old_status' => null,
@@ -244,6 +251,7 @@ class ApplicationController extends Controller
             'program_type' => 'sometimes|in:a,b',
             'team_id' => 'nullable|exists:teams,id',
             'internal_notes' => 'sometimes|string',
+            'category' => 'sometimes|string|max:255',
         ]);
 
         $application->update($data);

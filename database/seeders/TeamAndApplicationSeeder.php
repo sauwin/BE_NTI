@@ -18,9 +18,6 @@ class TeamAndApplicationSeeder extends Seeder
         $callA = Call::whereHas('program', fn($q) => $q->where('code', 'program_a'))->first() 
             ?? Call::factory()->create(['status' => 'open']);
 
-        $callB = Call::whereHas('program', fn($q) => $q->where('code', 'program_b'))->first() 
-            ?? Call::factory()->create(['status' => 'open']);
-
         $studentIds = DB::table('user_roles')
             ->join('roles', 'roles.id', '=', 'user_roles.role_id')
             ->where('roles.slug', 'student')
@@ -99,17 +96,6 @@ class TeamAndApplicationSeeder extends Seeder
                     'status' => 'submitted', 
                 ]);
             }
-        }
-
-        foreach ($profiles->take(3) as $profile) {
-            Application::factory()->create([
-                'call_id' => $callB->id,
-                'applicant_type' => 'student',
-                'program_type' => 'b',
-                'team_id' => null,
-                'student_profile_id' => $profile->id,
-                'status' => fake()->randomElement(['draft', 'submitted']),
-            ]);
         }
     }
 }

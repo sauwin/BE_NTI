@@ -46,6 +46,7 @@ return new class extends Migration
                 ->constrained('users')
                 ->onDelete('set null');
             $table->text('internal_notes')->nullable();
+            $table->string('category')->nullable();
             $table->timestamps();
             $table->index('call_id');
             $table->index('status');
