@@ -26,18 +26,4 @@ class ApplicationManagementController extends Controller
 
         return response()->json($applications);
     }
-
-    public function updateStatus(Request $request, int $id)
-    {
-        $request->validate([
-            'status' => 'required|in:submitted,formally_verified,under_evaluation,revision_requested,approved,rejected,onboarding,active,suspended,closed',
-            'comment' => 'nullable|string|max:1000'
-        ]);
-
-        $application = Application::findOrFail($id);
-        
-        $this->adminService->updateStatus($application, $request->status, $request->comment, $request->user());
-
-        return response()->json(['message' => "Application status updated successfully to {$request->status}."]);
-    }
 }

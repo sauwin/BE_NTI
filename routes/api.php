@@ -135,6 +135,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/applications/{id}', [ApplicationController::class, 'destroy'])
         ->middleware('throttle:10,1');
     Route::get('/applications/{id}/documents', [ApplicationController::class, 'documents']);
+    Route::patch('/applications/{id}/status', [ApplicationController::class, 'updateStatus'])
+            ->middleware('throttle:10,1');
 
     // Milestones
     Route::get('/applications/{id}/milestones', [MilestoneController::class, 'index']);
@@ -241,8 +243,6 @@ Route::middleware('auth:sanctum')->group(function () {
         // Applications Management
         Route::get('/applications', [ApplicationManagementController::class, 'index']);
         Route::get('/applications/{id}', [ApplicationManagementController::class, 'show']);
-        Route::patch('/applications/{id}/status', [ApplicationManagementController::class, 'updateStatus'])
-            ->middleware('throttle:10,1');
         Route::post('/applications/{id}/revisions', [ApplicationRevisionController::class, 'requestRevision'])
             ->middleware('throttle:10,1');
 

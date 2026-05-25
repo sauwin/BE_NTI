@@ -107,11 +107,18 @@ class MentorshipController extends Controller
 
     public function destroy(Request $request, $id)
     {
-        if (!$request->user()->tokenCan('admin') && $request->user()->role !== 'admin') {
-            return response()->json(['message' => 'Unauthorized'], 403);
+        $user = $request->user();
+        $mentorship = Mentorship::findOrFail($id);
+
+        $isAdmin = $user->tokenCan('admin') || $user->role === 'admin' || 
+                ($user->roles && $user->roles->contains('slug', 'super_admin'));
+
+        $isCurrentMentor = $user->roles->contains('slug', 'mentor') && ($mentorship->mentor_id === $user->id);
+
+        if (!$isAdmin && !$isCurrentMentor) {
+            return response()->json(['message' => 'Unauthorized. You cannot remove this mentorship.'], 403);
         }
 
-        $mentorship = Mentorship::findOrFail($id);
         $mentorship->delete();
 
         return response()->json(['message' => 'Mentorship removed successfully']);
