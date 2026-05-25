@@ -13,11 +13,13 @@ class UsersExport implements FromQuery, WithHeadings, WithMapping, WithCustomCsv
 {
     protected $search;
     protected $role;
+    protected $status;
 
-    public function __construct($search = null, $role = null)
+    public function __construct($search = null, $role = null, $status = null)
     {
         $this->search = $search;
         $this->role = $role;
+        $this->status = $status;
     }
 
     public function query()
@@ -35,6 +37,16 @@ class UsersExport implements FromQuery, WithHeadings, WithMapping, WithCustomCsv
         if ($this->role) {
             $query->whereHas('roles', function (Builder $q) {
                 $q->where('slug', $this->role);
+            });
+        }
+
+        if ($this->status) {
+            $query->where(function (Builder $q) {
+                if ($this->status === 'active') {
+                    $q->where('status', 'active');
+                } elseif ($this->status === 'blocked') {
+                    $q->where('status', 'blocked');
+                }
             });
         }
 
