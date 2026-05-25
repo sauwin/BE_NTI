@@ -1,33 +1,34 @@
 <?php
+
+use App\Http\Controllers\Admin\ApplicationManagementController;
+use App\Http\Controllers\Admin\ApplicationRevisionController;
+use App\Http\Controllers\Admin\BulkNotificationController;
 use App\Http\Controllers\Admin\ExportController;
 use App\Http\Controllers\Admin\ProgramController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\ApplicationController;
-use App\Http\Controllers\Admin\ApplicationManagementController;
-use App\Http\Controllers\Admin\ApplicationRevisionController;
 use App\Http\Controllers\ArticleController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CallController;
 use App\Http\Controllers\CallEvaluatorController;
-use App\Http\Controllers\TaskController;
+use App\Http\Controllers\CallTaskController;
 use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\DraftController;
 use App\Http\Controllers\EvaluationController;
 use App\Http\Controllers\FaqItemController;
+use App\Http\Controllers\GdprController;
 use App\Http\Controllers\MentorProfileController;
 use App\Http\Controllers\MentorshipController;
+use App\Http\Controllers\MilestoneController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\OrganizationController;
 use App\Http\Controllers\OrganizationMembershipController;
 use App\Http\Controllers\PasswordResetController;
 use App\Http\Controllers\ReportingController;
 use App\Http\Controllers\StudentProfileController;
+use App\Http\Controllers\TaskController;
 use App\Http\Controllers\TeamController;
-use App\Http\Controllers\MilestoneController;
-use App\Http\Controllers\GdprController;
-use App\Http\Controllers\CallTaskController;
 use App\Mail\RegistrationSubmit;
-use App\Http\Controllers\Admin\BulkNotificationController;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -73,7 +74,7 @@ Route::get('/email/continueRegistration/{id}/{hash}', function (Request $request
             ]);
     });
 
-    return redirect('http://localhost:5173/verified');
+    return redirect(rtrim(env('FRONTEND_URL', 'http://localhost:5173'), '/').'/verified');
 })->name('verification.verify');
 
 Route::post('/email/resend', function (Request $request) {
@@ -93,13 +94,13 @@ Route::post('/auth/verify-reset-token', [PasswordResetController::class, 'verify
 // Authenticated
 Route::middleware('auth:sanctum')->group(function () {
 
-    //Programs
+    // Programs
     Route::get('/programs', [ProgramController::class, 'index']);
 
-    //Tasks
+    // Tasks
     Route::get('/tasks/{id}', [TaskController::class, 'show']);
 
-    //Сalls
+    // Сalls
     Route::get('/calls/{id}', [CallController::class, 'show']);
 
     // Auth
