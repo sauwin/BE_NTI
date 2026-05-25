@@ -17,6 +17,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
+use App\Services\AuditService;
 
 class ApplicationController extends Controller
 {
@@ -150,6 +151,12 @@ class ApplicationController extends Controller
         $oldStatus = $application->status;
 
         $application->update(['status' => $data['status']]);
+
+        AuditService::log('update_status', 'application', [
+            'application_id' => $application->id,
+            'old_status' => $oldStatus,
+            'new_status' => $data['status'],
+        ]);
 
         ApplicationStatusHistory::create([
             'application_id' => $application->id,

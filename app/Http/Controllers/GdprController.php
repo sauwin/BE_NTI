@@ -5,9 +5,10 @@ namespace App\Http\Controllers;
 use App\Models\Application;
 use App\Models\GdprConsent;
 use App\Models\StudentProfile;
-use App\Models\User;
+use App\Services\AuditService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class GdprController extends Controller
 {
@@ -56,7 +57,7 @@ class GdprController extends Controller
         $applications = Application::where('student_profile_id', $profile?->id)
             ->with(['call', 'team'])
             ->get()
-            ->map(fn($app) => [
+            ->map(fn ($app) => [
                 'id' => $app->id,
                 'program_type' => $app->program_type,
                 'status' => $app->status,
@@ -91,6 +92,10 @@ class GdprController extends Controller
             'gdpr_consents' => $consents,
         ];
 
+        AuditService::log('gdpr_export', 'user', [
+            'target_user_id' => $user->id,
+        ]);
+
         return response()->json($export)
             ->header('Content-Disposition', 'attachment; filename="my-data-export.json"');
     }
@@ -106,6 +111,8 @@ class GdprController extends Controller
 
         $user = $request->user();
 
+        $userId = $user->id;
+
         DB::transaction(function () use ($user) {
             // Revoke all tokens
             $user->tokens()->delete();
@@ -114,8 +121,8 @@ class GdprController extends Controller
             $user->update([
                 'first_name' => 'Deleted',
                 'last_name' => 'User',
-                'email' => 'deleted_' . $user->id . '@anonymized.local',
-                'password_hash' => bcrypt(\Illuminate\Support\Str::random(32)),
+                'email' => 'deleted_'.$user->id.'@anonymized.local',
+                'password_hash' => bcrypt(Str::random(32)),
                 'status' => 'deleted',
                 'email_verified_at' => null,
                 'organization_id' => null,
@@ -128,14 +135,18 @@ class GdprController extends Controller
                 ->update(['withdrawn_at' => now()]);
 
             // Anonymize student profile
-            \App\Models\StudentProfile::where('user_id', $user->id)->update([
-                'bio'        => null,
+            StudentProfile::where('user_id', $user->id)->update([
+                'bio' => null,
                 'github_url' => null,
             ]);
 
             // Remove roles
             DB::table('user_roles')->where('user_id', $user->id)->delete();
         });
+
+        AuditService::log('gdpr_anonymize', 'user', [
+            'target_user_id' => $userId,
+        ]);
 
         return response()->json(['message' => 'Account anonymized successfully.']);
     }
