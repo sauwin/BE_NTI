@@ -28,4 +28,9 @@ class Document extends Model
             $document->created_at = now();
         });
     }
+
+    public function applications()
+    {
+        return $this->belongsToMany(Application::class, 'application_documents', 'document_id', 'application_id');
+    }
 }

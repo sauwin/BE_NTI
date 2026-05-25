@@ -3,6 +3,8 @@ use App\Http\Controllers\Admin\ExportController;
 use App\Http\Controllers\Admin\ProgramController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\ApplicationController;
+use App\Http\Controllers\Admin\ApplicationManagementController;
+use App\Http\Controllers\Admin\ApplicationRevisionController;
 use App\Http\Controllers\ArticleController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CallController;
@@ -121,12 +123,16 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/tasks/{taskId}/documents/{type}', [DocumentController::class, 'deleteTaskDocument']);
 
     // Applications
-    Route::post('/applications', [ApplicationController::class, 'store'])->middleware('throttle:10,1');
     Route::get('/applications', [ApplicationController::class, 'index']);
     Route::get('/applications/{id}', [ApplicationController::class, 'show']);
-    Route::patch('/applications/{id}', [ApplicationController::class, 'update'])->middleware('throttle:10,1');
-    Route::delete('/applications/{id}', [ApplicationController::class, 'destroy'])->middleware('throttle:10,1');
-    Route::patch('/applications/{id}/status', [ApplicationController::class, 'updateStatus'])->middleware('throttle:10,1');
+    Route::post('/applications', [ApplicationController::class, 'store'])
+        ->middleware('throttle:10,1');
+    Route::patch('/applications/{id}', [ApplicationController::class, 'update'])
+        ->middleware('throttle:10,1');
+    Route::post('/applications/{id}/submit', [ApplicationController::class, 'submitDraft'])
+        ->middleware('throttle:10,1');
+    Route::delete('/applications/{id}', [ApplicationController::class, 'destroy'])
+        ->middleware('throttle:10,1');
     Route::get('/applications/{id}/documents', [ApplicationController::class, 'documents']);
 
     // Milestones
@@ -231,10 +237,13 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('/programs/{program}', [ProgramController::class, 'update'])->middleware('throttle:10,1');
         Route::delete('/programs/{program}', [ProgramController::class, 'destroy'])->middleware('throttle:10,1');
 
-        // Керування заявками (Applications Management)
-        Route::get('/applications', [ApplicationController::class, 'adminIndex']); // Список з пагінацією та фільтрами
-        Route::get('/applications/{id}', [ApplicationController::class, 'adminShow']); // Детальний перегляд (документи, оцінки)
-        Route::patch('/applications/{id}/status', [ApplicationController::class, 'updateStatus'])->middleware('throttle:10,1'); // Зміна статусу адміном
+        // Applications Management
+        Route::get('/applications', [ApplicationManagementController::class, 'index']);
+        Route::get('/applications/{id}', [ApplicationManagementController::class, 'show']);
+        Route::patch('/applications/{id}/status', [ApplicationManagementController::class, 'updateStatus'])
+            ->middleware('throttle:10,1');
+        Route::post('/applications/{id}/revisions', [ApplicationRevisionController::class, 'requestRevision'])
+            ->middleware('throttle:10,1');
 
         Route::get('/documents', [DocumentController::class, 'index']);
         Route::get('/calls', [CallController::class, 'index']);
