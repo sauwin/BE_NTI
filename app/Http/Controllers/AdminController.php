@@ -255,7 +255,7 @@ class AdminController extends Controller
         $role = Role::where('slug', $data['role'])->firstOrFail();
 
         if ($user->roles()->where('role_id', $role->id)->exists()) {
-            return response()->json(['message' => 'User already has this role'], 422);
+            return response()->json(['message' => 'Role assigned']);
         }
 
         $existingRole = DB::table('user_roles')->where('user_id', $user->id)->first();
