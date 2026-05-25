@@ -67,14 +67,27 @@ class DocumentController extends Controller
         }
 
         $documents = Document::query()
-            ->select(['id', 'file_name', 'mime_type', 'file_size_bytes', 'created_at', 'uploaded_by'])
+            ->select([
+                'documents.id',
+                'documents.file_name',
+                'documents.mime_type',
+                'documents.file_size_bytes',
+                'documents.created_at',
+                'documents.uploaded_by',
+            ])
+            ->leftJoin('application_documents', 'application_documents.document_id', '=', 'documents.id')
+            ->leftJoin('applications', 'applications.id', '=', 'application_documents.application_id')
+            ->addSelect([
+                'applications.id as application_id',
+                DB::raw("CONCAT('Aplikácia #', applications.id) as application_name"),
+            ])
             ->when($request->query('search'), function ($query, $search) {
-                $query->where('file_name', 'like', '%' . trim($search) . '%');
+                $query->where('documents.file_name', 'like', '%' . trim($search) . '%');
             })
             ->when($request->query('date'), function ($query, $date) {
-                $query->whereDate('created_at', $date);
+                $query->whereDate('documents.created_at', $date);
             })
-            ->orderBy('created_at', 'desc')
+            ->orderBy('documents.created_at', 'desc')
             ->paginate(15);
 
         return response()->json($documents);
