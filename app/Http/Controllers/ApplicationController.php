@@ -2,23 +2,29 @@
 
 namespace App\Http\Controllers;
 
+use App\Mail\ApplicationRevisionRequestMail;
 use App\Mail\ApplicationSubmittedMail;
 use App\Mail\ProjectClosedMail;
 use App\Mail\StatusChangedMail;
 use App\Models\Application;
+use App\Models\ApplicationRevisionRequest;
+use App\Models\ApplicationStatusHistory;
 use App\Models\Call;
 use App\Models\Document;
 use App\Models\StudentProfile;
+use App\Models\Team;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
-use App\Models\ApplicationStatusHistory;
-use App\Models\ApplicationRevisionRequest;
-use App\Mail\ApplicationRevisionRequestMail;
 
 class ApplicationController extends Controller
 {
+    private function isAdmin(Request $request): bool
+    {
+        return $request->user()->roles->contains(fn ($r) => in_array($r->slug, ['nti_admin', 'super_admin']));
+    }
+
     public function store(Request $request)
     {
         $data = $request->validate([
@@ -32,7 +38,7 @@ class ApplicationController extends Controller
 
         if ($data['applicant_type'] === 'team' && empty($data['team_id'])) {
             return response()->json([
-                'message' => 'Team specification is required for team aplication'
+                'message' => 'Team specification is required for team aplication',
             ], 422);
         }
 
@@ -49,32 +55,32 @@ class ApplicationController extends Controller
 
         if (! $profile) {
             return response()->json([
-                'message' => 'Pred odoslaním prihlášky si musíte vytvoriť študentský profil.'
+                'message' => 'Pred odoslaním prihlášky si musíte vytvoriť študentský profil.',
             ], 403);
         }
 
         $team = null;
 
         if ($data['applicant_type'] === 'team') {
-            $team = \App\Models\Team::withCount(['members' => function ($query) {
-                $query->where('team_members.status', 'accepted'); 
+            $team = Team::withCount(['members' => function ($query) {
+                $query->where('team_members.status', 'accepted');
             }])->find($data['team_id']);
 
             if ($isFinalSubmit && $team->status !== 'forming') {
                 return response()->json([
-                    'message' => 'Táto prihláška nemôže byť odoslaná, pretože tím už je v stave ready (uzamknutý).'
+                    'message' => 'Táto prihláška nemôže byť odoslaná, pretože tím už je v stave ready (uzamknutý).',
                 ], 422);
             }
 
             if ($team->leader_id !== $request->user()->id) {
                 return response()->json([
-                    'message' => 'Iba líder tímu môže podať prihlášku za tento tím.'
+                    'message' => 'Iba líder tímu môže podať prihlášku za tento tím.',
                 ], 403);
             }
 
             if ($isFinalSubmit && $team->members_count < 3) {
                 return response()->json([
-                    'message' => 'Tím mustí mať minimálne 3 členov s potvrdeným statusom (accepted) pre prihlásenie do Programu A.'
+                    'message' => 'Tím mustí mať minimálne 3 členov s potvrdeným statusom (accepted) pre prihlásenie do Programu A.',
                 ], 422);
             }
         }
@@ -93,7 +99,7 @@ class ApplicationController extends Controller
 
         $application = DB::transaction(function () use ($call, $data, $profile, $team, $isFinalSubmit, $request) {
             $initialStatus = $isFinalSubmit ? 'submitted' : 'draft';
-            
+
             $app = Application::create([
                 'call_id' => $call->id,
                 'applicant_type' => $data['applicant_type'],
@@ -142,7 +148,7 @@ class ApplicationController extends Controller
 
         $application = Application::findOrFail($id);
         $oldStatus = $application->status;
-        
+
         $application->update(['status' => $data['status']]);
 
         ApplicationStatusHistory::create([
@@ -175,20 +181,31 @@ class ApplicationController extends Controller
 
     public function index(Request $request)
     {
-        $profile = StudentProfile::where('user_id', $request->user()->id)->first();
+        $user = $request->user();
+        $isAdmin = $user->roles->contains(fn ($r) => in_array($r->slug, ['nti_admin', 'super_admin']));
+
+        if ($isAdmin) {
+            return response()->json(Application::orderByDesc('created_at')->get());
+        }
+
+        $profile = $user->studentProfile;
         if (! $profile) {
             return response()->json([]);
         }
 
-        $applications = Application::where('student_profile_id', $profile->id)
-            ->orderByDesc('created_at')
-            ->get();
-
-        return response()->json($applications);
+        return response()->json(
+            Application::where('student_profile_id', $profile->id)->orderByDesc('created_at')->get()
+        );
     }
 
     public function show(Request $request, int $id)
     {
+        if ($this->isAdmin($request)) {
+            $application = Application::findOrFail($id);
+            $this->authorize('view', $application);
+
+            return response()->json($application);
+        }
         $profile = StudentProfile::where('user_id', $request->user()->id)->first();
         $application = Application::where('id', $id)
             ->where('student_profile_id', $profile?->id)
@@ -199,10 +216,15 @@ class ApplicationController extends Controller
 
     public function update(Request $request, int $id)
     {
-        $profile = StudentProfile::where('user_id', $request->user()->id)->first();
-        $application = Application::where('id', $id)
-            ->where('student_profile_id', $profile?->id)
-            ->firstOrFail();
+        if ($this->isAdmin($request)) {
+            $application = Application::findOrFail($id);
+            $this->authorize('update', $application);
+        } else {
+            $profile = StudentProfile::where('user_id', $request->user()->id)->first();
+            $application = Application::where('id', $id)
+                ->where('student_profile_id', $profile?->id)
+                ->firstOrFail();
+        }
 
         if (! in_array($application->status, ['draft', 'pending_revision'])) {
             return response()->json([
@@ -224,10 +246,15 @@ class ApplicationController extends Controller
 
     public function destroy(Request $request, int $id)
     {
-        $profile = StudentProfile::where('user_id', $request->user()->id)->first();
-        $application = Application::where('id', $id)
-            ->where('student_profile_id', $profile?->id)
-            ->firstOrFail();
+        if ($this->isAdmin($request)) {
+            $application = Application::findOrFail($id);
+            $this->authorize('delete', $application);
+        } else {
+            $profile = StudentProfile::where('user_id', $request->user()->id)->first();
+            $application = Application::where('id', $id)
+                ->where('student_profile_id', $profile?->id)
+                ->firstOrFail();
+        }
 
         if (! in_array($application->status, ['draft', 'pending_revision'])) {
             return response()->json([
@@ -236,9 +263,9 @@ class ApplicationController extends Controller
         }
 
         DB::transaction(function () use ($application, $id) {
-            
+
             if ($application->applicant_type === 'team' && $application->team_id) {
-                $team = \App\Models\Team::find($application->team_id);
+                $team = Team::find($application->team_id);
                 if ($team) {
                     $team->update(['status' => 'forming']);
                 }
@@ -264,10 +291,15 @@ class ApplicationController extends Controller
 
     public function documents(Request $request, int $id)
     {
-        $profile = StudentProfile::where('user_id', $request->user()->id)->first();
-        $application = Application::where('id', $id)
-            ->where('student_profile_id', $profile?->id)
-            ->firstOrFail();
+        if ($this->isAdmin($request)) {
+            $application = Application::findOrFail($id);
+            $this->authorize('view', $application);
+        } else {
+            $profile = StudentProfile::where('user_id', $request->user()->id)->first();
+            $application = Application::where('id', $id)
+                ->where('student_profile_id', $profile?->id)
+                ->firstOrFail();
+        }
 
         $docs = DB::table('application_documents')
             ->join('documents', 'documents.id', '=', 'application_documents.document_id')
@@ -296,9 +328,9 @@ class ApplicationController extends Controller
         if ($request->filled('search')) {
             $search = trim($request->search);
             $query->whereHas('studentProfile.user', function ($q) use ($search) {
-                $q->where('first_name', 'like', '%' . $search . '%')
-                  ->orWhere('last_name', 'like', '%' . $search . '%')
-                  ->orWhere('email', 'like', '%' . $search . '%');
+                $q->where('first_name', 'like', '%'.$search.'%')
+                    ->orWhere('last_name', 'like', '%'.$search.'%')
+                    ->orWhere('email', 'like', '%'.$search.'%');
             });
         }
 
@@ -307,7 +339,7 @@ class ApplicationController extends Controller
         $paginatedApplications->getCollection()->transform(function ($app) {
             $name = 'N/A';
             if ($app->studentProfile && $app->studentProfile->user) {
-                $name = trim($app->studentProfile->user->first_name . ' ' . $app->studentProfile->user->last_name);
+                $name = trim($app->studentProfile->user->first_name.' '.$app->studentProfile->user->last_name);
             }
 
             return [
@@ -329,10 +361,10 @@ class ApplicationController extends Controller
     public function adminShow(Request $request, int $id)
     {
         $application = Application::with([
-            'call', 
-            'studentProfile.user', 
-            'team.members.user', 
-            'evaluations.evaluator'
+            'call',
+            'studentProfile.user',
+            'team.members.user',
+            'evaluations.evaluator',
         ])->findOrFail($id);
 
         $documents = DB::table('application_documents')
@@ -358,7 +390,7 @@ class ApplicationController extends Controller
 
         if ($request->user()->roles->contains('slug', 'student')) {
             $profile = StudentProfile::where('user_id', $request->user()->id)->first();
-            if (!$profile || $application->student_profile_id !== $profile->id) {
+            if (! $profile || $application->student_profile_id !== $profile->id) {
                 return response()->json(['message' => 'Unauthorized'], 403);
             }
         }
@@ -370,7 +402,7 @@ class ApplicationController extends Controller
             ->map(function ($item) {
                 $userName = 'Systém';
                 if ($item->user) {
-                    $userName = trim(($item->user->first_name ?? '') . ' ' . ($item->user->last_name ?? ''));
+                    $userName = trim(($item->user->first_name ?? '').' '.($item->user->last_name ?? ''));
                     if (empty($userName)) {
                         $userName = $item->user->email;
                     }
@@ -391,7 +423,7 @@ class ApplicationController extends Controller
     {
         $data = $request->validate([
             'message' => 'required|string|max:5000',
-            'required_fields' => 'nullable|array'
+            'required_fields' => 'nullable|array',
         ]);
 
         $application = Application::findOrFail($id);
@@ -410,8 +442,8 @@ class ApplicationController extends Controller
             ]);
 
             $finalMessage = $data['message'];
-            if (!empty($data['required_fields'])) {
-                $finalMessage .= "\n\nPožadované polia na úpravu:\n- " . implode("\n- ", $data['required_fields']);
+            if (! empty($data['required_fields'])) {
+                $finalMessage .= "\n\nPožadované polia na úpravu:\n- ".implode("\n- ", $data['required_fields']);
             }
 
             ApplicationRevisionRequest::create([
@@ -432,7 +464,7 @@ class ApplicationController extends Controller
                 }
 
                 NotificationController::log($applicantUser->id, $applicantUser->email, 'revision_requested',
-                    'Administrátor vyžaduje úpravu vašej prihlášky #' . $application->id,
+                    'Administrátor vyžaduje úpravu vašej prihlášky #'.$application->id,
                     ['application_id' => $application->id]
                 );
             }
@@ -447,7 +479,7 @@ class ApplicationController extends Controller
 
         if ($request->user()->roles->contains('slug', 'student')) {
             $profile = StudentProfile::where('user_id', $request->user()->id)->first();
-            if (!$profile || $application->student_profile_id !== $profile->id) {
+            if (! $profile || $application->student_profile_id !== $profile->id) {
                 return response()->json(['message' => 'Unauthorized'], 403);
             }
         }
