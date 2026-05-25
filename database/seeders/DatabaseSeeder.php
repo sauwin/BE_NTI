@@ -18,7 +18,6 @@ class DatabaseSeeder extends Seeder
             AdminUserSeeder::class,
             FaqSeeder::class,
             CallPeriodSeeder::class,
-            ApplicationSeeder::class,
             TeamAndApplicationSeeder::class,
         ]);
 

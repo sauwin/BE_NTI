@@ -22,6 +22,7 @@ class Application extends Model
         'decision_at',
         'decision_by',
         'internal_notes',
+        'category',
     ];
 
     protected $casts = [
