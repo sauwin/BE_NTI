@@ -9,6 +9,7 @@ use Maatwebsite\Excel\Facades\Excel;
 use App\Exports\UsersExport;
 use App\Exports\ApplicationsExport;
 use App\Exports\CallsExport;
+use App\Exports\BulkNotificationCampaignsExport;
 
 class ExportController extends Controller
 {
@@ -71,6 +72,27 @@ class ExportController extends Controller
         return Excel::download(
             new CallsExport($filters), 
             $fileName, 
+            $excelFormat
+        );
+    }
+
+    public function exportNotifications(Request $request)
+    {
+        $filters = $request->only(['subject', 'recipient_group', 'sender_id', 'date_from', 'date_to']);
+        $format = strtolower($request->query('format', 'xlsx'));
+
+        [$excelFormat, $extension] = $this->resolveFormat($format);
+
+        AuditService::log('export', 'bulk_notifications', [
+            'format' => $format,
+            'filters' => $filters,
+        ]);
+
+        $fileName = 'bulk_notifications_export_' . now()->format('Y_m_d_His') . '.' . $extension;
+
+        return Excel::download(
+            new BulkNotificationCampaignsExport($filters),
+            $fileName,
             $excelFormat
         );
     }

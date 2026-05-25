@@ -5,15 +5,17 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Jobs\SendBulkNotification;
 use App\Models\User;
-use App\Models\BulkNotificationCampaign; // Наша нова модель
+use App\Models\BulkNotificationCampaign;
 use Illuminate\Http\Request;
+use App\Services\AuditService;
 
 class BulkNotificationController extends Controller
 {
     public function history()
     {
-        // Повертаємо чистий список розсилок з нової таблиці
-        $history = BulkNotificationCampaign::latest()->get();
+        $history = BulkNotificationCampaign::with('sender:id,first_name,last_name,email')
+            ->latest()
+            ->get();
         return response()->json($history);
     }
 
@@ -47,6 +49,12 @@ class BulkNotificationController extends Controller
             'message' => $data['message'],
             'total_recipients' => $totalRecipients,
             'sender_id' => auth()->id(),
+        ]);
+
+        AuditService::log('bulk_notification', 'notification', [
+            'recipient_group' => $data['recipient_group'],
+            'subject' => $data['subject'],
+            'total_recipients' => $totalRecipients,
         ]);
 
         foreach ($users as $user) {

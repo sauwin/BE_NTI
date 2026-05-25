@@ -262,6 +262,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/export/applications', [ExportController::class, 'exportApplications']);
         Route::get('/export/users', [ExportController::class, 'exportUsers']);
         Route::get('/export/calls', [ExportController::class, 'exportCalls']);
+        Route::get('/export/notifications', [ExportController::class, 'exportNotifications']);
         Route::put('/admin/calls/{call}', [CallController::class, 'update']);
 
         Route::post('/applications/{id}/revision-request', [ApplicationController::class, 'createRevisionRequest']);
