@@ -83,7 +83,11 @@ class DocumentController extends Controller
     public function download(Request $request, int $id)
     {
         $document = Document::findOrFail($id);
-        $this->authorizeDocumentAccess($request, $document);
+
+        $isTaskDocument = DB::table('task_documents')->where('document_id', $document->id)->exists();
+        if (!$isTaskDocument) {
+            $this->authorizeDocumentAccess($request, $document);
+        }
 
         if (! Storage::disk('local')->exists($document->file_path)) {
             return response()->json(['message' => 'File not found'], 404);

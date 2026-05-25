@@ -99,13 +99,13 @@ class CallTaskController extends Controller
                     $path = $file->store('documents', 'local');
 
                     $document = Document::create([
-                        'uploaded_by'     => $userId,
-                        'type'            => $type,
-                        'classification'  => 'internal',
-                        'version'         => 1,
-                        'file_path'       => $path,
-                        'file_name'       => $file->getClientOriginalName(),
-                        'mime_type'       => $file->getClientMimeType(),
+                        'uploaded_by' => $userId,
+                        'type' => $type,
+                        'classification' => 'internal',
+                        'version' => 1,
+                        'file_path' => $path,
+                        'file_name' => $file->getClientOriginalName(),
+                        'mime_type' => $file->getClientMimeType(),
                         'file_size_bytes' => $file->getSize(),
                     ]);
 
