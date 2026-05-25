@@ -5,10 +5,18 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Jobs\SendBulkNotification;
 use App\Models\User;
+use App\Models\BulkNotificationCampaign; // Наша нова модель
 use Illuminate\Http\Request;
 
 class BulkNotificationController extends Controller
 {
+    public function history()
+    {
+        // Повертаємо чистий список розсилок з нової таблиці
+        $history = BulkNotificationCampaign::latest()->get();
+        return response()->json($history);
+    }
+
     public function send(Request $request)
     {
         $data = $request->validate([
@@ -31,6 +39,15 @@ class BulkNotificationController extends Controller
         ]);
 
         $users = $this->resolveRecipients($data['recipient_group']);
+        $totalRecipients = $users->count();
+
+        BulkNotificationCampaign::create([
+            'recipient_group' => $data['recipient_group'],
+            'subject' => $data['subject'],
+            'message' => $data['message'],
+            'total_recipients' => $totalRecipients,
+            'sender_id' => auth()->id(),
+        ]);
 
         foreach ($users as $user) {
             SendBulkNotification::dispatch(
@@ -42,7 +59,7 @@ class BulkNotificationController extends Controller
             );
         }
 
-        return response()->json(['queued' => $users->count()]);
+        return response()->json(['queued' => $totalRecipients]);
     }
 
     private function resolveRecipients(string $group)
