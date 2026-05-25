@@ -55,7 +55,7 @@ class PasswordResetController extends Controller
         }
 
         DB::transaction(function () use ($user, $data, $record) {
-            $user->update(['password_hash' => Hash::make($data['password'])]);
+            $user->update(['password' => Hash::make($data['password'])]);
             $record->delete();
         });
 

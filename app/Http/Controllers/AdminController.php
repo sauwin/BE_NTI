@@ -213,7 +213,7 @@ class AdminController extends Controller
             'first_name' => $data['first_name'],
             'last_name' => $data['last_name'],
             'email' => $data['email'],
-            'password_hash' => Hash::make($data['password']),
+            'password' => Hash::make($data['password']),
             'status' => 'active',
             'email_verified_at' => now(),
         ]);
@@ -365,7 +365,7 @@ class AdminController extends Controller
         }
 
         $newPassword = Str::random(12);
-        $targetUser->update(['password_hash' => Hash::make($newPassword)]);
+        $targetUser->update(['password' => Hash::make($newPassword)]);
 
         AuditService::log('reset_password', 'admin', [
             'target_user_id' => $userId,

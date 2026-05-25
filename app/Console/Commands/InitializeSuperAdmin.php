@@ -33,7 +33,7 @@ class InitializeSuperAdmin extends Command
                 'first_name' => 'Super',
                 'last_name' => 'Admin',
                 'email' => $email,
-                'password_hash' => Hash::make($password),
+                'password' => Hash::make($password),
                 'status' => 'active',
                 'email_verified_at' => now(),
             ]);

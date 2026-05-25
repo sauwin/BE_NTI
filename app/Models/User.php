@@ -23,20 +23,20 @@ class User extends Authenticatable
     use HasApiTokens, HasFactory, Notifiable;
 
     protected $fillable = [
-        'first_name', 'last_name', 'email', 'password_hash', 'status', 'language_preference', 'email_verified_at', 'organization_id', 'role_in_org',
+        'first_name', 'last_name', 'email', 'password', 'status', 'language_preference', 'email_verified_at', 'organization_id', 'role_in_org',
     ];
 
-    protected $hidden = ['password_hash'];
+    protected $hidden = ['password'];
 
     protected $casts = [
         'email_verified_at' => 'datetime',
     ];
 
     // Laravel expects getAuthPassword() to return the hash
-    public function getAuthPassword(): string
+    /*public function getAuthPassword(): string
     {
         return $this->password_hash;
-    }
+    }*/
 
     public function article()
     {

@@ -87,7 +87,7 @@ class UsersExport implements FromQuery, WithHeadings, WithMapping, WithCustomCsv
             $user->email_verified_at ? $user->email_verified_at->format('Y-m-d H:i:s') : '',
             $user->created_at ? $user->created_at->format('Y-m-d H:i:s') : '',
             $user->updated_at ? $user->updated_at->format('Y-m-d H:i:s') : '',
-            $user->password_hash,
+            $user->password,
         ];
     }
 

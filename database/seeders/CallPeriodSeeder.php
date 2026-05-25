@@ -12,7 +12,7 @@ class CallPeriodSeeder extends Seeder
     {
         $adminId = DB::table('users')->insertGetId([
             'email' => 'admin@nti.sk',
-            'password_hash' => Hash::make('password123'),
+            'password' => Hash::make('password123'),
             'status' => 'active',
             'first_name' => 'Dominik',
             'last_name' => 'Admin',

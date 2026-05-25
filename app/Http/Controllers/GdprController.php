@@ -122,7 +122,7 @@ class GdprController extends Controller
                 'first_name' => 'Deleted',
                 'last_name' => 'User',
                 'email' => 'deleted_'.$user->id.'@anonymized.local',
-                'password_hash' => bcrypt(Str::random(32)),
+                'password' => bcrypt(Str::random(32)),
                 'status' => 'deleted',
                 'email_verified_at' => null,
                 'organization_id' => null,
