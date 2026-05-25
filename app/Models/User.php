@@ -16,7 +16,7 @@ use App\Models\Team;
 use App\Models\StudentProfile;
 
 #[Fillable(['name', 'email', 'password'])]
-#[Hidden(['password', 'remember_token'])]
+#[Hidden(['remember_token'])]
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
@@ -26,17 +26,17 @@ class User extends Authenticatable
         'first_name', 'last_name', 'email', 'password', 'status', 'language_preference', 'email_verified_at', 'organization_id', 'role_in_org',
     ];
 
-    protected $hidden = ['password'];
+    protected $hidden = [''];
 
     protected $casts = [
         'email_verified_at' => 'datetime',
     ];
 
     // Laravel expects getAuthPassword() to return the hash
-    /*public function getAuthPassword(): string
+    public function getAuthPassword(): string
     {
-        return $this->password_hash;
-    }*/
+        return $this->password;
+    }
 
     public function article()
     {

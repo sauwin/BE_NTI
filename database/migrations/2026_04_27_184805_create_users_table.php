@@ -14,8 +14,8 @@ return new class extends Migration
         Schema::create('users', function (Blueprint $table) {
             $table->id();
             $table->string('email')->unique();
-            $table->string('password_hash');
-            $table->enum('status', ['active','deleted', 'pending_verification', 'blocked'])
+            $table->string('password');
+            $table->enum('status', ['active', 'deleted', 'pending_verification', 'blocked'])
                 ->default('pending_verification');
             $table->timestamp('email_verified_at')->nullable();
             $table->string('first_name');

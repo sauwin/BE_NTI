@@ -13,10 +13,10 @@ class AdminUserSeeder extends Seeder
     public function run(): void
     {
         $user = User::firstOrCreate(
+            ['email' => 'superadmin@nti.sk'],  // search by
             [
                 'first_name' => 'Super',
                 'last_name' => 'Admin',
-                'email' => 'superadmin@nti.sk',
                 'password' => Hash::make('password'),
                 'status' => 'active',
                 'email_verified_at' => now(),
@@ -27,7 +27,7 @@ class AdminUserSeeder extends Seeder
             DB::table('user_roles')->insert([
                 'user_id' => $user->id,
                 'role_id' => $superAdminRole->id,
-                'granted_by' => $user->id, 
+                'granted_by' => $user->id,
                 'granted_at' => now(),
             ]);
         }
@@ -38,6 +38,6 @@ class AdminUserSeeder extends Seeder
             ->update([
                 'granted_by' => $user->id,
                 'granted_at' => now(),
-        ]);
+            ]);
     }
 }
