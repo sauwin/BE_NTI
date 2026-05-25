@@ -127,7 +127,7 @@ class DocumentController extends Controller
             return;
         }
 
-        if ($request->has('application_id') && $document->uploaded_by === $user->id) {
+        if ($document->uploaded_by === $user->id) {
             return;
         }
 
