@@ -15,7 +15,7 @@ class BulkNotificationCampaign extends Model
         'sender_id'
     ];
 
-    public function sender(): BelongsTo
+    public function sender()
     {
         return $this->belongsTo(User::class, 'sender_id');
     }
