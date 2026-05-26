@@ -17,8 +17,9 @@ return new class extends Migration
                 ->constrained('mentorships')
                 ->onDelete('cascade');
             $table->date('date');
-            $table->text('summary');
-            $table->integer('duration_minutes');
+            $table->text('summary')
+                ->nullable();
+            $table->integer('duration_minutes')->nullable();
             $table->timestamps();
         });
     }
