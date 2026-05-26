@@ -53,33 +53,13 @@ class MentorshipController extends Controller
 
     public function show(Request $request, $id)
     {
-        $mentorship = Mentorship::with(['application.team', 'application.call', 'consultations'])
+        $mentorship = Mentorship::with(['application.team', 'application.call', 'consultations' => function($query) {
+                $query->orderBy('date', 'desc');
+            }])
             ->where('mentor_id', $request->user()->id)
             ->findOrFail($id);
 
         return response()->json($mentorship);
-    }
-
-    public function logConsultation(Request $request, $id)
-    {
-        $mentorship = Mentorship::where('mentor_id', $request->user()->id)->findOrFail($id);
-
-        $data = $request->validate([
-            'date' => 'required|date|before_or_equal:today',
-            'summary' => 'required|string|min:10|max:2000',
-            'duration_minutes' => 'required|integer|min:5|max:480',
-        ]);
-
-        $consultation = $mentorship->consultations()->create($data);
-
-        return response()->json(['message' => 'Consultation logged successfully', 'data' => $consultation], 201);
-    }
-
-    public function consultations(Request $request, $id)
-    {
-        $mentorship = Mentorship::where('mentor_id', $request->user()->id)->findOrFail($id);
-        
-        return response()->json($mentorship->consultations()->orderBy('date', 'desc')->get());
     }
 
     public function adminIndex(Request $request)

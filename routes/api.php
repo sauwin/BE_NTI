@@ -19,6 +19,7 @@ use App\Http\Controllers\FaqItemController;
 use App\Http\Controllers\GdprController;
 use App\Http\Controllers\MentorProfileController;
 use App\Http\Controllers\MentorshipController;
+use App\Http\Controllers\ConsultationController;
 use App\Http\Controllers\MilestoneController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\OrganizationController;
@@ -157,9 +158,12 @@ Route::middleware('auth:sanctum')->group(function () {
     // Mentorships
     Route::get('/mentorships', [MentorshipController::class, 'index'])->middleware('throttle:10,1');
     Route::get('/mentorships/{id}', [MentorshipController::class, 'show'])->middleware('throttle:10,1');
-    Route::post('/mentorships/{id}/consultations', [MentorshipController::class, 'logConsultation'])->middleware('throttle:10,1');
-    Route::get('/mentorships/{id}/consultations', [MentorshipController::class, 'consultations'])->middleware('throttle:10,1');
     Route::post('/mentorships/assign', [MentorshipController::class, 'assign'])->middleware('throttle:10,1');
+
+    // Mentorship consultations
+    Route::post('/mentorships/{mentorshipId}/consultations', [ConsultationController::class, 'store']);
+    Route::patch('/mentorships/{mentorshipId}/consultations/{id}', [ConsultationController::class, 'update']);
+    Route::delete('/mentorships/{mentorshipId}/consultations/{id}', [ConsultationController::class, 'destroy']);
 
     // Notifications
     Route::get('/notifications', [NotificationController::class, 'index']);
