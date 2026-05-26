@@ -136,6 +136,8 @@ Route::middleware('auth:sanctum')->group(function () {
         ->middleware('throttle:10,1');
     Route::post('/applications/{id}/submit', [ApplicationController::class, 'submitDraft'])
         ->middleware('throttle:10,1');
+    Route::post('/applications/{id}/apply-changes', [ApplicationController::class, 'applyChanges'])
+        ->middleware('throttle:10,1');
     Route::delete('/applications/{id}', [ApplicationController::class, 'destroy'])
         ->middleware('throttle:10,1');
     Route::get('/applications/{id}/documents', [ApplicationController::class, 'documents']);
@@ -150,9 +152,14 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/milestones/{id}/documents', [MilestoneController::class, 'uploadDocument'])->middleware('throttle:20,1');
 
     // Evaluations
+    Route::prefix('evaluator')->group(function () {
+        Route::get('/applications', [EvaluationController::class, 'evaluatorApplications']);
+        Route::get('/my-evaluations', [EvaluationController::class, 'myEvaluations']);
+    });
+
     Route::get('/evaluations', [EvaluationController::class, 'index'])->middleware('throttle:30,1');
-    Route::post('/evaluations', [EvaluationController::class, 'store'])->middleware('throttle:10,1');
     Route::get('/evaluations/{id}', [EvaluationController::class, 'show']);
+    Route::post('/evaluations', [EvaluationController::class, 'store'])->middleware('throttle:10,1');
     Route::patch('/evaluations/{id}', [EvaluationController::class, 'update'])->middleware('throttle:10,1');
 
     Route::post('/profile/student', [StudentProfileController::class, 'store'])->middleware('throttle:10,1');

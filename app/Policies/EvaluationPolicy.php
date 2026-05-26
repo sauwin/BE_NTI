@@ -19,7 +19,11 @@ class EvaluationPolicy
 
     public function view(User $user, Evaluation $evaluation): bool
     {
-        return $this->canEvaluate($user);
+        if ($user->hasRole(['nti_admin', 'super_admin'])) {
+            return true;
+        }
+
+        return $this->canEvaluate($user) && $evaluation->evaluator_id === $user->id;
     }
 
     public function create(User $user): bool
@@ -33,6 +37,6 @@ class EvaluationPolicy
             return true;
         }
 
-        return $evaluation->evaluator_id === $user->id;
+        return $this->canEvaluate($user) && $evaluation->evaluator_id === $user->id;
     }
 }

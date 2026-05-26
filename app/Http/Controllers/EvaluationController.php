@@ -11,22 +11,54 @@ use Illuminate\Support\Facades\DB;
 
 class EvaluationController extends Controller
 {
+    public function evaluatorApplications(Request $request)
+    {
+        $user = Auth::user();
+        
+        $this->authorize('viewAny', Evaluation::class);
+
+        $applications = Application::whereIn('call_id', function ($query) use ($user) {
+                $query->select('call_id')
+                    ->from('call_evaluators')
+                    ->where('user_id', $user->id);
+            })
+            ->where('status', 'under_evaluation')
+            ->when($request->filled('program_type'), function ($q) use ($request) {
+                $q->where('program_type', strtolower($request->program_type));
+            })
+            ->get(); 
+
+        return response()->json(['data' => $applications]);
+    }
+
+    public function myEvaluations()
+    {
+        $this->authorize('viewAny', Evaluation::class);
+        
+        $evaluations = Evaluation::where('evaluator_id', Auth::id())
+            ->with('scores')
+            ->get();
+
+        return response()->json(['data' => $evaluations]);
+    }
+
     public function index(Request $request)
     {
         $this->authorize('viewAny', Evaluation::class);
 
         $query = Evaluation::query();
 
+        if (Auth::user()->hasRole('evaluator')) {
+            $query->where('evaluator_id', Auth::id());
+        } elseif ($request->has('evaluator_id')) {
+            $query->where('evaluator_id', $request->evaluator_id);
+        }
+
         if ($request->has('application_id')) {
             $query->where('application_id', $request->application_id);
         }
 
-        if ($request->has('evaluator_id')) {
-            $query->where('evaluator_id', $request->evaluator_id);
-        }
-
-        $evaluations = $query->with(['application', 'evaluator', 'scores'])
-            ->paginate(15);
+        $evaluations = $query->with(['application', 'evaluator', 'scores'])->paginate(15);
 
         return response()->json($evaluations);
     }
@@ -49,6 +81,10 @@ class EvaluationController extends Controller
         ]);
 
         $application = Application::findOrFail($validated['application_id']);
+        if ($application->status !== 'under_evaluation' && !$user->hasRole(['nti_admin', 'super_admin'])) {
+            return response()->json(['message' => 'Táto prihláška momentálne nie je vo fáze hodnotenia komisiou.'], 403);
+        }
+
         $existing = Evaluation::where('application_id', $application->id)
             ->where('evaluator_id', $user->id)
             ->first();
@@ -92,8 +128,7 @@ class EvaluationController extends Controller
 
     public function show($id)
     {
-        $evaluation = Evaluation::with(['application', 'evaluator', 'scores'])
-            ->findOrFail($id);
+        $evaluation = Evaluation::with(['application', 'evaluator', 'scores'])->findOrFail($id);
 
         $this->authorize('view', $evaluation);
 
@@ -121,7 +156,7 @@ class EvaluationController extends Controller
                 if (isset($validated['scores'])) {
                     $evaluation->scores()->delete();
 
-                    $overallScore = collect($validated['scores'])->avg('score');
+                    $overallScore = collect($validated['scores'])->sum(fn ($s) => $s['score'] * $s['weight_at_moment'] / 100);
                     $evaluation->overall_score = $overallScore;
 
                     foreach ($validated['scores'] as $score) {

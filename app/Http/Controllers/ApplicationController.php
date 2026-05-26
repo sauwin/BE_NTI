@@ -76,6 +76,18 @@ class ApplicationController extends Controller
         return response()->json(['message' => 'Application updated successfully', 'application' => $application]);
     }
 
+    public function applyChanges(Request $request, int $id)
+    {
+        $application = Application::findOrFail($id);
+
+        $this->applicationService->applyChanges($application, $request->user());
+
+        return response()->json([
+            'message' => 'Application submitted successfully',
+            'status' => 'submitted',
+        ]);
+    }
+
     public function submitDraft(Request $request, int $id)
     {
         $application = Application::findOrFail($id);

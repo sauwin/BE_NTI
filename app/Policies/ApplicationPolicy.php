@@ -6,6 +6,7 @@ use App\Models\Application;
 use App\Models\Mentorship;
 use App\Models\User;
 use App\Policies\Concerns\AuthorizesApplicationAccess;
+use Illuminate\Support\Facades\DB;
 
 class ApplicationPolicy
 {
@@ -13,7 +14,24 @@ class ApplicationPolicy
 
     public function view(User $user, Application $application): bool
     {
-        return $this->isAdminOrMentor($user) || $this->hasApplicationStake($user, $application);
+        if ($this->isAdminOrMentor($user)) {
+            return true;
+        }
+
+        if ($this->hasApplicationStake($user, $application)) {
+            return true;
+        }
+
+        if ($user->hasRole('evaluator')) {
+            $isAssigned = DB::table('call_evaluators')
+                ->where('user_id', $user->id)
+                ->where('call_id', $application->call_id)
+                ->exists();
+
+            return $isAssigned && $application->status === 'under_evaluation';
+        }
+
+        return false;
     }
 
     public function create(User $user): bool

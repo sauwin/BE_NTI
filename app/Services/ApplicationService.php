@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\ValidationException;
+use App\Mail\ApplicationRevisionSubmittedMail;
 
 class ApplicationService
 {
@@ -153,6 +154,36 @@ class ApplicationService
         $this->sendSubmissionNotifications($application, $user);
     }
 
+    public function applyChanges(Application $application, $user): void
+    {
+        if ($application->status !== 'pending_revision') {
+            throw ValidationException::withMessages([
+                'status' => 'Túto prihlášku nie je možné aktualizovať, pretože nie je v statuse pending_revision.'
+            ]);
+        }
+
+        Gate::authorize('submit', $application);
+        $this->validateRequiredDocuments($application);
+
+        DB::transaction(function () use ($application, $user) {
+            $oldStatus = $application->status;
+            $newStatus = 'submitted'; // 'resubmitted' / 'under_review'
+
+            $application->update(['status' => $newStatus]);
+
+            ApplicationStatusHistory::create([
+                'application_id' => $application->id,
+                'old_status' => $oldStatus,
+                'new_status' => $newStatus,
+                'changed_by' => $user->id,
+                'comment' => 'Opätovné podanie prihlášky po doplnení chýbajúcich údajov (pending_revision -> submitted).',
+                'changed_at' => now(),
+            ]);
+        });
+
+        $this->sendRevisionSubmissionNotifications($application, $user);
+    }
+
     private function validateRequiredDocuments(Application $application): void
     {
         $call = Call::find($application->call_id);
@@ -185,6 +216,23 @@ class ApplicationService
             );
         } catch (\Exception $e) {
             logger()->error('Failed sending email notifications: '.$e->getMessage());
+        }
+    }
+
+    private function sendRevisionSubmissionNotifications(Application $application, $user): void
+    {
+        try {
+            Mail::to($user->email)->queue(new ApplicationRevisionSubmittedMail($user, $application));
+
+            NotificationController::log(
+                $user->id, 
+                $user->email, 
+                'application_revision_submitted',
+                'Zmeny v prihláške #' . $application->id . ' (Program ' . strtoupper($application->program_type) . ') boli úspešne uložené і prihláška bola znova odoslaná на kontrolu.',
+                ['application_id' => $application->id]
+            );
+        } catch (\Exception $e) {
+            logger()->error('Failed sending revision email notifications: ' . $e->getMessage());
         }
     }
 }
