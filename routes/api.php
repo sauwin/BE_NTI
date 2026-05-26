@@ -40,7 +40,10 @@ use Illuminate\Support\Facades\Route;
 Route::post('/auth/register', [AuthController::class, 'register'])->middleware('throttle:3,15');
 Route::post('/auth/login', [AuthController::class, 'login'])->middleware('throttle:5,15');
 
-Route::apiResource('articles', ArticleController::class);
+Route::apiResource('articles', ArticleController::class)->only(['index', 'show']);
+Route::middleware(['auth:sanctum'])->group(function () {
+    Route::apiResource('articles', ArticleController::class)->only(['store', 'update', 'destroy']);
+});
 
 Route::get('/calls/active/{program_type?}', [CallController::class, 'active']);
 Route::get('/faq-items', [FaqItemController::class, 'index']);
