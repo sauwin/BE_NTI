@@ -13,11 +13,9 @@ class EvaluationController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Evaluation::query();
+        $this->authorize('viewAny', Evaluation::class);
 
-        if (! Auth::user()->hasRole(['evaluator', 'nti_admin', 'super_admin'])) {
-            return response()->json(['message' => 'Unauthorized'], 403);
-        }
+        $query = Evaluation::query();
 
         if ($request->has('application_id')) {
             $query->where('application_id', $request->application_id);
@@ -35,6 +33,8 @@ class EvaluationController extends Controller
 
     public function store(Request $request)
     {
+        $this->authorize('create', Evaluation::class);
+
         $user = Auth::user();
 
         $validated = $request->validate([
@@ -47,10 +47,6 @@ class EvaluationController extends Controller
             'recommendation' => 'required|in:approve,reject,request_revision',
             'comment' => 'nullable|string',
         ]);
-
-        if (! Auth::user()->hasRole(['evaluator', 'nti_admin', 'super_admin'])) {
-            return response()->json(['message' => 'Unauthorized'], 403);
-        }
 
         $application = Application::findOrFail($validated['application_id']);
         $existing = Evaluation::where('application_id', $application->id)
@@ -99,6 +95,8 @@ class EvaluationController extends Controller
         $evaluation = Evaluation::with(['application', 'evaluator', 'scores'])
             ->findOrFail($id);
 
+        $this->authorize('view', $evaluation);
+
         return response()->json($evaluation);
     }
 
@@ -106,13 +104,7 @@ class EvaluationController extends Controller
     {
         $evaluation = Evaluation::findOrFail($id);
 
-        if ($evaluation->status === 'completed') {
-            return response()->json(['message' => 'Cannot update completed evaluation'], 422);
-        }
-
-        if ($evaluation->evaluator_id !== Auth::id()) {
-            return response()->json(['message' => 'Unauthorized'], 403);
-        }
+        $this->authorize('update', $evaluation);
 
         $validated = $request->validate([
             'scores' => 'sometimes|array',

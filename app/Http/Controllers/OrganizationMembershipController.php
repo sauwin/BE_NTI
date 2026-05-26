@@ -2,26 +2,28 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Controllers\Controller;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
-use App\Models\User;
-
 class OrganizationMembershipController extends Controller
 {
-    
-    /**
-     * Get pending company member approvals for the current user's organization.
-     */
+    private function authorizeOrganizationManagement(Request $request): void
+    {
+        $organization = $request->user()->organization;
+
+        if (! $organization) {
+            abort(403, 'You are not part of an organization');
+        }
+
+        $this->authorize('manageMembers', $organization);
+    }
+
     public function pendingMembers(Request $request)
     {
-        $user = $request->user();
-        $organizationId = $user->organization_id;
+        $this->authorizeOrganizationManagement($request);
 
-        if (!$organizationId) {
-            return response()->json(['message' => 'You are not part of an organization'], 403);
-        }
+        $organizationId = $request->user()->organization_id;
 
         $rows = DB::table('user_roles')
             ->whereNull('granted_by')
@@ -46,19 +48,12 @@ class OrganizationMembershipController extends Controller
         return response()->json($rows);
     }
 
-    /**
-     * Approve a company member's role.
-     */
     public function approveMember(Request $request, int $userId)
     {
-        $user = $request->user();
-        $organizationId = $user->organization_id;
+        $this->authorizeOrganizationManagement($request);
 
-        if (!$organizationId) {
-            return response()->json(['message' => 'You are not part of an organization'], 403);
-        }
+        $organizationId = $request->user()->organization_id;
 
-        // Verify the user being approved belongs to the same organization
         $targetUser = User::findOrFail($userId);
         if ($targetUser->organization_id !== $organizationId) {
             return response()->json(['message' => 'Unauthorized - user not in your organization'], 403);
@@ -73,30 +68,23 @@ class OrganizationMembershipController extends Controller
                     ->where('slug', 'company');
             })
             ->update([
-                'granted_by' => $user->id,
+                'granted_by' => $request->user()->id,
                 'granted_at' => now(),
             ]);
 
-        if (!$updated) {
+        if (! $updated) {
             return response()->json(['message' => 'No pending role found for this user'], 404);
         }
 
         return response()->json(['message' => 'Member approved']);
     }
 
-    /**
-     * Reject a company member's role request.
-     */
     public function rejectMember(Request $request, int $userId)
     {
-        $user = $request->user();
-        $organizationId = $user->organization_id;
+        $this->authorizeOrganizationManagement($request);
 
-        if (!$organizationId) {
-            return response()->json(['message' => 'You are not part of an organization'], 403);
-        }
+        $organizationId = $request->user()->organization_id;
 
-        // Verify the user being rejected belongs to the same organization
         $targetUser = User::findOrFail($userId);
         if ($targetUser->organization_id !== $organizationId) {
             return response()->json(['message' => 'Unauthorized - user not in your organization'], 403);
@@ -112,24 +100,18 @@ class OrganizationMembershipController extends Controller
             })
             ->delete();
 
-        if (!$deleted) {
+        if (! $deleted) {
             return response()->json(['message' => 'No pending role found for this user'], 404);
         }
 
         return response()->json(['message' => 'Member request rejected']);
     }
 
-    /**
-     * Get active (approved) company members.
-     */
     public function activeMembers(Request $request)
     {
-        $user = $request->user();
-        $organizationId = $user->organization_id;
+        $this->authorizeOrganizationManagement($request);
 
-        if (!$organizationId) {
-            return response()->json(['message' => 'You are not part of an organization'], 403);
-        }
+        $organizationId = $request->user()->organization_id;
 
         $rows = DB::table('user_roles')
             ->whereNotNull('user_roles.granted_by')
@@ -159,25 +141,19 @@ class OrganizationMembershipController extends Controller
                 'status' => $row->status,
                 'role_in_org' => $row->role_in_org,
                 'roles' => [
-                    ['id' => 1, 'slug' => $row->role_slug]
-                ]
+                    ['id' => 1, 'slug' => $row->role_slug],
+                ],
             ];
         });
 
         return response()->json($formatted);
     }
 
-    /**
-     * Kick a member out of the company (make them pending again or delete role).
-     */
     public function kickMember(Request $request, int $userId)
     {
-        $user = $request->user();
-        $organizationId = $user->organization_id;
+        $this->authorizeOrganizationManagement($request);
 
-        if (!$organizationId) {
-            return response()->json(['message' => 'You are not part of an organization'], 403);
-        }
+        $organizationId = $request->user()->organization_id;
 
         $targetUser = User::findOrFail($userId);
         if ($targetUser->organization_id !== $organizationId) {
@@ -194,7 +170,7 @@ class OrganizationMembershipController extends Controller
                 'granted_by' => null,
             ]);
 
-        if (!$updated) {
+        if (! $updated) {
             return response()->json(['message' => 'No active role found for this user'], 404);
         }
 

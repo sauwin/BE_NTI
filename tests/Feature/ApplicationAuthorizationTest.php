@@ -53,7 +53,7 @@ test('owner can view own application', function () {
 test('other student cannot view application', function () {
     [, $app] = appWithOwner();
     $other = appUser('student');
-    $this->actingAs($other)->getJson("/api/applications/{$app->id}")->assertStatus(404);
+    $this->actingAs($other)->getJson("/api/applications/{$app->id}")->assertStatus(403);
 });
 
 test('nti_admin can view any application', function () {
@@ -80,7 +80,7 @@ test('other student cannot update application', function () {
     [, $app] = appWithOwner();
     $app->update(['status' => 'draft']);
     $other = appUser('student');
-    $this->actingAs($other)->patchJson("/api/applications/{$app->id}", [])->assertStatus(404);
+    $this->actingAs($other)->patchJson("/api/applications/{$app->id}", [])->assertStatus(403);
 });
 
 test('nti_admin can update any application', function () {
@@ -102,7 +102,7 @@ test('other student cannot delete application', function () {
     [, $app] = appWithOwner();
     $app->update(['status' => 'draft']);
     $other = appUser('student');
-    $this->actingAs($other)->deleteJson("/api/applications/{$app->id}")->assertStatus(404);
+    $this->actingAs($other)->deleteJson("/api/applications/{$app->id}")->assertStatus(403);
 });
 
 test('nti_admin can delete any application', function () {

@@ -2,29 +2,39 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\UploadDocumentRequest;
+use App\Models\Application;
 use App\Models\ApplicationDocument;
 use App\Models\Document;
 use App\Models\Task;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
-use App\Http\Requests\UploadDocumentRequest;
-
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 
 class DocumentController extends Controller
 {
     public function upload(UploadDocumentRequest $request)
     {
+        if ($request->has('application_id')) {
+            $application = Application::findOrFail($request->application_id);
+            $this->authorize('uploadDocument', $application);
+        }
+
+        if ($request->has('task_id')) {
+            $task = Task::findOrFail($request->task_id);
+            $this->authorize('update', $task);
+        }
+
         $userId = $request->user()->id ?? 1;
         $file = $request->file('file');
         $type = $request->type;
 
         return DB::transaction(function () use ($request, $file, $type, $userId) {
-            
+
             if ($request->has('application_id')) {
                 $this->deleteExistingApplicationDocument($request->application_id, $type);
             }
-            
+
             if ($request->has('task_id')) {
                 $this->deleteExistingTaskDocument($request->task_id, $type);
             }
@@ -82,7 +92,7 @@ class DocumentController extends Controller
                 DB::raw("CONCAT('Aplikácia #', applications.id) as application_name"),
             ])
             ->when($request->query('search'), function ($query, $search) {
-                $query->where('documents.file_name', 'like', '%' . trim($search) . '%');
+                $query->where('documents.file_name', 'like', '%'.trim($search).'%');
             })
             ->when($request->query('date'), function ($query, $date) {
                 $query->whereDate('documents.created_at', $date);
@@ -98,8 +108,8 @@ class DocumentController extends Controller
         $document = Document::findOrFail($id);
 
         $isTaskDocument = DB::table('task_documents')->where('document_id', $document->id)->exists();
-        if (!$isTaskDocument) {
-            $this->authorizeDocumentAccess($request, $document);
+        if (! $isTaskDocument) {
+            $this->authorize('view', $document);
         }
 
         if (! Storage::disk('local')->exists($document->file_path)) {
@@ -112,7 +122,7 @@ class DocumentController extends Controller
     public function preview(Request $request, int $id)
     {
         $document = Document::findOrFail($id);
-        $this->authorizeDocumentAccess($request, $document);
+        $this->authorize('view', $document);
 
         if (! str_starts_with(strtolower($document->mime_type), 'application/pdf')) {
             return response()->json(['message' => 'Preview is only available for PDF files'], 415);
@@ -127,33 +137,9 @@ class DocumentController extends Controller
             $document->file_name,
             [
                 'Content-Type' => 'application/pdf',
-                'Content-Disposition' => 'inline; filename="' . $document->file_name . '"',
+                'Content-Disposition' => 'inline; filename="'.$document->file_name.'"',
             ]
         );
-    }
-
-    private function authorizeDocumentAccess(Request $request, Document $document): void
-    {
-        $user = $request->user();
-
-        if ($user->roles()->whereIn('slug', ['super_admin', 'nti_admin', 'mentor'])->exists()) {
-            return;
-        }
-
-        if ($document->uploaded_by === $user->id) {
-            return;
-        }
-
-        $associatedTask = DB::table('task_documents')
-            ->join('tasks', 'tasks.id', '=', 'task_documents.task_id')
-            ->where('task_documents.document_id', $document->id)
-            ->first();
-
-        if ($associatedTask && $associatedTask->product_owner_user_id === $user->id) {
-            return;
-        }
-        
-        abort(403, 'Forbidden');
     }
 
     public function deleteExistingApplicationDocument(int $applicationId, string $type): void
@@ -176,14 +162,13 @@ class DocumentController extends Controller
     public function deleteExistingTaskDocument(int $taskId, string $type): void
     {
         $task = Task::findOrFail($taskId);
-        
 
         $existing = $task->documents()->where('type', $type)->first();
 
         if ($existing) {
             Storage::disk('local')->delete($existing->file_path);
-            $task->documents()->detach($existing->id); 
-            $existing->delete(); 
+            $task->documents()->detach($existing->id);
+            $existing->delete();
         }
     }
 }

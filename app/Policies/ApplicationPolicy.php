@@ -3,23 +3,22 @@
 namespace App\Policies;
 
 use App\Models\Application;
+use App\Models\Mentorship;
 use App\Models\User;
+use App\Policies\Concerns\AuthorizesApplicationAccess;
 
 class ApplicationPolicy
 {
-    private function isAdmin(User $user): bool
-    {
-        return $user->roles->contains(fn ($r) => in_array($r->slug, ['nti_admin', 'super_admin']));
-    }
+    use AuthorizesApplicationAccess;
 
     public function view(User $user, Application $application): bool
     {
-        if ($this->isAdmin($user)) {
-            return true;
-        }
-        $profile = $user->studentProfile;
+        return $this->isAdminOrMentor($user) || $this->hasApplicationStake($user, $application);
+    }
 
-        return $profile && $application->student_profile_id === $profile->id;
+    public function create(User $user): bool
+    {
+        return $user->studentProfile !== null;
     }
 
     public function update(User $user, Application $application): bool
@@ -27,18 +26,37 @@ class ApplicationPolicy
         if ($this->isAdmin($user)) {
             return true;
         }
-        $profile = $user->studentProfile;
 
-        return $profile && $application->student_profile_id === $profile->id;
+        return $this->ownsApplicationAsStudent($user, $application);
     }
 
     public function delete(User $user, Application $application): bool
     {
+        return $this->update($user, $application);
+    }
+
+    public function submit(User $user, Application $application): bool
+    {
+        return $this->ownsApplicationAsStudent($user, $application);
+    }
+
+    public function uploadDocument(User $user, Application $application): bool
+    {
+        return $this->isAdminOrMentor($user) || $this->ownsApplicationAsStudent($user, $application);
+    }
+
+    public function updateStatus(User $user, Application $application): bool
+    {
         if ($this->isAdmin($user)) {
             return true;
         }
-        $profile = $user->studentProfile;
 
-        return $profile && $application->student_profile_id === $profile->id;
+        if (! $user->hasRole('mentor')) {
+            return false;
+        }
+
+        return Mentorship::where('application_id', $application->id)
+            ->where('mentor_id', $user->id)
+            ->exists();
     }
 }
