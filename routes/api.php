@@ -12,6 +12,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CallController;
 use App\Http\Controllers\CallEvaluatorController;
 use App\Http\Controllers\CallTaskController;
+use App\Http\Controllers\ConsultationController;
 use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\DraftController;
 use App\Http\Controllers\EvaluationController;
@@ -19,7 +20,6 @@ use App\Http\Controllers\FaqItemController;
 use App\Http\Controllers\GdprController;
 use App\Http\Controllers\MentorProfileController;
 use App\Http\Controllers\MentorshipController;
-use App\Http\Controllers\ConsultationController;
 use App\Http\Controllers\MilestoneController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\OrganizationController;
@@ -140,7 +140,7 @@ Route::middleware('auth:sanctum')->group(function () {
         ->middleware('throttle:10,1');
     Route::get('/applications/{id}/documents', [ApplicationController::class, 'documents']);
     Route::patch('/applications/{id}/status', [ApplicationController::class, 'updateStatus'])
-            ->middleware('throttle:10,1');
+        ->middleware('throttle:10,1');
 
     // Milestones
     Route::get('/applications/{id}/milestones', [MilestoneController::class, 'index']);
@@ -196,19 +196,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/faq-items/{faqItem}', [FaqItemController::class, 'update']);
     Route::delete('/faq-items/{faqItem}', [FaqItemController::class, 'destroy']);
 
-    // Admin (nti_admin can see users/approvals)
-    Route::get('/admin/users', [AdminController::class, 'users']);
-    Route::get('/admin/users/{id}', [AdminController::class, 'showUser']);
-    Route::get('/admin/approvals', [AdminController::class, 'pendingApprovals']);
-    Route::get('/admin/logs', [AdminController::class, 'logs']);
-    Route::post('/admin/approve/{userId}', [AdminController::class, 'approveRole'])->middleware('throttle:10,1');
-    Route::post('/admin/block/{userId}', [AdminController::class, 'blockUser'])->middleware('throttle:10,1');
-    Route::post('/admin/unblock/{userId}', [AdminController::class, 'unblockUser'])->middleware('throttle:10,1');
-    Route::post('/admin/users/{userId}/roles', [AdminController::class, 'assignRole'])->middleware('throttle:10,1');
-    Route::delete('/admin/users/{userId}/roles', [AdminController::class, 'removeRole'])->middleware('throttle:10,1');
-    Route::get('/admin/mentorships', [MentorshipController::class, 'adminIndex'])->middleware('throttle:10,1');
-    Route::delete('/mentorships/{id}', [MentorshipController::class, 'destroy'])->middleware('throttle:10,1');
-
     // Organization
     Route::get('/company/tasks', [TaskController::class, 'index']);
     Route::get('/company/{companyId}/tasks', [TaskController::class, 'byOrganization']);
@@ -239,6 +226,18 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Admin Only
     Route::middleware('admin')->prefix('admin')->group(function () {
+        Route::get('/users', [AdminController::class, 'users']);
+        Route::get('/users/{id}', [AdminController::class, 'showUser']);
+        Route::get('/approvals', [AdminController::class, 'pendingApprovals']);
+        Route::get('/logs', [AdminController::class, 'logs']);
+        Route::post('/approve/{userId}', [AdminController::class, 'approveRole'])->middleware('throttle:10,1');
+        Route::post('/block/{userId}', [AdminController::class, 'blockUser'])->middleware('throttle:10,1');
+        Route::post('/unblock/{userId}', [AdminController::class, 'unblockUser'])->middleware('throttle:10,1');
+        Route::post('/users/{userId}/roles', [AdminController::class, 'assignRole'])->middleware('throttle:10,1');
+        Route::delete('/users/{userId}/roles', [AdminController::class, 'removeRole'])->middleware('throttle:10,1');
+        Route::get('/mentorships', [MentorshipController::class, 'adminIndex'])->middleware('throttle:10,1');
+        Route::delete('/mentorships/{id}', [MentorshipController::class, 'destroy'])->middleware('throttle:10,1');
+
         Route::post('/notifications/bulk', [BulkNotificationController::class, 'send'])->middleware('throttle:5,1');
         Route::get('/notifications/history', [BulkNotificationController::class, 'history']);
         Route::get('/programs', [ProgramController::class, 'index']);
