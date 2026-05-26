@@ -189,13 +189,11 @@ test('cannot update a completed evaluation by another user', function () {
         ->assertStatus(403);
 });
 
-// NOTE: role slug mismatch — controller checks 'admin' but RoleSeeder uses 'nti_admin'
-// nti_admin users will be treated as unauthorized until fixed in controller
-test('nti_admin role is rejected due to slug mismatch bug', function () {
+test('nti_admin can create evaluation', function () {
     $user = makeUser('nti_admin');
     $app = makeApplication();
 
     $this->actingAs($user)
         ->postJson('/api/evaluations', validPayload($app->id))
-        ->assertStatus(403);
+        ->assertStatus(201);
 });

@@ -2,19 +2,17 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Mentorship;
 use App\Models\Consultation;
+use App\Models\Mentorship;
 use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
 
 class ConsultationController extends Controller
 {
-    /**
-     * Store a newly created consultation (planned or past).
-     */
     public function store(Request $request, $mentorshipId)
     {
-        $mentorship = Mentorship::where('mentor_id', $request->user()->id)->findOrFail($mentorshipId);
+        $mentorship = Mentorship::findOrFail($mentorshipId);
+
+        $this->authorize('manageConsultations', $mentorship);
 
         $isPastOrToday = $request->input('date') <= now()->toDateString();
 
@@ -25,7 +23,7 @@ class ConsultationController extends Controller
                 $isPastOrToday ? 'required' : 'nullable',
                 'string',
                 'min:10',
-                'max:2000'
+                'max:2000',
             ],
         ], [
             'summary.required' => 'Meeting summary is required for consultations that have already occurred.',
@@ -35,16 +33,16 @@ class ConsultationController extends Controller
 
         return response()->json([
             'message' => 'Consultation record saved successfully.',
-            'data' => $consultation
+            'data' => $consultation,
         ], 201);
     }
 
-    /**
-     * Update an existing consultation (e.g., adding summary after the meeting concluded).
-     */
     public function update(Request $request, $mentorshipId, $id)
     {
-        $mentorship = Mentorship::where('mentor_id', $request->user()->id)->findOrFail($mentorshipId);
+        $mentorship = Mentorship::findOrFail($mentorshipId);
+
+        $this->authorize('manageConsultations', $mentorship);
+
         $consultation = $mentorship->consultations()->findOrFail($id);
 
         $isPastOrToday = $request->input('date', $consultation->date) <= now()->toDateString();
@@ -56,7 +54,7 @@ class ConsultationController extends Controller
                 $isPastOrToday ? 'required' : 'nullable',
                 'string',
                 'min:10',
-                'max:2000'
+                'max:2000',
             ],
         ], [
             'summary.required' => 'Meeting summary is required for completed consultations.',
@@ -66,22 +64,22 @@ class ConsultationController extends Controller
 
         return response()->json([
             'message' => 'Consultation log updated successfully.',
-            'data' => $consultation
+            'data' => $consultation,
         ]);
     }
 
-    /**
-     * Delete an unneeded or misconfigured consultation slot.
-     */
     public function destroy(Request $request, $mentorshipId, $id)
     {
-        $mentorship = Mentorship::where('mentor_id', $request->user()->id)->findOrFail($mentorshipId);
+        $mentorship = Mentorship::findOrFail($mentorshipId);
+
+        $this->authorize('manageConsultations', $mentorship);
+
         $consultation = $mentorship->consultations()->findOrFail($id);
 
         $consultation->delete();
 
         return response()->json([
-            'message' => 'Consultation log removed successfully.'
+            'message' => 'Consultation log removed successfully.',
         ]);
     }
 }

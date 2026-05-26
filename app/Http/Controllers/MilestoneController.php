@@ -13,28 +13,18 @@ class MilestoneController extends Controller
 {
     public function index(Request $request, int $id)
     {
-        $user = $request->user();
         $application = Application::findOrFail($id);
 
-        if (! $user->roles()->whereIn('slug', ['super_admin', 'nti_admin', 'mentor'])->exists()) {
-            $ownedByStudent = $application->studentProfile && $application->studentProfile->user_id === $user->id;
-            $ownedByTeam = $application->team && $application->team->members()->where('users.id', $user->id)->exists();
-            if (! $ownedByStudent && ! $ownedByTeam) {
-                return response()->json(['message' => 'Unauthorized'], 403);
-            }
-        }
+        $this->authorize('viewAny', [Milestone::class, $application]);
 
         return response()->json(Milestone::where('application_id', $id)->get());
     }
 
     public function store(Request $request, int $id)
     {
-        $user = $request->user();
-        if (! $user->roles()->whereIn('slug', ['super_admin', 'nti_admin', 'mentor'])->exists()) {
-            return response()->json(['message' => 'Unauthorized'], 403);
-        }
+        $application = Application::findOrFail($id);
 
-        Application::findOrFail($id);
+        $this->authorize('create', [Milestone::class, $application]);
 
         $data = $request->validate([
             'title' => 'required|string|max:255',
@@ -56,28 +46,17 @@ class MilestoneController extends Controller
     public function show(Request $request, int $id)
     {
         $milestone = Milestone::with('documents')->findOrFail($id);
-        $user = $request->user();
 
-        if (! $user->roles()->whereIn('slug', ['super_admin', 'nti_admin', 'mentor'])->exists()) {
-            $application = $milestone->application;
-            $ownedByStudent = $application->studentProfile && $application->studentProfile->user_id === $user->id;
-            $ownedByTeam = $application->team && $application->team->members()->where('users.id', $user->id)->exists();
-            if (! $ownedByStudent && ! $ownedByTeam) {
-                return response()->json(['message' => 'Unauthorized'], 403);
-            }
-        }
+        $this->authorize('view', $milestone);
 
         return response()->json($milestone);
     }
 
     public function update(Request $request, int $id)
     {
-        $user = $request->user();
-        if (! $user->roles()->whereIn('slug', ['super_admin', 'nti_admin', 'mentor'])->exists()) {
-            return response()->json(['message' => 'Unauthorized'], 403);
-        }
-
         $milestone = Milestone::findOrFail($id);
+
+        $this->authorize('update', $milestone);
 
         $data = $request->validate([
             'status' => 'required|in:pending,in_progress,completed,overdue',
@@ -105,16 +84,8 @@ class MilestoneController extends Controller
     public function uploadDocument(Request $request, int $id)
     {
         $milestone = Milestone::findOrFail($id);
-        $user = $request->user();
 
-        if (! $user->roles()->whereIn('slug', ['super_admin', 'nti_admin', 'mentor'])->exists()) {
-            $application = $milestone->application;
-            $ownedByStudent = $application->studentProfile && $application->studentProfile->user_id === $user->id;
-            $ownedByTeam = $application->team && $application->team->members()->where('users.id', $user->id)->exists();
-            if (! $ownedByStudent && ! $ownedByTeam) {
-                return response()->json(['message' => 'Unauthorized'], 403);
-            }
-        }
+        $this->authorize('uploadDocument', $milestone);
 
         $request->validate(['file' => 'required|file|max:20480']);
 
@@ -122,7 +93,7 @@ class MilestoneController extends Controller
         $path = $file->store('documents', 'local');
 
         $document = Document::create([
-            'uploaded_by' => $user->id,
+            'uploaded_by' => $request->user()->id,
             'type' => 'milestone_attachment',
             'classification' => 'internal',
             'version' => 1,

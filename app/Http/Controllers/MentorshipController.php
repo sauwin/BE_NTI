@@ -3,16 +3,17 @@
 namespace App\Http\Controllers;
 
 use App\Mail\MentorAssignedMail;
-use App\Models\User;
 use App\Models\Mentorship;
+use App\Models\User;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 
 class MentorshipController extends Controller
 {
     public function assign(Request $request)
     {
+        $this->authorize('create', Mentorship::class);
+
         $data = $request->validate([
             'application_id' => 'required|exists:applications,id',
             'mentor_id' => [
@@ -43,7 +44,7 @@ class MentorshipController extends Controller
 
     public function index(Request $request)
     {
-        $mentorships = Mentorship::with(['application.team', 'application.call']) 
+        $mentorships = Mentorship::with(['application.team', 'application.call'])
             ->where('mentor_id', $request->user()->id)
             ->whereNull('ended_at')
             ->get();
@@ -53,9 +54,9 @@ class MentorshipController extends Controller
 
     public function show(Request $request, $id)
     {
-        $mentorship = Mentorship::with(['application.team', 'application.call', 'consultations' => function($query) {
-                $query->orderBy('date', 'desc');
-            }])
+        $mentorship = Mentorship::with(['application.team', 'application.call', 'consultations' => function ($query) {
+            $query->orderBy('date', 'desc');
+        }])
             ->where('mentor_id', $request->user()->id)
             ->findOrFail($id);
 
@@ -64,7 +65,7 @@ class MentorshipController extends Controller
 
     public function adminIndex(Request $request)
     {
-        if (!$request->user()->tokenCan('admin') && $request->user()->role !== 'admin') {
+        if (! $request->user()->tokenCan('admin') && $request->user()->role !== 'admin') {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
@@ -87,17 +88,9 @@ class MentorshipController extends Controller
 
     public function destroy(Request $request, $id)
     {
-        $user = $request->user();
         $mentorship = Mentorship::findOrFail($id);
 
-        $isAdmin = $user->tokenCan('admin') || $user->role === 'admin' || 
-                ($user->roles && $user->roles->contains('slug', 'super_admin'));
-
-        $isCurrentMentor = $user->roles->contains('slug', 'mentor') && ($mentorship->mentor_id === $user->id);
-
-        if (!$isAdmin && !$isCurrentMentor) {
-            return response()->json(['message' => 'Unauthorized. You cannot remove this mentorship.'], 403);
-        }
+        $this->authorize('delete', $mentorship);
 
         $mentorship->delete();
 

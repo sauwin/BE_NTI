@@ -38,19 +38,19 @@ class TaskController extends Controller
         return response()->json($tasks);
     }
 
-    public function show($id)
+    public function show(Request $request, $id)
     {
-        $task = Task::with(['organization', 'call', 'documents'])->find($id);
+        $task = Task::with(['organization', 'call', 'documents'])->findOrFail($id);
 
-        if (!$task) {
-            return response()->json(['message' => 'Task not found'], 404);
-        }
+        $this->authorize('view', $task);
 
         return response()->json($task);
     }
 
     public function store(Request $request)
     {
+        $this->authorize('create', Task::class);
+
         $data = $request->validate([
             'call_id' => 'required|integer|exists:calls,id',
             'title' => 'required|string|max:255',
@@ -75,10 +75,6 @@ class TaskController extends Controller
 
         $organizationId = $request->user()->organization_id;
 
-        if (! $organizationId) {
-            return response()->json(['message' => 'You must belong to an organization.'], 403);
-        }
-
         $call = Call::with('program')->findOrFail($data['call_id']);
         if ($call->program->code !== 'program_b') {
             return response()->json(['message' => 'Only Program B calls can receive company tasks.'], 422);
@@ -96,9 +92,8 @@ class TaskController extends Controller
     public function update(Request $request, $id)
     {
         $task = Task::findOrFail($id);
-        if ($task->product_owner_user_id !== $request->user()->id) {
-            return response()->json(['message' => 'Unauthorized'], 403);
-        }
+
+        $this->authorize('update', $task);
 
         $data = $request->validate([
             'title' => 'sometimes|required|string|max:255',
@@ -130,11 +125,10 @@ class TaskController extends Controller
     {
         $task = Task::findOrFail($id);
 
-        if ($task->product_owner_user_id !== $request->user()->id) {
-            return response()->json(['message' => 'Unauthorized'], 403);
-        }
+        $this->authorize('delete', $task);
 
         $task->delete();
+
         return response()->json(['message' => 'Task deleted successfully']);
     }
 }

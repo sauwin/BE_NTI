@@ -28,6 +28,12 @@ class OrganizationPolicy
         return $user->hasOrgRole($organization->id, 'owner');
     }
 
+    public function manageMembers(User $user, Organization $organization): bool
+    {
+        return $user->organization_id === $organization->id
+            && $user->hasOrgRole($organization->id, 'owner');
+    }
+
     public function forceDelete(User $user, Organization $organization): bool
     {
         return false;

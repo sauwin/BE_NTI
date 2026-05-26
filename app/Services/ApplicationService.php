@@ -2,15 +2,16 @@
 
 namespace App\Services;
 
-use App\Models\Call;
-use App\Models\Team;
-use App\Models\Application;
-use App\Models\StudentProfile;
-use App\Models\ApplicationStatusHistory;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Mail;
-use App\Mail\ApplicationSubmittedMail;
 use App\Http\Controllers\NotificationController;
+use App\Mail\ApplicationSubmittedMail;
+use App\Models\Application;
+use App\Models\ApplicationStatusHistory;
+use App\Models\Call;
+use App\Models\StudentProfile;
+use App\Models\Team;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\ValidationException;
 
 class ApplicationService
@@ -18,6 +19,8 @@ class ApplicationService
     public function createApplication(array $data, $user): Application
     {
         $isFinalSubmit = ($data['submit_type'] ?? 'final') === 'final';
+
+        Gate::authorize('create', Application::class);
 
         $call = Call::whereHas('program', fn ($q) => $q->where('code', 'program_'.$data['program_type']))
             ->where('status', 'open')
@@ -29,9 +32,6 @@ class ApplicationService
         }
 
         $profile = StudentProfile::where('user_id', $user->id)->first();
-        if (! $profile) {
-            abort(403, 'Pred odoslaním prihlášky si musíte vytvoriť študentský profil.');
-        }
 
         $team = null;
 
@@ -42,17 +42,15 @@ class ApplicationService
 
             if ($isFinalSubmit && $team->status !== 'forming') {
                 throw ValidationException::withMessages([
-                    'team_id' => 'Táto prihláška nemôže byť odoslaná, pretože tím už je v stave ready (uzamknutý).'
+                    'team_id' => 'Táto prihláška nemôže byť odoslaná, pretože tím už je v stave ready (uzamknutý).',
                 ]);
             }
 
-            if ($team->leader_id !== $user->id) {
-                abort(403, 'Iba líder tímu môže podať prihlášku za tento tím.');
-            }
+            Gate::authorize('update', $team);
 
             if ($isFinalSubmit && $team->members_count < 3) {
                 throw ValidationException::withMessages([
-                    'team_id' => 'Tím mustí mať minimálne 3 členov s potvrdeným statusom (accepted) pre prihlásenie do Programu A.'
+                    'team_id' => 'Tím mustí mať minimálne 3 členov s potvrdeným statusom (accepted) pre prihlásenie do Programu A.',
                 ]);
             }
         }
@@ -69,7 +67,7 @@ class ApplicationService
 
             if ($activeCount >= $maxApps) {
                 throw ValidationException::withMessages([
-                    'limit' => 'You have reached the maximum number of active applications.'
+                    'limit' => 'You have reached the maximum number of active applications.',
                 ]);
             }
         }
@@ -114,23 +112,18 @@ class ApplicationService
             throw ValidationException::withMessages(['status' => 'Túto prihlášku nie je možné odoslať, pretože už nie je konceptom.']);
         }
 
-        $profile = StudentProfile::where('user_id', $user->id)->first();
-        if (! $profile || $application->student_profile_id !== $profile->id) {
-            abort(403, 'Unauthorized');
-        }
+        Gate::authorize('submit', $application);
 
         if ($application->applicant_type === 'team' && $application->team) {
             $team = Team::withCount(['members' => function ($query) {
                 $query->where('team_members.status', 'accepted');
             }])->find($application->team_id);
 
-            if ($team->leader_id !== $user->id) {
-                abort(403, 'Iba líder tímu môže podaть prihlášku.');
-            }
+            Gate::authorize('update', $team);
 
             if ($application->program_type === 'a' && $team->members_count < 3) {
                 throw ValidationException::withMessages([
-                    'team_id' => 'Tím musí mať minimálne 3 členov s potvrdeným statusom (accepted) pre Program A.'
+                    'team_id' => 'Tím musí mať minimálne 3 členov s potvrdeným statusom (accepted) pre Program A.',
                 ]);
             }
         }
@@ -172,10 +165,10 @@ class ApplicationService
 
             foreach ($call->required_documents as $reqDoc) {
                 $docTypeKey = is_string($reqDoc) ? strtolower(str_replace(' ', '_', $reqDoc)) : ($reqDoc['type'] ?? '');
-                
-                if (!in_array($docTypeKey, $uploadedTypes)) {
+
+                if (! in_array($docTypeKey, $uploadedTypes)) {
                     throw ValidationException::withMessages([
-                        'documents' => "Chýba povinný dokument: " . (is_string($reqDoc) ? $reqDoc : ($reqDoc['document_name'] ?? $docTypeKey))
+                        'documents' => 'Chýba povinný dokument: '.(is_string($reqDoc) ? $reqDoc : ($reqDoc['document_name'] ?? $docTypeKey)),
                     ]);
                 }
             }
@@ -191,7 +184,7 @@ class ApplicationService
                 ['application_id' => $application->id]
             );
         } catch (\Exception $e) {
-            logger()->error("Failed sending email notifications: " . $e->getMessage());
+            logger()->error('Failed sending email notifications: '.$e->getMessage());
         }
     }
 }
