@@ -12,24 +12,22 @@ class CallController extends Controller
 {
     public function active(Request $request, ?string $program_type = null)
     {
-        if (! $program_type) {
-            $program_type = $request->query('program', 'a');
+        $query = Call::with('program')
+            ->where('status', 'open');
+
+        if ($program_type) {
+            $program_type = strtolower(trim($program_type));
+
+            $query->whereHas('program', fn ($q) =>
+                $q->where('code', 'program_' . $program_type)
+            );
         }
 
-        $program_type = strtolower(trim($program_type));
+        $calls = $query
+            ->orderBy('deadline_at')
+            ->get();
 
-        $call = Call::whereHas('program', fn ($q) => $q->where('code', 'program_'.$program_type))
-            ->where('status', 'open')
-            ->latest()
-            ->first();
-
-        if (! $call) {
-            return response()->json(null);
-        }
-
-        $call->label = $call->name;
-
-        return response()->json($call);
+        return response()->json($calls);
     }
 
     public function index(Request $request)
@@ -196,7 +194,6 @@ class CallController extends Controller
 
     public function show(int $id)
     {
-        // Простий запит без leftJoin
         $call = Call::with('program')->findOrFail($id);
 
         return response()->json($call);
