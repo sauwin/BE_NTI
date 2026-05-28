@@ -4,29 +4,51 @@ namespace App\Http\Controllers;
 
 use App\Models\Application;
 use App\Models\Evaluation;
+use App\Models\CallEvaluator;
 use App\Models\EvaluationCriteriaScore;
+use App\Services\AdminApplicationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
 class EvaluationController extends Controller
 {
+    protected $adminService;
+
+    public function __construct(AdminApplicationService $adminService)
+    {
+        $this->adminService = $adminService;
+    }
+
     public function evaluatorApplications(Request $request)
     {
         $user = Auth::user();
-        
-        $this->authorize('viewAny', Evaluation::class);
+    
+    $this->authorize('viewAny', Evaluation::class);
 
-        $applications = Application::whereIn('call_id', function ($query) use ($user) {
-                $query->select('call_id')
-                    ->from('call_evaluators')
-                    ->where('user_id', $user->id);
-            })
-            ->where('status', 'under_evaluation')
-            ->when($request->filled('program_type'), function ($q) use ($request) {
-                $q->where('program_type', strtolower($request->program_type));
-            })
-            ->get(); 
+    $applications = Application::whereIn('call_id', function ($query) use ($user) {
+            $query->select('call_id')
+                ->from('call_evaluators')
+                ->where('user_id', $user->id);
+        })
+        ->where('status', 'under_evaluation')
+        ->withCount(['evaluations as completed_evaluations_count' => function ($query) {
+            $query->where('status', 'completed');
+        }])
+        ->with(['call' => function ($query) {
+            $query->withCount('evaluators'); 
+        }])
+        ->when($request->filled('program_type'), function ($q) use ($request) {
+            $q->where('program_type', strtolower($request->program_type));
+        })
+        ->get()
+        ->map(function ($app) {
+            $totalEvaluators = \App\Models\CallEvaluator::where('call_id', $app->call_id)->count();
+            
+            $app->total_evaluators_count = $totalEvaluators;
+            $app->pending_evaluators_count = max(0, $totalEvaluators - $app->completed_evaluations_count);
+            return $app;
+        }); 
 
         return response()->json(['data' => $applications]);
     }
@@ -117,6 +139,8 @@ class EvaluationController extends Controller
                     ]);
                 }
 
+                $this->checkAndProcessCollectiveConsensus($application);
+
                 return $evaluation;
             });
 
@@ -181,11 +205,54 @@ class EvaluationController extends Controller
                 $evaluation->status = 'completed';
                 $evaluation->evaluated_at = now();
                 $evaluation->save();
+
+                $this->checkAndProcessCollectiveConsensus($evaluation->application);
             });
 
             return response()->json(['message' => 'Evaluation updated']);
         } catch (\Exception $e) {
             return response()->json(['message' => $e->getMessage()], 500);
         }
+    }
+
+    private function checkAndProcessCollectiveConsensus(Application $application): void
+    {
+        if (!$application->call_id) {
+            return;
+        }
+
+        $totalEvaluatorsCount = CallEvaluator::where('call_id', $application->call_id)->count();
+
+        if ($totalEvaluatorsCount === 0) {
+            return;
+        }
+
+        $completedEvaluations = Evaluation::where('application_id', $application->id)
+            ->where('status', 'completed')
+            ->get();
+
+        if ($completedEvaluations->count() < $totalEvaluatorsCount) {
+            return;
+        }
+
+        $recommendations = $completedEvaluations->pluck('recommendation')->toArray();
+
+        $counts = array_count_values($recommendations);
+        $counts = array_merge(['approve' => 0, 'reject' => 0, 'request_revision' => 0], $counts);
+
+        $finalStatus = 'under_evaluation'; 
+
+        if ($counts['reject'] > $counts['approve'] && $counts['reject'] > $counts['request_revision']) {
+            $finalStatus = 'rejected';
+        } elseif ($counts['request_revision'] > $counts['approve']) {
+            $finalStatus = 'revision_requested'; 
+        } elseif ($counts['approve'] >= (count($recommendations) / 2)) {
+            $finalStatus = 'approved';
+        }
+
+        $systemUser = Auth::user();
+        $internalComment = 'Automatické rozhodnutie systému na základe kolektívneho konsenzu hodnotiacej komisie.';
+
+        $this->adminService->updateStatus($application, $finalStatus, $internalComment, $systemUser);
     }
 }

@@ -9,6 +9,7 @@ use App\Models\ApplicationStatusHistory;
 use App\Models\Call;
 use App\Models\StudentProfile;
 use App\Models\Team;
+use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Mail;
@@ -195,7 +196,8 @@ class ApplicationService
                 ->toArray();
 
             foreach ($call->required_documents as $reqDoc) {
-                $docTypeKey = is_string($reqDoc) ? strtolower(str_replace(' ', '_', $reqDoc)) : ($reqDoc['type'] ?? '');
+                $docName = is_string($reqDoc) ? $reqDoc : ($reqDoc['document_name'] ?? $reqDoc['type'] ?? '');
+                $docTypeKey = Str::snake(trim($docName));
 
                 if (! in_array($docTypeKey, $uploadedTypes)) {
                     throw ValidationException::withMessages([
