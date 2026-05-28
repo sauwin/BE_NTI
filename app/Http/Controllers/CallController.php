@@ -25,7 +25,7 @@ class CallController extends Controller
 
         $calls = $query
             ->orderBy('deadline_at')
-            ->get();
+            ->first();
 
         return response()->json($calls);
     }

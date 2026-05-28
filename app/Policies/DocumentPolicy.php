@@ -13,7 +13,7 @@ class DocumentPolicy
 
     public function view(User $user, Document $document): bool
     {
-        if ($this->isAdminOrMentor($user)) {
+        if ($this->isAdminOrMentor($user) || $this->isEvaluator($user)) {
             return true;
         }
 

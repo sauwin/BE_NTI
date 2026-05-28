@@ -49,9 +49,18 @@ class ApplicationController extends Controller
 
     public function show(Request $request, int $id)
     {
-        $application = Application::with(['studentProfile.user', 'team', 'call'])->findOrFail($id);
+        $application = Application::with(['studentProfile.user', 'team', 'call'])
+            ->withCount(['evaluations as completed_evaluations_count' => function ($query) {
+                $query->where('status', 'completed');
+            }])
+            ->findOrFail($id);
 
         $this->authorize('view', $application);
+
+        $totalEvaluators = \App\Models\CallEvaluator::where('call_id', $application->call_id)->count();
+        
+        $application->total_evaluators_count = $totalEvaluators;
+        $application->pending_evaluators_count = max(0, $totalEvaluators - $application->completed_evaluations_count);
 
         return response()->json($application);
     }
@@ -138,7 +147,7 @@ class ApplicationController extends Controller
 
         $isAdmin = $user->hasRole(['nti_admin', 'super_admin']);
 
-        $allowedMentorStatuses = ['onboarding', 'active', 'approved'];
+        $allowedMentorStatuses = ['onboarding', 'active', 'approved', 'suspended', 'closed'];
 
         $statusValidationRule = $isAdmin
             ? 'required|in:submitted,formally_verified,under_evaluation,revision_requested,approved,rejected,onboarding,active,suspended,closed'
