@@ -17,6 +17,11 @@ trait AuthorizesApplicationAccess
         return $user->hasRole(['nti_admin', 'super_admin', 'mentor']);
     }
 
+    protected function isEvaluator(User $user): bool
+    {
+        return $user->hasRole(['evaluator']);
+    }
+
     protected function ownsApplicationAsStudent(User $user, Application $application): bool
     {
         $profile = $user->studentProfile;
