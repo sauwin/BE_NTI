@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Organization;
 use App\Mail\AdminPasswordResetMail;
 use App\Models\Audit;
 use App\Models\CompanyProfile;
@@ -26,7 +27,7 @@ class AdminController extends Controller
         $currentUser = $request->user();
         $isSuperAdmin = $currentUser->roles()->where('slug', 'super_admin')->exists();
 
-        $query = User::select('id', 'first_name', 'last_name', 'email', 'status', 'created_at')
+        $query = User::select('id', 'first_name', 'last_name', 'email', 'status', 'role_in_org', 'created_at')
             ->with(['roles' => function ($q) {
                 $q->select('roles.id', 'roles.name', 'roles.slug',
                     'user_roles.granted_by', 'user_roles.granted_at');
@@ -243,6 +244,8 @@ class AdminController extends Controller
     {
         $data = $request->validate([
             'role' => 'required|in:student,company,mentor,evaluator,content_editor',
+            'registration_number' => 'sometimes|nullable|string',
+            'role_in_org' => 'sometimes|nullable|string|in:owner,contact,evaluator,mentor',
         ]);
 
         if (! $request->user()->roles()->where('slug', 'super_admin')->exists()) {
@@ -254,33 +257,60 @@ class AdminController extends Controller
         $user = User::findOrFail($userId);
         $role = Role::where('slug', $data['role'])->firstOrFail();
 
-        if ($user->roles()->where('role_id', $role->id)->exists()) {
+        $organizationId = null;
+        $roleInOrg = null;
+
+        if ($data['role'] === 'company') {
+            if (empty($data['registration_number']) || empty($data['role_in_org'])) {
+                return response()->json([
+                    'message' => 'The registration number and role in organization fields are required for company role.'
+                ], 422);
+            }
+
+            $organization = Organization::where('registration_number', $data['registration_number'])->first();
+
+            if (! $organization) {
+                return response()->json(['message' => 'Organization with this registration number not found.'], 422);
+            }
+
+            $organizationId = $organization->id;
+            $roleInOrg = $data['role_in_org'];
+        }
+
+        $user->update([
+            'organization_id' => $organizationId,
+            'role_in_org' => $roleInOrg,
+        ]);
+
+        $hasExistingRole = $user->roles()->where('role_id', $role->id)->exists();
+        
+        if ($hasExistingRole && $data['role'] !== 'company') {
             return response()->json(['message' => 'Role assigned']);
         }
+
+        $payload = [
+            'role_id' => $role->id,
+            'granted_by' => $request->user()->id,
+            'granted_at' => now(),
+        ];
 
         $existingRole = DB::table('user_roles')->where('user_id', $user->id)->first();
 
         if ($existingRole) {
             DB::table('user_roles')
                 ->where('user_id', $user->id)
-                ->update([
-                    'role_id' => $role->id,
-                    'granted_by' => $request->user()->id,
-                    'granted_at' => now(),
-                ]);
+                ->update($payload);
         } else {
-            DB::table('user_roles')->insert([
-                'user_id' => $user->id,
-                'role_id' => $role->id,
-                'granted_by' => $request->user()->id,
-                'granted_at' => now(),
-            ]);
+            $payload['user_id'] = $user->id;
+            DB::table('user_roles')->insert($payload);
         }
 
         AuditService::log('assign', 'role', [
             'target_user_id' => $userId,
             'target_user_email' => $user->email,
             'role' => $data['role'],
+            'organization_id' => $organizationId,
+            'role_in_org' => $roleInOrg,
         ]);
 
         return response()->json(['message' => 'Role assigned']);

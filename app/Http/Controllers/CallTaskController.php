@@ -9,6 +9,7 @@ use App\Http\Controllers\CallController;
 use App\Http\Controllers\TaskController;
 use App\Models\Document;
 use App\Models\Task;
+use App\Models\Call;
 
 class CallTaskController extends Controller
 {
@@ -39,50 +40,30 @@ class CallTaskController extends Controller
             $callRequest->setUserResolver(fn () => $request->user());
             $callRequest->merge([
                 'program_id'         => 'program_b', 
-                'name'               => $request->input('title'), 
+                'name'               => $request->input('title'),
+                'short_description'  => $request->input('short_description'),
                 'status'             => $callStatus,
-                'opens_at'           => $request->input('call_opens_at'),
-                'deadline_at'        => $request->input('call_deadline_at'),
-                'min_team_size'      => $request->input('min_team_size', 3),
-                'max_team_size'      => $request->input('max_team_size'),
-                'required_documents' => $requiredDocs,
+                'start_date'         => now()->format('Y-m-d'),
+                'end_date'           => $request->input('deadline'),
+                'required_documents' => $requiredDocs ?? [],
             ]);
 
             $callResponse = $this->callController->store($callRequest);
-            
-            if ($callResponse->getStatusCode() >= 400) {
-                return $callResponse; 
-            }
-            $callData = $callResponse->getData();
+            $callData = $callResponse->getData(true)['call'] ?? $callResponse->getData(true);
+            $callId = $callData['id'];
 
             $taskRequest = new Request();
             $taskRequest->setMethod('POST');
             $taskRequest->setUserResolver(fn () => $request->user());
-            
-            $taskRequest->merge([
-                'call_id'                        => $callData->id,
-                'title'                          => $request->input('title'),
-                'budget'                         => $request->input('budget'),
-                'brief'                          => $request->input('brief'),
-                'status'                         => $frontendStatus,
-                'short_description'              => $request->input('short_description'),
-                'project_goal'                   => $request->input('project_goal'),
-                'expected_outcome'               => $request->input('expected_outcome'),
-                'detailed_technical_description' => $request->input('detailed_technical_description'),
-                'architecture_requirements'      => $request->input('architecture_requirements'),
-                'platforms'                      => $request->input('platforms'),
-                'deadline'                       => $request->input('deadline'),
-                'required_technologies'          => $request->input('required_technologies'),
-                'required_skills'                => $request->input('required_skills'),
-            ]);
+            $taskRequest->merge(array_merge($request->all(), [
+                'call_id' => $callId,
+            ]));
 
             $taskResponse = $this->taskController->store($taskRequest);
-            
-            if ($taskResponse->getStatusCode() >= 400) {
-                return $taskResponse;
-            }
-            
-            $taskModel = Task::findOrFail($taskResponse->getData()->id);
+            $taskData = $taskResponse->getData(true)['task'] ?? $taskResponse->getData(true);
+            $taskId = $taskData['id'];
+
+            $taskModel = Task::findOrFail($taskId);
 
             if ($request->hasFile('files')) {
                 $userId = $request->user()->id ?? 1;
@@ -119,6 +100,102 @@ class CallTaskController extends Controller
                 'task'    => $taskModel->load('documents') 
             ], 201);
             
+        });
+    }
+
+    public function updateCallWithTask(Request $request, $id)
+    {
+        $taskModel = Task::with('call', 'documents')->findOrFail($id);
+        $callModel = $taskModel->call;
+
+        if (!$callModel) {
+            return response()->json(['message' => 'Associated Call not found for this Task.'], 404);
+        }
+
+        $frontendStatus = $request->input('status', 'draft');
+
+        return DB::transaction(function () use ($request, $taskModel, $callModel, $frontendStatus) {
+            
+            $callStatus = ($frontendStatus === 'published') ? 'open' : 'draft';
+            
+            $requiredDocs = $request->input('required_documents');
+            if (is_string($requiredDocs)) {
+                $requiredDocs = json_decode($requiredDocs, true);
+            }
+
+            $callModel->update([
+                'name'               => $request->input('title', $callModel->name),
+                'short_description'  => $request->input('short_description', $callModel->short_description),
+                'status'             => $callStatus,
+                'end_date'           => $request->input('deadline', $callModel->end_date),
+                'required_documents' => $requiredDocs ?? $callModel->required_documents,
+            ]);
+
+            $taskModel->update($request->all());
+
+            if ($request->hasFile('files')) {
+                $userId = $request->user()->id ?? 1;
+                $uploadedFiles = $request->file('files'); 
+
+                foreach ($uploadedFiles as $type => $file) {
+                    $existing = $taskModel->documents()->where('type', $type)->first();
+                    if ($existing) {
+                        Storage::disk('local')->delete($existing->file_path);
+                        $taskModel->documents()->detach($existing->id);
+                        $existing->delete();
+                    }
+
+                    $path = $file->store('documents', 'local');
+
+                    $document = Document::create([
+                        'uploaded_by' => $userId,
+                        'type' => $type,
+                        'classification' => 'internal',
+                        'version' => 1,
+                        'file_path' => $path,
+                        'file_name' => $file->getClientOriginalName(),
+                        'mime_type' => $file->getClientMimeType(),
+                        'file_size_bytes' => $file->getSize(),
+                    ]);
+
+                    $taskModel->documents()->attach($document->id);
+                }
+            }
+
+            return response()->json([
+                'message' => 'Call, Task and Documents successfully updated inside a single transaction!',
+                'call'    => $callModel,
+                'task'    => $taskModel->load('documents')
+            ], 200);
+        });
+    }
+
+    public function deleteCallWithTask($id)
+    {
+        $taskModel = Task::with('call', 'documents')->findOrFail($id);
+        $callModel = $taskModel->call;
+
+        return DB::transaction(function () use ($taskModel, $callModel) {
+            
+            foreach ($taskModel->documents as $document) {
+                if (Storage::disk('local')->exists($document->file_path)) {
+                    Storage::disk('local')->delete($document->file_path);
+                }
+                
+                $taskModel->documents()->detach($document->id);
+                
+                $document->delete();
+            }
+
+            $taskModel->delete();
+
+            if ($callModel) {
+                $callModel->delete();
+            }
+
+            return response()->json([
+                'message' => 'Task, associated Call and all connected documents successfully deleted!'
+            ], 200);
         });
     }
 }
