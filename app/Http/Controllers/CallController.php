@@ -7,6 +7,8 @@ use App\Models\Program;
 use App\Services\AuditService;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
+use App\Models\Application;
+use Illuminate\Support\Facades\DB;
 
 class CallController extends Controller
 {
@@ -212,6 +214,82 @@ class CallController extends Controller
         return response()->json([
             'message' => 'Call status updated successfully',
             'call' => $call,
+        ]);
+    }
+
+    public function scheduleEvaluation(Request $request, int $id)
+    {
+        $call = Call::findOrFail($id);
+        $this->authorize('update', $call);
+        
+        $validated = $request->validate([
+            'evaluation_scheduled_at' => 'required|date_format:Y-m-d\TH:i|after:now',
+        ], [
+            'evaluation_scheduled_at.required' => 'Evaluation date is required',
+            'evaluation_scheduled_at.date_format' => 'Invalid date format',
+            'evaluation_scheduled_at.after' => 'Date must be in the future',
+        ]);
+        
+        try {
+            $result = DB::transaction(function () use ($call, $validated) {
+                $applicationsToMove = Application::where('call_id', $call->id)
+                    ->where('status', 'formally_verified')
+                    ->count();
+                $call->update([
+                    'evaluation_scheduled_at' => $validated['evaluation_scheduled_at'],
+                ]);
+                
+                if ($applicationsToMove > 0) {
+                    Application::where('call_id', $call->id)
+                        ->where('status', 'formally_verified')
+                        ->update([
+                            'status' => 'under_evaluation',
+                            'updated_at' => now(),
+                        ]);
+                }
+                
+                return [
+                    'call_id' => $call->id,
+                    'evaluation_scheduled_at' => $call->evaluation_scheduled_at,
+                    'applications_moved' => $applicationsToMove,
+                ];
+            });
+            
+            return response()->json([
+                'message' => 'Evaluation scheduled successfully',
+                'data' => [
+                    'call_id' => $result['call_id'],
+                    'evaluation_scheduled_at' => $result['evaluation_scheduled_at'],
+                    'applications_moved' => $result['applications_moved'],
+                ],
+            ], 200);
+            
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Error scheduling evaluation',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    public function getEvaluationInfo(int $id)
+    {
+        $call = Call::findOrFail($id);
+        
+        $applicationsStats = [
+            'formally_verified' => Application::where('call_id', $id)
+                ->where('status', 'formally_verified')
+                ->count(),
+            'under_evaluation' => Application::where('call_id', $id)
+                ->where('status', 'under_evaluation')
+                ->count(),
+            'total' => Application::where('call_id', $id)->count(),
+        ];
+        
+        return response()->json([
+            'call_id' => $call->id,
+            'evaluation_scheduled_at' => $call->evaluation_scheduled_at,
+            'applications' => $applicationsStats,
         ]);
     }
 }

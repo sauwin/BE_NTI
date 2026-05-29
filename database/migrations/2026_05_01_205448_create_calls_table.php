@@ -20,6 +20,8 @@ return new class extends Migration
             $table->enum('status', ['draft', 'open', 'closed', 'archived'])->default('draft');
             $table->timestamp('opens_at')->nullable();
             $table->timestamp('deadline_at')->nullable();
+            $table->datetime('evaluation_scheduled_at')
+                ->nullable();
             $table->unsignedTinyInteger('min_team_size')->default(3);
             $table->unsignedTinyInteger('max_team_size')->nullable();
             $table->json('evaluation_criteria')->nullable();
@@ -30,6 +32,7 @@ return new class extends Migration
             $table->timestamps();
             $table->index('program_id');
             $table->index('status');
+            $table->index('evaluation_scheduled_at');
         });
     }
 

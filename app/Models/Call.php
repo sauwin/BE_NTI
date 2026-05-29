@@ -23,6 +23,7 @@ class Call extends Model
         'evaluation_criteria',
         'required_documents',
         'created_by',
+        'evaluation_scheduled_at',
     ];
 
     protected $casts = [
@@ -30,6 +31,7 @@ class Call extends Model
         'deadline_at' => 'datetime',
         'evaluation_criteria' => 'array',
         'required_documents' => 'array',
+        'evaluation_scheduled_at' => 'datetime',
     ];
 
     public function program(): BelongsTo
