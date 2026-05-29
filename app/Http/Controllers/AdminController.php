@@ -169,8 +169,7 @@ class AdminController extends Controller
     public function blockUser(Request $request, int $userId)
     {
         $user = User::findOrFail($userId);
-
-        User::where('id', $userId)->update(['status' => 'blocked']);
+        $user->update(['status' => 'blocked']);
 
         AuditService::log('block', 'user', [
             'target_user_id' => $userId,
@@ -186,8 +185,7 @@ class AdminController extends Controller
     public function unblockUser(Request $request, int $userId)
     {
         $user = User::findOrFail($userId);
-
-        User::where('id', $userId)->update(['status' => 'active']);
+        $user->update(['status' => 'active']);
 
         AuditService::log('unblock', 'user', [
             'target_user_id' => $userId,
@@ -238,7 +236,7 @@ class AdminController extends Controller
     }
 
     /**
-     * Assign role to existing user.
+     * Assign role to existing user. ??????????????????
      */
     public function assignRole(Request $request, int $userId)
     {
@@ -249,7 +247,7 @@ class AdminController extends Controller
         ]);
 
         if (! $request->user()->roles()->where('slug', 'super_admin')->exists()) {
-            if (in_array($data['role'], ['nti_admin', 'evaluator', 'content_editor'])) {
+            if (in_array($data['role'], ['super_admin', 'nti_admin', 'evaluator', 'content_editor'])) {
                 return response()->json(['message' => 'Admin cannot assign admin roles'], 403);
             }
         }
@@ -260,6 +258,7 @@ class AdminController extends Controller
         $organizationId = null;
         $roleInOrg = null;
 
+        // ??????????
         if ($data['role'] === 'company') {
             if (empty($data['registration_number']) || empty($data['role_in_org'])) {
                 return response()->json([
@@ -326,7 +325,7 @@ class AdminController extends Controller
         ]);
 
         if (! $request->user()->roles()->where('slug', 'super_admin')->exists()) {
-            if (in_array($data['role'], ['nti_admin', 'evaluator', 'content_editor'])) {
+            if (in_array($data['role'], ['super_admin', 'nti_admin', 'evaluator', 'content_editor'])) {
                 return response()->json(['message' => 'Admin cannot remove admin roles'], 403);
             }
         }
@@ -367,7 +366,6 @@ class AdminController extends Controller
             return response()->json(['message' => 'Cannot delete admin users'], 403);
         }
 
-        // Log before deletion so user email is still available
         AuditService::log('delete', 'user', [
             'target_user_id' => $userId,
             'target_user_email' => $user->email,
@@ -410,13 +408,20 @@ class AdminController extends Controller
         ]);
     }
 
+    /** 
+     * Select all users with admin role
+    */
     public function adminUsers(Request $request)
     {
         $adminRoles = ['nti_admin', 'super_admin', 'evaluator', 'content_editor'];
 
         $users = User::select('id', 'first_name', 'last_name', 'email')
-            ->whereHas('roles', fn ($q) => $q->whereIn('slug', $adminRoles))
-            ->with(['roles' => fn ($q) => $q->select('roles.id', 'roles.name', 'roles.slug')])
+            ->whereHas('roles', function ($q) use ($adminRoles) { 
+                $q->whereIn('slug', $adminRoles);
+            })
+            ->with(['roles' => function ($q) { 
+                $q->select('roles.id', 'roles.name', 'roles.slug'); 
+            }])
             ->orderBy('first_name')
             ->get();
 
