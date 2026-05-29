@@ -267,6 +267,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::patch('/calls/{id}/status', [CallController::class, 'updateStatus'])->middleware('throttle:10,1');
         Route::get('/reporting/dashboard-stats', [ReportingController::class, 'dashboardStats']);
 
+        Route::patch('/calls/{id}/schedule-evaluation', [CallController::class, 'scheduleEvaluation'])->middleware(['throttle:30,1'])->name('calls.schedule-evaluation');
+        Route::get('/calls/{id}/evaluation-info', [CallController::class, 'getEvaluationInfo'])->name('calls.evaluation-info');
+
         // Call Evaluators
         Route::get('/calls/{id}/evaluators', [CallEvaluatorController::class, 'index']);
         Route::post('/calls/{id}/evaluators', [CallEvaluatorController::class, 'assign'])->middleware('throttle:10,1');
