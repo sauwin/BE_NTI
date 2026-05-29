@@ -176,4 +176,45 @@ class OrganizationMembershipController extends Controller
 
         return response()->json(['message' => 'Member kicked successfully, now pending']);
     }
+
+    public function updateMemberRole(Request $request, int $userId)
+    {
+        $this->authorizeOrganizationManagement($request);
+
+        if ($request->user()->id == $userId) {
+            abort(403, 'You cannot modify your own role');
+        }
+
+        $organizationId = $request->user()->organization_id;
+
+        $data = $request->validate([
+            'role_in_org' => 'required|string|in:contact,evaluator,mentor',
+        ]);
+
+        $targetUser = User::findOrFail($userId);
+        if ($targetUser->organization_id !== $organizationId) {
+            return response()->json(['message' => 'Unauthorized - user not in your organization'], 403);
+        }
+
+        $hasActiveCompanyRole = DB::table('user_roles')
+            ->where('user_id', $userId)
+            ->whereNotNull('granted_by')
+            ->whereIn('role_id', function ($query) {
+                $query->select('id')->from('roles')->where('slug', 'company');
+            })
+            ->exists();
+
+        if (!$hasActiveCompanyRole) {
+            return response()->json(['message' => 'User does not have an active company role'], 422);
+        }
+
+        $targetUser->update([
+            'role_in_org' => $data['role_in_org']
+        ]);
+
+        return response()->json([
+            'message' => 'Member role within organization updated successfully',
+            'role_in_org' => $targetUser->role_in_org
+        ]);
+    }
 }

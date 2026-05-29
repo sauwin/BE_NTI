@@ -217,6 +217,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/company/members/{userId}/reject', [OrganizationMembershipController::class, 'rejectMember'])->middleware('throttle:10,1');
     Route::get('/company/members/active', [OrganizationMembershipController::class, 'activeMembers']);
     Route::post('/company/members/{userId}/kick', [OrganizationMembershipController::class, 'kickMember'])->middleware('throttle:10,1');
+    Route::patch('/organization/members/{userId}/role', [OrganizationMembershipController::class, 'updateMemberRole'])->middleware('throttle:10,1');
 
     Route::get('/admin/admin-users', [AdminController::class, 'adminUsers']);
     Route::delete('/company/members/{userId}/kick', [OrganizationMembershipController::class, 'kickMember']);
