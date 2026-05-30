@@ -198,4 +198,37 @@ class CallTaskController extends Controller
             ], 200);
         });
     }
+
+    public function updateStatus(Request $request, $id)
+    {
+        $request->validate([
+            'status' => 'required|string|in:draft,published,in_matching,assigned,in_progress,closed'
+        ]);
+
+        $frontendStatus = $request->input('status');
+
+        $taskModel = Task::with('call')->findOrFail($id);
+        $callModel = $taskModel->call;
+
+        return DB::transaction(function () use ($taskModel, $callModel, $frontendStatus) {
+            $callStatus = ($frontendStatus === 'published') ? 'open' : 'draft';
+
+            $taskModel->update([
+                'status' => $frontendStatus
+            ]);
+
+            if ($callModel) {
+                $callModel->update([
+                    'status' => $callStatus
+                ]);
+            }
+
+            return response()->json([
+                'message' => 'Status successfully updated for both Task and Call!',
+                'task_id' => $taskModel->id,
+                'task_status' => $taskModel->status,
+                'call_status' => $callModel ? $callModel->status : null
+            ], 200);
+        });
+    }
 }

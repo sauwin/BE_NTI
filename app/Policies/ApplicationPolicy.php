@@ -22,6 +22,8 @@ class ApplicationPolicy
             return true;
         }
 
+        $application->loadMissing('call.task');
+
         if ($user->hasRole('evaluator')) {
             $isAssigned = DB::table('call_evaluators')
                 ->where('user_id', $user->id)
@@ -31,7 +33,11 @@ class ApplicationPolicy
             return $isAssigned && $application->status === 'under_evaluation';
         }
 
-        return false;
+        return DB::table('users')
+            ->where('id', $user->id)
+            ->where('role_in_org', 'owner')
+            ->where('organization_id', $application->call->task->organization_id)
+            ->exists();
     }
 
     public function create(User $user): bool
@@ -69,12 +75,20 @@ class ApplicationPolicy
             return true;
         }
 
-        if (! $user->hasRole('mentor')) {
-            return false;
+        $application->loadMissing('call.task');
+
+        if ($user->hasRole('mentor')) {
+            $isAssigned = Mentorship::where('application_id', $application->id)
+            ->where('mentor_id', $user->id)
+            ->exists();
+
+            return $isAssigned;
         }
 
-        return Mentorship::where('application_id', $application->id)
-            ->where('mentor_id', $user->id)
+        return DB::table('users')
+            ->where('id', $user->id)
+            ->where('role_in_org', 'owner')
+            ->where('organization_id', $application->call->task->organization_id)
             ->exists();
     }
 }

@@ -245,7 +245,7 @@ class EvaluationController extends Controller
         if ($counts['reject'] > $counts['approve'] && $counts['reject'] > $counts['request_revision']) {
             $finalStatus = 'rejected';
         } elseif ($counts['request_revision'] > $counts['approve']) {
-            $finalStatus = 'revision_requested'; 
+            $finalStatus = 'pending_revision'; 
         } elseif ($counts['approve'] >= (count($recommendations) / 2)) {
             $finalStatus = 'approved';
         }
