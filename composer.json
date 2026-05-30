@@ -16,6 +16,7 @@
         "laravel/tinker": "^3.0",
         "laravel/wayfinder": "^0.1.14",
         "maatwebsite/excel": "^3.1",
+        "predis/predis": "^3.4",
         "spatie/laravel-sitemap": "^8.1",
         "sunspikes/clamav-validator": "^4.0"
     },
