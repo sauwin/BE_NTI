@@ -209,7 +209,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/company/tasks', [TaskController::class, 'store'])->middleware('throttle:10,1');
     Route::put('/company/tasks/{id}', [TaskController::class, 'update'])->middleware('throttle:10,1');
     Route::delete('/company/tasks/{id}', [TaskController::class, 'destroy'])->middleware('throttle:10,1');
+
     Route::post('/calls-with-tasks', [CallTaskController::class, 'storeCallWithTask'])->middleware('throttle:10,1');
+    Route::put('/calls-with-tasks/{id}', [CallTaskController::class, 'updateCallWithTask']);
+    Route::delete('/calls-with-tasks/{id}', [CallTaskController::class, 'deleteCallWithTask']);
+    Route::patch('/calls-with-tasks/{id}/status', [CallTaskController::class, 'updateStatus']);
 
     // Company members
     Route::get('/company/members/pending', [OrganizationMembershipController::class, 'pendingMembers']);
@@ -218,6 +222,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/company/members/active', [OrganizationMembershipController::class, 'activeMembers']);
     Route::post('/company/members/{userId}/kick', [OrganizationMembershipController::class, 'kickMember'])->middleware('throttle:10,1');
     Route::patch('/organization/members/{userId}/role', [OrganizationMembershipController::class, 'updateMemberRole'])->middleware('throttle:10,1');
+    Route::get('/organization/applications', [ApplicationController::class, 'organizationApplications'])->middleware('throttle:10,1');
 
     Route::get('/admin/admin-users', [AdminController::class, 'adminUsers']);
     Route::delete('/company/members/{userId}/kick', [OrganizationMembershipController::class, 'kickMember']);

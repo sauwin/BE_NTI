@@ -64,7 +64,7 @@ class AdminApplicationService
                     Mail::to($applicantUser->email)->queue(new ApplicationRevisionRequestMail($application, $message));
                 } catch (\Exception $e) {}
 
-                NotificationController::log($applicantUser->id, $applicantUser->email, 'revision_requested',
+                NotificationController::log($applicantUser->id, $applicantUser->email, 'pending_revision',
                     'Administrátor vyžaduje úpravu vašej prihlášky #' . $application->id,
                     ['application_id' => $application->id]
                 );
