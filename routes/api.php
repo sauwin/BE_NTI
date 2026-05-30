@@ -262,6 +262,7 @@ Route::middleware('auth:sanctum')->group(function () {
         // Applications Management
         Route::get('/applications', [ApplicationManagementController::class, 'index']);
         Route::get('/applications/{id}', [ApplicationManagementController::class, 'show']);
+        Route::patch('/applications/{id}/status', [ApplicationController::class, 'updateStatus'])->middleware('throttle:10,1');
         Route::post('/applications/{id}/revisions', [ApplicationRevisionController::class, 'requestRevision'])
             ->middleware('throttle:10,1');
 

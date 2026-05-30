@@ -62,6 +62,12 @@ class CallEvaluatorController extends Controller
             'user_id' => $user->id,
         ]);
 
+        AuditService::log('assign_evaluator', 'call', [
+            'call_id' => $call->id,
+            'user_id' => $user->id,
+            'user_email' => $user->email,
+        ]);
+
         $user->notify(new EvaluationAssigned($call));
 
         AuditService::log('assign_evaluator', 'call', [

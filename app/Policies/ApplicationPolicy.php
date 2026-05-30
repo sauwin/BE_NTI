@@ -33,6 +33,10 @@ class ApplicationPolicy
             return $isAssigned && $application->status === 'under_evaluation';
         }
 
+        if ($user->hasRole('student')) {
+            return false;
+        }
+
         return DB::table('users')
             ->where('id', $user->id)
             ->where('role_in_org', 'owner')

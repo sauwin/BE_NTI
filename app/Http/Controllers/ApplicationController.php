@@ -24,18 +24,26 @@ class ApplicationController extends Controller
 
     public function index(Request $request)
     {
-        $profile = StudentProfile::where('user_id', $request->user()->id)->first();
+        $user = $request->user();
+
+        if ($user->hasRole(['nti_admin', 'super_admin'])) {
+            return response()->json(
+                Application::with(['team', 'call'])->orderBy('created_at', 'desc')->get()
+            );
+        }
+
+        $profile = StudentProfile::where('user_id', $user->id)->first();
 
         if (! $profile) {
             return response()->json([], 200);
         }
 
-        $applications = Application::with(['team', 'call'])
-            ->where('student_profile_id', $profile->id)
-            ->orderBy('created_at', 'desc')
-            ->get();
-
-        return response()->json($applications);
+        return response()->json(
+            Application::with(['team', 'call'])
+                ->where('student_profile_id', $profile->id)
+                ->orderBy('created_at', 'desc')
+                ->get()
+        );
     }
 
     public function store(StoreApplicationRequest $request)

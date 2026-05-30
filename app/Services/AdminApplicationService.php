@@ -2,13 +2,13 @@
 
 namespace App\Services;
 
-use App\Models\Application;
-use App\Models\ApplicationStatusHistory;
-use App\Models\ApplicationRevisionRequest;
-use App\Mail\StatusChangedMail;
-use App\Mail\ProjectClosedMail;
-use App\Mail\ApplicationRevisionRequestMail;
 use App\Http\Controllers\NotificationController;
+use App\Mail\ApplicationRevisionRequestMail;
+use App\Mail\ProjectClosedMail;
+use App\Mail\StatusChangedMail;
+use App\Models\Application;
+use App\Models\ApplicationRevisionRequest;
+use App\Models\ApplicationStatusHistory;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 
@@ -29,6 +29,11 @@ class AdminApplicationService
                 'comment' => $comment ?? 'Status updated by administrator',
                 'changed_at' => now(),
             ]);
+            AuditService::log('update_status', 'application', [
+                'application_id' => $application->id,
+                'old_status' => $oldStatus,
+                'new_status' => $newStatus,
+            ], $admin->id);
         });
 
         $this->sendAdminStatusNotifications($application, $oldStatus, $newStatus);
@@ -47,7 +52,7 @@ class AdminApplicationService
                 'old_status' => $oldStatus,
                 'new_status' => $newStatus,
                 'changed_by' => $admin->id,
-                'comment' => 'Revision requested: ' . $message,
+                'comment' => 'Revision requested: '.$message,
                 'changed_at' => now(),
             ]);
 
@@ -62,10 +67,11 @@ class AdminApplicationService
             if ($applicantUser) {
                 try {
                     Mail::to($applicantUser->email)->queue(new ApplicationRevisionRequestMail($application, $message));
-                } catch (\Exception $e) {}
+                } catch (\Exception $e) {
+                }
 
                 NotificationController::log($applicantUser->id, $applicantUser->email, 'pending_revision',
-                    'Administrátor vyžaduje úpravu vašej prihlášky #' . $application->id,
+                    'Administrátor vyžaduje úpravu vašej prihlášky #'.$application->id,
                     ['application_id' => $application->id]
                 );
             }
@@ -75,7 +81,9 @@ class AdminApplicationService
     private function sendAdminStatusNotifications(Application $application, string $oldStatus, string $newStatus): void
     {
         $applicantUser = $application->studentProfile->user ?? null;
-        if (!$applicantUser) return;
+        if (! $applicantUser) {
+            return;
+        }
 
         try {
             if ($newStatus === 'closed') {
@@ -85,11 +93,11 @@ class AdminApplicationService
             }
 
             NotificationController::log($applicantUser->id, $applicantUser->email, 'status_changed',
-                "Status of your application #{$application->id} changed to " . strtoupper($newStatus),
+                "Status of your application #{$application->id} changed to ".strtoupper($newStatus),
                 ['application_id' => $application->id, 'old_status' => $oldStatus, 'new_status' => $newStatus]
             );
         } catch (\Exception $e) {
-            logger()->error("Admin notification failure: " . $e->getMessage());
+            logger()->error('Admin notification failure: '.$e->getMessage());
         }
     }
 }

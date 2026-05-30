@@ -21,7 +21,7 @@ class EvaluationAssigned extends Notification implements ShouldQueue
 
     public function via($notifiable)
     {
-        return ['mail', 'database'];
+        return ['mail'];
     }
 
     public function toMail($notifiable)
@@ -29,7 +29,7 @@ class EvaluationAssigned extends Notification implements ShouldQueue
         return (new MailMessage)
             ->subject('You have been assigned as an evaluator')
             ->line('You have been assigned as an evaluator for the call: '.$this->call->name)
-            ->line('Deadline: '.$this->call->deadline->format('Y-m-d'))
+            ->line('Deadline: '.($this->call->deadline_at?->format('Y-m-d') ?? 'N/A'))
             ->action('View Applications', url('/dashboard/evaluations?call='.$this->call->id))
             ->line('Thank you for your participation!');
     }

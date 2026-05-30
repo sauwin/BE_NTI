@@ -5,7 +5,6 @@ namespace Database\Factories;
 use App\Models\Application;
 use App\Models\Call;
 use App\Models\StudentProfile;
-use App\Models\Team;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
@@ -16,8 +15,8 @@ class ApplicationFactory extends Factory
     public function definition(): array
     {
         $status = fake()->randomElement([
-            'draft', 'submitted', 'formal_check', 'formally_verified', 
-            'under_evaluation', 'pending_revision', 'approved', 'rejected', 'closed'
+            'draft', 'submitted', /* 'formal_check', */ 'formally_verified',
+            'under_evaluation', 'pending_revision', 'approved', 'rejected', 'closed',
         ]);
 
         $isDecisionMade = in_array($status, ['approved', 'rejected', 'closed']);
@@ -27,7 +26,7 @@ class ApplicationFactory extends Factory
             'applicant_type' => fake()->randomElement(['student', 'team']),
             'program_type' => fake()->randomElement(['a', 'b']),
             'student_profile_id' => StudentProfile::factory(),
-            'team_id' => null, 
+            'team_id' => null,
             'status' => $status,
             'submitted_at' => $status !== 'draft' ? fake()->dateTimeBetween('-1 month', 'now') : null,
             'decision_at' => $isDecisionMade ? fake()->dateTimeBetween('now', '+2 weeks') : null,
