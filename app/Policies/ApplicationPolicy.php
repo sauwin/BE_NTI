@@ -22,8 +22,6 @@ class ApplicationPolicy
             return true;
         }
 
-        $application->loadMissing('call.task');
-
         if ($user->hasRole('evaluator')) {
             $isAssigned = DB::table('call_evaluators')
                 ->where('user_id', $user->id)
@@ -75,20 +73,12 @@ class ApplicationPolicy
             return true;
         }
 
-        $application->loadMissing('call.task');
-
-        if ($user->hasRole('mentor')) {
-            $isAssigned = Mentorship::where('application_id', $application->id)
-            ->where('mentor_id', $user->id)
-            ->exists();
-
-            return $isAssigned;
+        if (! $user->hasRole('mentor')) {
+            return false;
         }
 
-        return DB::table('users')
-            ->where('id', $user->id)
-            ->where('role_in_org', 'owner')
-            ->where('organization_id', $application->call->task->organization_id)
+        return Mentorship::where('application_id', $application->id)
+            ->where('mentor_id', $user->id)
             ->exists();
     }
 }

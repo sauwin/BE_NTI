@@ -8,7 +8,6 @@ use App\Models\StudentProfile;
 use App\Services\AdminApplicationService;
 use App\Services\ApplicationService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 
 class ApplicationController extends Controller
 {
@@ -142,67 +141,25 @@ class ApplicationController extends Controller
     public function updateStatus(Request $request, int $id)
     {
         $user = $request->user();
-        $application = Application::with('call.task')->findOrFail($id);
+        $application = Application::findOrFail($id);
 
         $this->authorize('updateStatus', $application);
 
         $isAdmin = $user->hasRole(['nti_admin', 'super_admin']);
-        
-        $isOrganizationOwner = DB::table('users')
-            ->where('id', $user->id)
-            ->where('role_in_org', 'owner')
-            ->where('organization_id', function($q) use ($application) {
-                $q->select('organization_id')
-                  ->from('tasks')
-                  ->where('call_id', $application->call_id)
-                  ->limit(1);
-            })->exists();
 
-        if ($isAdmin) {
-            $allowedStatuses = [
-                'submitted', 'formally_verified', 'under_evaluation', 'pending_revision', 
-                'approved', 'rejected', 'onboarding', 'active', 'suspended', 'closed'
-            ];
-        } elseif ($isOrganizationOwner) {
-            $allowedStatuses = ['formally_verified', 'under_evaluation', 'rejected', 'pending_revision'];
-        } else {
-            $allowedStatuses = ['onboarding', 'active', 'approved', 'suspended', 'closed'];
-        }
+        $allowedMentorStatuses = ['onboarding', 'active', 'approved', 'suspended', 'closed'];
+
+        $statusValidationRule = $isAdmin
+            ? 'required|in:submitted,formally_verified,under_evaluation,revision_requested,approved,rejected,onboarding,active,suspended,closed'
+            : 'required|in:'.implode(',', $allowedMentorStatuses);
 
         $request->validate([
-            'status' => 'required|in:' . implode(',', $allowedStatuses),
+            'status' => $statusValidationRule,
             'comment' => 'nullable|string|max:1000',
         ]);
-
-        // if ($request->status === 'formally_verified' && $application->status !== 'submitted') {
-        //     return response()->json(['message' => 'Only submitted applications can be formally verified.'], 422);
-        // }
 
         $this->adminService->updateStatus($application, $request->status, $request->comment, $user);
 
         return response()->json(['message' => "Application status updated successfully to {$request->status}."]);
-    }
-
-    public function organizationApplications(Request $request)
-    {
-        $user = $request->user();
-
-        $organizationId = DB::table('users')
-            ->where('id', $user->id)
-            ->where('role_in_org', 'owner')
-            ->value('organization_id');
-
-        if (!$organizationId) {
-            return response()->json(['message' => 'Forbidden. You are not an owner of any organization.'], 403);
-        }
-
-        $applications = Application::with(['team', 'call.task', 'studentProfile.user'])
-            ->whereHas('call.task', function ($query) use ($organizationId) {
-                $query->where('organization_id', $organizationId);
-            })
-            ->orderBy('created_at', 'desc')
-            ->get();
-
-        return response()->json($applications);
     }
 }
