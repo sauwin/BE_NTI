@@ -7,8 +7,6 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Relations\HasOne;
-use App\Models\Task;
 
 class Call extends Model
 {
@@ -51,10 +49,5 @@ class Call extends Model
     public function applications(): HasMany
     {
         return $this->hasMany(Application::class);
-    }
-
-    public function task(): HasOne
-    {
-        return $this->hasOne(Task::class);
     }
 }
