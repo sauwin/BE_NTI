@@ -65,7 +65,7 @@ class ApplicationPolicy
 
     public function submit(User $user, Application $application): bool
     {
-        return $this->ownsApplicationAsStudent($user, $application);
+        return $this->hasApplicationStake($user, $application);
     }
 
     public function uploadDocument(User $user, Application $application): bool
