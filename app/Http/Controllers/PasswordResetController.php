@@ -13,6 +13,9 @@ use Illuminate\Support\Str;
 
 class PasswordResetController extends Controller
 {
+    /**
+     * Drop the password (avoid the admin)
+     */
     public function forgot(Request $request)
     {
         $data = $request->validate(['email' => 'required|email|exists:users']);
@@ -36,6 +39,9 @@ class PasswordResetController extends Controller
         return response()->json(['message' => 'Password reset link sent to email'], 200);
     }
 
+    /**
+     * Set new password for user
+     */
     public function reset(Request $request)
     {
         $data = $request->validate([
@@ -62,6 +68,9 @@ class PasswordResetController extends Controller
         return response()->json(['message' => 'Password reset successfully'], 200);
     }
 
+    /**
+     * Verify token for reseting the password
+     */
     public function verify(Request $request)
     {
         $data = $request->validate(['token' => 'required|string']);

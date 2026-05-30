@@ -10,6 +10,10 @@ use Spatie\Sitemap\Tags\Url;
 
 class SitemapController extends Controller
 {
+
+    /**
+     * SEO logic
+     */
     public function index()
     {
         $sitemapXml = Cache::remember('sitemap.xml', 3600, function () {

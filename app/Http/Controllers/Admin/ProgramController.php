@@ -8,6 +8,9 @@ use Illuminate\Http\Request;
 
 class ProgramController extends Controller
 {
+    /**
+     * Select all calls
+     */
     public function index()
     {
         return response()->json(Program::all());
@@ -26,11 +29,17 @@ class ProgramController extends Controller
         return response()->json($program, 201);
     }
 
+    /**
+     * Show the call for
+     */
     public function show(Program $program)
     {
         return response()->json($program);
     }
 
+    /**
+     * Update the call
+     */
     public function update(Request $request, Program $program)
     {
         $validated = $request->validate([
@@ -43,6 +52,9 @@ class ProgramController extends Controller
         return response()->json($program);
     }
 
+    /**
+     * Delete the call
+     */
     public function destroy(Program $program)
     {
         $program->delete();

@@ -18,6 +18,9 @@ class ApplicationRevisionController extends Controller
         $this->adminService = $adminService;
     }
 
+    /**
+     * Send revesion request and notified student
+     */
     public function requestRevision(Request $request, int $id)
     {
         $request->validate([
@@ -31,6 +34,9 @@ class ApplicationRevisionController extends Controller
         return response()->json(['message' => 'Revision request created successfully and student notified.']);
     }
 
+    /**
+     * Select history for revision requests
+     */
     public function getRevisionHistory(Request $request, int $id)
     {
         $application = Application::findOrFail($id);

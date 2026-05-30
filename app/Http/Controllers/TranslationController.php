@@ -35,32 +35,6 @@ class TranslationController extends Controller
 
         $translation = NewsArticleTranslation::create($validated);
 
-        return (new NewsArticleTranslationResource($translation))
-            ->response()
-            ->setStatusCode(201);
-    }
-
-    /**
-     * Display the specified resource.
-     */
-    public function show(string $id)
-    {
-        //
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, string $id)
-    {
-        //
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(string $id)
-    {
-        //
+        return response()->json(new NewsArticleTranslationResource($translation), 201);
     }
 }
