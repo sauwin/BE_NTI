@@ -11,6 +11,9 @@ use Illuminate\Support\Facades\Mail;
 
 class MilestoneController extends Controller
 {
+    /**
+     * Select all milestone owned by application
+     */
     public function index(Request $request, int $id)
     {
         $application = Application::findOrFail($id);
@@ -20,6 +23,9 @@ class MilestoneController extends Controller
         return response()->json(Milestone::where('application_id', $id)->get());
     }
 
+    /**
+     * Create new milestone for application
+     */
     public function store(Request $request, int $id)
     {
         $application = Application::findOrFail($id);
@@ -43,6 +49,9 @@ class MilestoneController extends Controller
         return response()->json($milestone, 201);
     }
 
+    /**
+     * Show one milestone for user
+     */
     public function show(Request $request, int $id)
     {
         $milestone = Milestone::with('documents')->findOrFail($id);
@@ -52,6 +61,9 @@ class MilestoneController extends Controller
         return response()->json($milestone);
     }
 
+    /**
+     * Update milestone
+     */
     public function update(Request $request, int $id)
     {
         $milestone = Milestone::findOrFail($id);
@@ -81,6 +93,9 @@ class MilestoneController extends Controller
         return response()->json($milestone);
     }
 
+    /**
+     * Upload documents for milestone
+     */
     public function uploadDocument(Request $request, int $id)
     {
         $milestone = Milestone::findOrFail($id);

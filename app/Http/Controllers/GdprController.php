@@ -13,7 +13,7 @@ use Illuminate\Support\Str;
 class GdprController extends Controller
 {
     /**
-     * POST /gdpr/consent
+     * Create gdpr consent by user
      */
     public function store(Request $request)
     {
@@ -34,7 +34,7 @@ class GdprController extends Controller
     }
 
     /**
-     * GET /gdpr/consents
+     * Select gdps consent by user
      */
     public function index(Request $request)
     {
@@ -46,7 +46,7 @@ class GdprController extends Controller
     }
 
     /**
-     * POST /gdpr/export
+     * Export gdpr consent by user
      */
     public function export(Request $request)
     {
@@ -101,7 +101,7 @@ class GdprController extends Controller
     }
 
     /**
-     * DELETE /gdpr/account
+     * Remove gdpr consent and anonymize user account
      */
     public function anonymize(Request $request)
     {
@@ -114,10 +114,8 @@ class GdprController extends Controller
         $userId = $user->id;
 
         DB::transaction(function () use ($user) {
-            // Revoke all tokens
             $user->tokens()->delete();
 
-            // Anonymize PII fields
             $user->update([
                 'first_name' => 'Deleted',
                 'last_name' => 'User',
@@ -129,18 +127,15 @@ class GdprController extends Controller
                 'role_in_org' => null,
             ]);
 
-            // Mark consent as withdrawn
             GdprConsent::where('user_id', $user->id)
                 ->whereNull('withdrawn_at')
                 ->update(['withdrawn_at' => now()]);
 
-            // Anonymize student profile
             StudentProfile::where('user_id', $user->id)->update([
                 'bio' => null,
                 'github_url' => null,
             ]);
 
-            // Remove roles
             DB::table('user_roles')->where('user_id', $user->id)->delete();
         });
 

@@ -21,6 +21,9 @@ class ApplicationController extends Controller
         $this->adminService = $adminService;
     }
 
+    /**
+     * Select all applications for admins and application owned by student
+     */
     public function index(Request $request)
     {
         $user = $request->user();
@@ -45,6 +48,9 @@ class ApplicationController extends Controller
         );
     }
 
+    /**
+     * Create new application in db
+     */
     public function store(StoreApplicationRequest $request)
     {
         $application = $this->applicationService->createApplication(
@@ -55,6 +61,9 @@ class ApplicationController extends Controller
         return response()->json(['application_id' => $application->id], 201);
     }
 
+    /**
+     * Select application and the assessment status
+     */
     public function show(Request $request, int $id)
     {
         $application = Application::with(['studentProfile.user', 'team', 'call'])
@@ -73,12 +82,15 @@ class ApplicationController extends Controller
         return response()->json($application);
     }
 
+    /**
+     * Update application (only draft)
+     */
     public function update(Request $request, int $id)
     {
         $application = Application::findOrFail($id);
 
         if (! in_array($application->status, ['draft', 'pending_revision'])) {
-            return response()->json(['message' => 'Je možné upravovať iba koncepty.'], 422);
+            return response()->json(['message' => 'Only drafts can be edited.'], 422);
         }
 
         $this->authorize('update', $application);
@@ -93,6 +105,9 @@ class ApplicationController extends Controller
         return response()->json(['message' => 'Application updated successfully', 'application' => $application]);
     }
 
+    /**
+     * Submitting an application
+     */
     public function applyChanges(Request $request, int $id)
     {
         $application = Application::findOrFail($id);
@@ -105,6 +120,9 @@ class ApplicationController extends Controller
         ]);
     }
 
+    /**
+     * Submitting an application from the draft
+     */
     public function submitDraft(Request $request, int $id)
     {
         $application = Application::findOrFail($id);
@@ -117,12 +135,15 @@ class ApplicationController extends Controller
         ]);
     }
 
+    /**
+     * Delete application (only draft)
+     */
     public function destroy(Request $request, int $id)
     {
         $application = Application::findOrFail($id);
 
         if ($application->status !== 'draft') {
-            return response()->json(['message' => 'Je možné mazať iba koncepty prihlášok.'], 422);
+            return response()->json(['message' => 'Only drafts can be deleted.'], 422);
         }
 
         $this->authorize('delete', $application);
@@ -132,34 +153,35 @@ class ApplicationController extends Controller
         return response()->json(['message' => 'Draft deleted successfully']);
     }
 
+    /**
+     * Select all documents owned by the application
+     */
     public function documents(Request $request, int $id)
     {
         $application = Application::findOrFail($id);
 
         $this->authorize('view', $application);
 
-        $documents = \App\Models\Document::join('application_documents', 'documents.id', '=', 'application_documents.document_id')
-            ->where('application_documents.application_id', $id)
-            ->select('documents.*')
-            ->get();
+        $documents = $application->documents;
 
         return response()->json($documents);
     }
 
+    /**
+     * Update application status (Admin full access / Mentor limited access)
+     */
     public function updateStatus(Request $request, int $id)
     {
-        $user = $request->user();
         $application = Application::findOrFail($id);
+        $user = $request->user();
 
         $this->authorize('updateStatus', $application);
 
         $isAdmin = $user->hasRole(['nti_admin', 'super_admin']);
 
-        $allowedMentorStatuses = ['onboarding', 'active', 'approved', 'suspended', 'closed'];
-
         $statusValidationRule = $isAdmin
             ? 'required|in:submitted,formally_verified,under_evaluation,revision_requested,approved,rejected,onboarding,active,suspended,closed'
-            : 'required|in:'.implode(',', $allowedMentorStatuses);
+            : 'required|in:onboarding,active,approved,suspended,closed';
 
         $request->validate([
             'status' => $statusValidationRule,

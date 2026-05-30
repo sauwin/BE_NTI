@@ -10,6 +10,9 @@ use Illuminate\Support\Facades\Gate;
 
 class FaqItemController extends Controller
 {
+    /**
+     * Select all FAQ Items
+     */
     public function index(Request $request)
     {
         $query = FaqItem::with('translations')->where('is_active', true);
@@ -23,6 +26,9 @@ class FaqItemController extends Controller
         return FaqItemResource::collection($items);
     }
 
+    /**
+     * Create new FAQ item
+     */
     public function store(Request $request)
     {
         Gate::authorize('create', FaqItem::class);
@@ -56,6 +62,9 @@ class FaqItemController extends Controller
         return new FaqItemResource($faqItem->load('translations'));
     }
 
+    /**
+     * Update FAQ item
+     */
     public function update(Request $request, FaqItem $faqItem)
     {
         Gate::authorize('update', $faqItem);
@@ -94,6 +103,9 @@ class FaqItemController extends Controller
         return new FaqItemResource($faqItem->load('translations'));
     }
 
+    /**
+     * Delete FAQ item
+     */
     public function destroy(FaqItem $faqItem)
     {
         Gate::authorize('forceDelete', $faqItem);

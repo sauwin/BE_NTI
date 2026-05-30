@@ -10,6 +10,9 @@ use Illuminate\Support\Facades\Mail;
 
 class MentorshipController extends Controller
 {
+    /**
+     * Assign mentor for application
+     */
     public function assign(Request $request)
     {
         $this->authorize('create', Mentorship::class);
@@ -24,7 +27,8 @@ class MentorshipController extends Controller
                 }),
             ],
             'student_id' => 'required|exists:users,id',
-        ], [
+        ], 
+        [
             'mentor_id.unique' => 'This mentor was already assigned to this application.',
         ]);
 
@@ -42,6 +46,9 @@ class MentorshipController extends Controller
         return response()->json(['message' => 'Mentor assigned', 'data' => $mentorship], 201);
     }
 
+    /**
+     * Select all mentorships by mentor
+     */
     public function index(Request $request)
     {
         $mentorships = Mentorship::with(['application.team', 'application.call'])
@@ -52,17 +59,21 @@ class MentorshipController extends Controller
         return response()->json($mentorships);
     }
 
+    /**
+     * Show one mentroship by mentor
+     */
     public function show(Request $request, $id)
     {
         $mentorship = Mentorship::with(['application.team', 'application.call', 'consultations' => function ($query) {
             $query->orderBy('date', 'desc');
-        }])
-            ->where('mentor_id', $request->user()->id)
-            ->findOrFail($id);
+        }])->where('mentor_id', $request->user()->id)->findOrFail($id);
 
         return response()->json($mentorship);
     }
 
+    /**
+     * Select all mentorships by admin
+     */
     public function adminIndex(Request $request)
     {
         if (! $request->user()->tokenCan('admin') && $request->user()->role !== 'admin') {
@@ -86,6 +97,9 @@ class MentorshipController extends Controller
         return response()->json($query->get());
     }
 
+    /**
+     * Delete mentroship for application
+     */
     public function destroy(Request $request, $id)
     {
         $mentorship = Mentorship::findOrFail($id);

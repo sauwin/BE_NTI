@@ -8,6 +8,9 @@ use Illuminate\Support\Facades\DB;
 
 class NotificationController extends Controller
 {
+    /**
+     * Select all read and unread notifications for user
+     */
     public function index(Request $request)
     {
         $notifications = DB::table('notification_log')
@@ -29,6 +32,9 @@ class NotificationController extends Controller
         ]);
     }
 
+    /**
+     * Mark "read" for notifications
+     */
     public function markRead(Request $request, int $id)
     {
         DB::table('notification_log')
@@ -39,6 +45,9 @@ class NotificationController extends Controller
         return response()->json(['message' => 'Marked as read']);
     }
 
+    /**
+     * Mark "all read" for notification
+     */
     public function markAllRead(Request $request)
     {
         DB::table('notification_log')
@@ -51,6 +60,9 @@ class NotificationController extends Controller
         return response()->json(['message' => 'All marked as read']);
     }
 
+    /**
+     * Save log 
+     */
     public static function log(int $userId, string $recipientEmail, string $eventType, string $message, array $context = []): void
     {
         DB::table('notification_log')->insert([

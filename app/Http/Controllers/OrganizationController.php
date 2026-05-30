@@ -9,6 +9,9 @@ use Illuminate\Support\Facades\Gate;
 
 class OrganizationController extends Controller
 {
+    /**
+     * Looking for a user-organization
+     */
     public function show(Request $request)
     {
         $org = $request->user()->organization;
@@ -20,6 +23,9 @@ class OrganizationController extends Controller
         return response()->json($org);
     }
 
+    /**
+     * Update or create new org (for owner)
+     */
     public function update(Request $request)
     {
         $request->validate([

@@ -13,6 +13,10 @@ use App\Exports\BulkNotificationCampaignsExport;
 
 class ExportController extends Controller
 {
+
+    /**
+     * Export users
+     */
     public function exportUsers(Request $request)
     {
         $filters = $request->only(['search', 'role', 'status']);
@@ -34,6 +38,9 @@ class ExportController extends Controller
         );
     }
 
+    /**
+     * Export applications
+     */
     public function exportApplications(Request $request)
     {
         $filters = $request->only(['search', 'status', 'call_id', 'program_type']);
@@ -55,6 +62,9 @@ class ExportController extends Controller
         );
     }
 
+    /**
+     * Export calls
+     */
     public function exportCalls(Request $request)
     {
         $filters = $request->only(['status', 'program_type']);
@@ -76,6 +86,9 @@ class ExportController extends Controller
         );
     }
 
+    /**
+     * Export notifications
+     */
     public function exportNotifications(Request $request)
     {
         $filters = $request->only(['subject', 'recipient_group', 'sender_id', 'date_from', 'date_to']);
@@ -98,6 +111,7 @@ class ExportController extends Controller
     }
 
     /**
+     * Resolve format for export
      * @return array{0: string, 1: string}
      */
     private function resolveFormat(string $format): array

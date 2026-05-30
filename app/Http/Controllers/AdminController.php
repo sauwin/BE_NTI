@@ -20,7 +20,7 @@ use Illuminate\Support\Str;
 class AdminController extends Controller
 {
     /**
-     * List all users with their roles and approval status.
+     * List all users with their roles and approval status
      */
     public function users(Request $request)
     {
@@ -44,7 +44,7 @@ class AdminController extends Controller
     }
 
     /**
-     * Get admin action logs with filtering and date range support.
+     * Get admin action logs with filtering and date range support
      */
     public function logs(Request $request)
     {
@@ -83,7 +83,7 @@ class AdminController extends Controller
     }
 
     /**
-     * Get user profile with related data.
+     * Get user profile with related data
      */
     public function showUser(int $id)
     {
@@ -112,7 +112,7 @@ class AdminController extends Controller
     }
 
     /**
-     * List users whose role is not yet approved (granted_by = null).
+     * List users whose role is not yet approved (granted_by = null)
      */
     public function pendingApprovals()
     {
@@ -137,7 +137,7 @@ class AdminController extends Controller
     }
 
     /**
-     * Approve a user's role (set granted_by to current admin).
+     * Approve a user's role (set granted_by to current admin)
      */
     public function approveRole(Request $request, int $userId)
     {
@@ -164,7 +164,7 @@ class AdminController extends Controller
     }
 
     /**
-     * Block a user.
+     * Block a user
      */
     public function blockUser(Request $request, int $userId)
     {
@@ -180,7 +180,7 @@ class AdminController extends Controller
     }
 
     /**
-     * Unblock a user.
+     * Unblock a user
      */
     public function unblockUser(Request $request, int $userId)
     {
@@ -196,7 +196,7 @@ class AdminController extends Controller
     }
 
     /**
-     * Create new admin user (super-admin only).
+     * Create new admin user (super-admin only)
      */
     public function createAdmin(Request $request)
     {
@@ -236,7 +236,7 @@ class AdminController extends Controller
     }
 
     /**
-     * Assign role to existing user. ??????????????????
+     * Assign role to existing user
      */
     public function assignRole(Request $request, int $userId)
     {
@@ -258,7 +258,6 @@ class AdminController extends Controller
         $organizationId = null;
         $roleInOrg = null;
 
-        // ??????????
         if ($data['role'] === 'company') {
             if (empty($data['registration_number']) || empty($data['role_in_org'])) {
                 return response()->json([
@@ -316,7 +315,7 @@ class AdminController extends Controller
     }
 
     /**
-     * Remove role from user.
+     * Remove role from user
      */
     public function removeRole(Request $request, int $userId)
     {
@@ -356,7 +355,7 @@ class AdminController extends Controller
     }
 
     /**
-     * Delete user (super-admin only).
+     * Delete user (super-admin only)
      */
     public function deleteUser(Request $request, int $userId)
     {
@@ -378,7 +377,7 @@ class AdminController extends Controller
     }
 
     /**
-     * Super admin only: Reset nti_admin password.
+     * Super admin only: Reset nti_admin password
      */
     public function resetAdminPassword(Request $request, int $userId)
     {

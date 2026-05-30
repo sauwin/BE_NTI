@@ -8,6 +8,9 @@ use Illuminate\Http\Request;
 
 class ConsultationController extends Controller
 {
+    /**
+     * Create consultation time
+     */
     public function store(Request $request, $mentorshipId)
     {
         $mentorship = Mentorship::findOrFail($mentorshipId);
@@ -25,7 +28,8 @@ class ConsultationController extends Controller
                 'min:10',
                 'max:2000',
             ],
-        ], [
+        ], 
+        [
             'summary.required' => 'Meeting summary is required for consultations that have already occurred.',
         ]);
 
@@ -37,6 +41,9 @@ class ConsultationController extends Controller
         ], 201);
     }
 
+    /**
+     *  Update consulatation time
+     */
     public function update(Request $request, $mentorshipId, $id)
     {
         $mentorship = Mentorship::findOrFail($mentorshipId);
@@ -68,6 +75,9 @@ class ConsultationController extends Controller
         ]);
     }
 
+    /**
+     *  Delete consulatation time
+     */
     public function destroy(Request $request, $mentorshipId, $id)
     {
         $mentorship = Mentorship::findOrFail($mentorshipId);

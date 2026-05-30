@@ -16,6 +16,9 @@ class ApplicationManagementController extends Controller
         $this->adminService = $adminService;
     }
 
+    /**
+     * Select all application for admin dashboard
+     */
     public function index(Request $request)
     {
         $applications = Application::with(['studentProfile.user', 'team', 'call'])

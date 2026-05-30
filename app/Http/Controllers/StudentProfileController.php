@@ -10,6 +10,9 @@ use Illuminate\Support\Facades\DB;
 
 class StudentProfileController extends Controller
 {
+    /**
+     * Create new student profile
+     */
     public function store(Request $request)
     {
         $data = $request->validate([
@@ -33,7 +36,7 @@ class StudentProfileController extends Controller
             DB::table('user_roles')->insert([
                 'user_id' => $user->id,
                 'role_id' => $studentRole->id,
-                'granted_by' => 1,
+                'granted_by' => null,
                 'granted_at' => now(),
             ]);
         }
@@ -41,6 +44,9 @@ class StudentProfileController extends Controller
         return response()->json($profile, 201);
     }
 
+    /**
+     * Show student profile
+     */
     public function show(Request $request)
     {
         $profile = StudentProfile::with('skills')
@@ -50,6 +56,9 @@ class StudentProfileController extends Controller
         return response()->json($profile);
     }
 
+    /**
+     * Update student profile
+     */
     public function update(Request $request)
     {
         $request->validate([
@@ -94,7 +103,7 @@ class StudentProfileController extends Controller
                 DB::table('user_roles')->insert([
                     'user_id' => $user->id,
                     'role_id' => $studentRole->id,
-                    'granted_by' => 1,
+                    'granted_by' => null,
                     'granted_at' => now(),
                 ]);
             }

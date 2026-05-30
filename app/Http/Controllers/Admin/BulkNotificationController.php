@@ -11,6 +11,9 @@ use App\Services\AuditService;
 
 class BulkNotificationController extends Controller
 {
+    /**
+     * Seelct history for Bulk Notification
+     */
     public function history()
     {
         $history = BulkNotificationCampaign::with('sender:id,first_name,last_name,email')
@@ -19,6 +22,9 @@ class BulkNotificationController extends Controller
         return response()->json($history);
     }
 
+    /**
+     * Send the Bulk Notification
+     */
     public function send(Request $request)
     {
         $data = $request->validate([
@@ -70,6 +76,9 @@ class BulkNotificationController extends Controller
         return response()->json(['queued' => $totalRecipients]);
     }
 
+    /**
+     * Select a group by role
+     */
     private function resolveRecipients(string $group)
     {
         $query = User::query()->where('status', 'active');

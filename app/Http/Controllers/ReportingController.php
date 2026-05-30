@@ -7,6 +7,9 @@ use Illuminate\Support\Facades\DB;
 
 class ReportingController extends Controller
 {
+    /**
+     * Reporting stats for admin dashboard
+     */
     public function dashboardStats(Request $request)
     {
         abort_unless(
