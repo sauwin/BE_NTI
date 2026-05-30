@@ -27,11 +27,17 @@ class TaskPolicy
 
     public function update(User $user, Task $task): bool
     {
+        if ($user->organization_id && (int) $task->organization_id === (int) $user->organization_id) {
+            return true;
+        }
         return (int) $task->product_owner_user_id === $user->id;
     }
 
     public function delete(User $user, Task $task): bool
     {
+        if ($user->organization_id && (int) $task->organization_id === (int) $user->organization_id) {
+            return true;
+        }
         return (int) $task->product_owner_user_id === $user->id;
     }
 }

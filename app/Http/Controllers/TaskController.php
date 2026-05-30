@@ -71,6 +71,7 @@ class TaskController extends Controller
             'expected_duration' => 'nullable|string',
             'milestones' => 'nullable|string',
             'deadline' => 'nullable|date',
+            'product_owner_user_id' => 'nullable|exists:users,id',
         ]);
 
         $organizationId = $request->user()->organization_id;
@@ -114,6 +115,7 @@ class TaskController extends Controller
             'expected_duration' => 'nullable|string',
             'milestones' => 'nullable|string',
             'deadline' => 'nullable|date',
+            'product_owner_user_id' => 'nullable|exists:users,id',
         ]);
 
         $task->update($data);
