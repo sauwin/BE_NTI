@@ -1,4 +1,10 @@
 <?php
+/**
+ * Resource for wrapping authorized user data
+ * 
+ * Used in: 
+ * FE_NTI/src/features/auth/stores/auth.ts
+ */
 
 namespace App\Http\Resources;
 
@@ -21,7 +27,6 @@ class UserResource extends JsonResource
     public function toArray(Request $request): array
     {
         $role = optional($this->roles)->first();
-        $organization = $this->organization;
 
         return [
             'id' => $this->id,
@@ -31,14 +36,8 @@ class UserResource extends JsonResource
             'status' => $this->status,
 
             'role_slug' => $role?->slug,
-
-            'organization' => $role?->slug === 'company' && $organization
-                ? [
-                    'id' => $organization->id,
-                    'name' => $organization->name,
-                    'role_in_org' => $this->role_in_org,
-                ]
-                : null,
+            'organization_id' => $this->organization_id,
+            'role_in_org' => $this->role_in_org
         ];
     }
 }

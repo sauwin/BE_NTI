@@ -1,5 +1,7 @@
 <?php
 
+use Illuminate\Support\Facades\Route;
+
 use App\Http\Controllers\Admin\ApplicationManagementController;
 use App\Http\Controllers\Admin\ApplicationRevisionController;
 use App\Http\Controllers\Admin\BulkNotificationController;
@@ -9,6 +11,7 @@ use App\Http\Controllers\AdminController;
 use App\Http\Controllers\ApplicationController;
 use App\Http\Controllers\ArticleController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\EmailVerificationController;
 use App\Http\Controllers\CallController;
 use App\Http\Controllers\CallEvaluatorController;
 use App\Http\Controllers\CallTaskController;
@@ -29,12 +32,6 @@ use App\Http\Controllers\ReportingController;
 use App\Http\Controllers\StudentProfileController;
 use App\Http\Controllers\TaskController;
 use App\Http\Controllers\TeamController;
-use App\Mail\RegistrationSubmit;
-use App\Models\User;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Mail;
-use Illuminate\Support\Facades\Route;
 
 // Public
 Route::post('/auth/register', [AuthController::class, 'register'])->middleware('throttle:3,15');
@@ -49,47 +46,8 @@ Route::get('/calls/active/{program_type?}', [CallController::class, 'active']);
 Route::get('/faq-items', [FaqItemController::class, 'index']);
 Route::get('/programs/b/tasks', [TaskController::class, 'publicTasks']);
 
-Route::get('/email/continueRegistration/{id}/{hash}', function (Request $request, $id, $hash) {
-    $user = User::findOrFail($id);
-    if (! hash_equals(sha1($user->email), $hash)) {
-        return response()->json(['message' => 'Invalid verification link'], 403);
-    }
-    if (! $request->hasValidSignature()) {
-        return response()->json(['message' => 'Link expired'], 403);
-    }
-
-    $superAdmin = User::join('user_roles', 'users.id', '=', 'user_roles.user_id')
-        ->join('roles', 'user_roles.role_id', '=', 'roles.id')
-        ->where('roles.slug', 'super_admin')
-        ->select('users.id')
-        ->first();
-
-    if (! $superAdmin) {
-        return response()->json(['message' => 'System error: no super admin found'], 500);
-    }
-
-    DB::transaction(function () use ($user, $superAdmin) {
-        $user->update(['email_verified_at' => now(), 'status' => 'active']);
-        DB::table('user_roles')
-            ->where('user_id', $user->id)
-            ->update([
-                'granted_by' => $superAdmin->id,
-                'granted_at' => now(),
-            ]);
-    });
-
-    return redirect(rtrim(env('FRONTEND_URL', 'http://localhost:5173'), '/').'/verified');
-})->name('verification.verify');
-
-Route::post('/email/resend', function (Request $request) {
-    $user = $request->user();
-    if ($user->email_verified_at) {
-        return response()->json(['message' => 'Already verified'], 400);
-    }
-    Mail::to($user->email)->queue(new RegistrationSubmit($user));
-
-    return response()->json(['message' => 'Verification email sent']);
-})->middleware(['auth:sanctum', 'throttle:3,1']);
+Route::get('/email/continueRegistration/{id}/{hash}', [EmailVerificationController::class, 'completeRegistration'])->name('verification.verify');
+Route::post('/email/resend', [EmailVerificationController::class, 'resendVerificationEmail'])->middleware(['auth:sanctum', 'throttle:3,1']);
 
 Route::post('/auth/forgot-password', [PasswordResetController::class, 'forgot'])->middleware('throttle:3,15');
 Route::post('/auth/reset-password', [PasswordResetController::class, 'reset'])->middleware('throttle:3,15');
