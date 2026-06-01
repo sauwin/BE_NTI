@@ -22,9 +22,7 @@ class ApplicationService
     {
         $isFinalSubmit = ($data['submit_type'] ?? 'final') === 'final';
 
-        \Log::info('unauthorized');
         Gate::authorize('create', Application::class);
-        \Log::info('authorized');
 
         $call = Call::whereHas('program', fn ($q) => $q->where('code', 'program_'.$data['program_type']))
             ->where('status', 'open')

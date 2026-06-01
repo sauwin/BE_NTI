@@ -41,21 +41,14 @@ class ApplicationRevisionController extends Controller
     /**
      * Select history for revision requests
      */
-    public function getRevisionHistory(Request $request, int $id)
+    public function getRevisionHistory(Application $application)
     {
-        $application = Application::findOrFail($id);
+        $this->authorize('view', $application);
 
-        if ($request->user()->roles->contains('slug', 'student')) {
-            $profile = StudentProfile::where('user_id', $request->user()->id)->first();
-            if (!$profile || $application->student_profile_id !== $profile->id) {
-                return response()->json(['message' => 'Unauthorized'], 403);
-            }
-        }
-
-        $requests = ApplicationRevisionRequest::where('application_id', $id)
-            ->orderBy('created_at', 'desc')
-            ->get();
-
-        return response()->json($requests);
+        return response()->json(
+            ApplicationRevisionRequest::where('application_id', $application->id)
+                ->latest()
+                ->get()
+        );
     }
 }

@@ -4,9 +4,18 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\BelongToMany;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+
+use App\Models\Call;
+use App\Models\StudentProfile;
+use App\Models\User;
+use App\Models\Team;
+use App\Models\Evaluation;
+use App\Models\Milestone;
+use App\Models\Document;
+use App\Models\ApplicationRevisionRequest;
 
 class Application extends Model
 {
@@ -61,8 +70,13 @@ class Application extends Model
         return $this->hasMany(Milestone::class);
     }
 
-    public function document(): BelongToMany
+    public function documents(): BelongsToMany
     {
-        return $this->belongToMany(Document::class, 'application_documents');
+        return $this->belongsToMany(Document::class, 'application_documents');
+    }
+
+    public function revisionRequests(): HasMany
+    {
+        return $this->hasMany(ApplicationRevisionRequest::class);
     }
 }

@@ -16,7 +16,7 @@ class NewsArticlePolicy
         if (!$row) return false;
 
         $role = Role::find($row->role_id);
-        return $role !== null && in_array($role->slug, ['nti_admin', 'super_admin'], true);
+        return $role !== null && in_array($role->slug, ['nti_admin', 'super_admin', 'content_editor'], true);
     }
 
     /**
