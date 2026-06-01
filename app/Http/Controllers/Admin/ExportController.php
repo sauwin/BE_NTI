@@ -11,6 +11,10 @@ use App\Exports\ApplicationsExport;
 use App\Exports\CallsExport;
 use App\Exports\BulkNotificationCampaignsExport;
 
+/**
+ * @tags Admin Management
+ * Endpoints for generating administrative data exports, facilitating the conversion of system entities (Users, Applications, Calls, and Notification Campaigns) into portable spreadsheet formats (XLSX/CSV) with integrated audit logging for compliance and reporting.
+ */
 class ExportController extends Controller
 {
 

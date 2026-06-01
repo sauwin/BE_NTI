@@ -6,6 +6,10 @@ use App\Http\Controllers\Controller;
 use App\Models\Program;
 use Illuminate\Http\Request;
 
+/**
+ * @tags Admin Management
+ * Endpoints for managing program lifecycle definitions, including creating, updating, and retrieving configuration settings for various program types (e.g., grants vs. live practice).
+ */
 class ProgramController extends Controller
 {
     /**

@@ -6,6 +6,10 @@ use App\Models\Consultation;
 use App\Models\Mentorship;
 use Illuminate\Http\Request;
 
+/**
+ * @tags Mentorship Management
+ * Endpoints for loggging, updating, and removing individual consultation logs and meeting summaries within mentorship tracks.
+ */
 class ConsultationController extends Controller
 {
     /**

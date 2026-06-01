@@ -17,6 +17,10 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 
+/**
+ * @tags Admin Management
+ * Administrative endpoints for user management, system logging, role approvals, and elevated access control.
+ */
 class AdminController extends Controller
 {
     /**

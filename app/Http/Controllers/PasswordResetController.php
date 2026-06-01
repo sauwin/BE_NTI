@@ -11,6 +11,10 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 
+/**
+ * @tags Authentication Management
+ * Endpoints for managing secure password recovery workflows, including initiating tokenized reset requests via email, verifying token validity, and applying new user credentials.
+ */
 class PasswordResetController extends Controller
 {
     /**

@@ -9,6 +9,10 @@ use App\Services\AdminApplicationService;
 use App\Services\ApplicationService;
 use Illuminate\Http\Request;
 
+/**
+ * @tags Application Management
+ * Endpoints for creating, managing, updating statuses, and processing user program applications and related documentation.
+ */
 class ApplicationController extends Controller
 {
     protected $applicationService;

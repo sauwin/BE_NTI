@@ -5,6 +5,10 @@ namespace App\Http\Controllers;
 use App\Models\Draft;
 use Illuminate\Http\Request;
 
+/**
+ * @tags Application Management
+ * Endpoints for auto-saving, updating, and retrieving volatile application progress drafts associated with specific program types.
+ */
 class DraftController extends Controller
 {
     /**

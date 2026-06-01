@@ -9,6 +9,10 @@ use App\Models\Milestone;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
 
+/**
+ * @tags Project Management
+ * Endpoints for managing project lifecycle milestones, tracking status transitions, notifying stakeholders of progress changes, and attaching evidentiary documentation to specific milestones.
+ */
 class MilestoneController extends Controller
 {
     /**

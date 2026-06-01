@@ -11,6 +11,10 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
+/**
+ * @tags Evaluation Management
+ * Endpoints for managing expert review assignments, submitting structured evaluation criteria scores, tracking reviewer recommendations, and computing automated consensus-based application decisions.
+ */
 class EvaluationController extends Controller
 {
     protected $adminService;

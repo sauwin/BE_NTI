@@ -10,6 +10,10 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Services\AuditService;
 
+/**
+ * @tags Call Management
+ * Endpoints for assigning expert evaluators to program calls, listing assigned reviewers, and managing evaluation permissions.
+ */
 class CallEvaluatorController extends Controller
 {
     public function index($callId)

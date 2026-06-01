@@ -8,6 +8,10 @@ use App\Models\StudentSkill;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
+/**
+ * @tags User Management
+ * Endpoints for managing student academic profiles, including tracking university information, study progress, technical skillsets, and conditional assignment of student roles within the system.
+ */
 class StudentProfileController extends Controller
 {
     /**

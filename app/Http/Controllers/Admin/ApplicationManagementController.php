@@ -7,6 +7,10 @@ use App\Models\Application;
 use App\Services\AdminApplicationService;
 use Illuminate\Http\Request;
 
+/**
+ * @tags Admin Management
+ * Endpoints for administrative oversight of student applications, providing paginated access to submission data including profile details, team associations, and program call context, with filtering capabilities by status and program type.
+ */
 class ApplicationManagementController extends Controller
 {
     protected $adminService;

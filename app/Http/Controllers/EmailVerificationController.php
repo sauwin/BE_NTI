@@ -10,6 +10,10 @@ use Illuminate\Support\Facades\Mail;
 use App\Models\User;
 use App\Mail\RegistrationSubmit;
 
+/**
+ * @tags Authentication Management
+ * Endpoints for verifying user email addresses via secure signed links, fulfilling registration requirements, and resending activation emails.
+ */
 class EmailVerificationController extends Controller
 {
     public function completeRegistration(Request $request, int $id, string $hash) {
