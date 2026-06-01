@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreApplicationRequest;
 use App\Models\Application;
 use App\Models\StudentProfile;
+use App\Models\ApplicationRevisionRequest;
 use App\Services\AdminApplicationService;
 use App\Services\ApplicationService;
 use Illuminate\Http\Request;
@@ -191,5 +192,20 @@ class ApplicationController extends Controller
         $this->adminService->updateStatus($application, $request->status, $request->comment, $user);
 
         return response()->json(['message' => "Application status updated successfully to {$request->status}."]);
+    }
+
+    /**
+     * Selects last revision request (for student to check comment)
+     */
+    public function getLastRevisionRequest(Application $application)
+    {
+        \Log::info($application->id);
+        $this->authorize('view', $application);
+
+        return response()->json(
+            ApplicationRevisionRequest::where('application_id', $application->id)
+                ->latest()
+                ->first()
+        );
     }
 }
