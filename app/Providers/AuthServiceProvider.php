@@ -22,6 +22,7 @@ use App\Policies\NewsArticlePolicy;
 use App\Policies\OrganizationPolicy;
 use App\Policies\TaskPolicy;
 use App\Policies\TeamPolicy;
+use App\Policies\ReportingPolicy;
 use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
 
 class AuthServiceProvider extends ServiceProvider
@@ -37,6 +38,7 @@ class AuthServiceProvider extends ServiceProvider
         Mentorship::class => MentorshipPolicy::class,
         Team::class => TeamPolicy::class,
         Organization::class => OrganizationPolicy::class,
+        'reporting' => ReportingPolicy::class,
     ];
 
     public function register(): void
