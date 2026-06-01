@@ -25,7 +25,7 @@ class CallController extends Controller
             );
         }
 
-        $calls = $query
+        $call = $query
             ->orderBy('deadline_at')
             ->first();
 
