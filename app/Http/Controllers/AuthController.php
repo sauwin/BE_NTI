@@ -24,7 +24,7 @@ class AuthController extends Controller
             'last_name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email',
             'password' => 'required|string|min:8|confirmed',
-            'role' => 'required|in:student,company,internal',
+            'role' => 'required|in:student,company',
             'role_in_org' => 'required_if:role,company|in:owner,member',
             'registration_number' => 'required_if:role_in_org,member|nullable|integer|exists:organizations,registration_number',
             'organization_name' => 'nullable|string|max:255',
@@ -87,7 +87,7 @@ class AuthController extends Controller
                 'password' => Hash::make($data['password']),
                 'status' => 'pending_verification',
                 'organization_id' => $organization_id,
-                'role_in_org' => $data['role_in_org'] ?? null,
+                'role_in_org' => $roleInOrg ?? null,
             ]);
 
             GdprConsent::create([

@@ -18,8 +18,6 @@ class CallController extends Controller
             ->where('status', 'open');
 
         if ($program_type) {
-            $program_type = strtolower(trim($program_type));
-
             $query->whereHas('program', fn ($q) =>
                 $q->where('code', 'program_' . $program_type)
             );
@@ -27,7 +25,7 @@ class CallController extends Controller
 
         $calls = $query
             ->orderBy('deadline_at')
-            ->first();
+            ->get();
 
         return response()->json($calls);
     }

@@ -20,6 +20,7 @@ class OrganizationController extends Controller
             return response()->json(null);
         }
 
+        Gate::authorize('view', $org);
         return response()->json($org);
     }
 
@@ -51,7 +52,8 @@ class OrganizationController extends Controller
                     'website' => $request->website,
                 ]);
             } else {
-                Gate::authorize('create');
+                Gate::authorize('create', Organization::class);
+                \Log::info('After authorize');
 
                 $org = Organization::create([
                     'name' => $request->name,

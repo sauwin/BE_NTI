@@ -7,6 +7,7 @@ use App\Models\Mentorship;
 use App\Models\User;
 use App\Policies\Concerns\AuthorizesApplicationAccess;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Auth\Access\Response;
 
 class ApplicationPolicy
 {
@@ -42,9 +43,11 @@ class ApplicationPolicy
             ->exists();
     }
 
-    public function create(User $user): bool
+    public function create(User $user): Response
     {
-        return $user->studentProfile !== null;
+        return $user->studentProfile
+            ? Response::allow()
+            : Response::deny('Complete your student profile first.');
     }
 
     public function update(User $user, Application $application): bool
