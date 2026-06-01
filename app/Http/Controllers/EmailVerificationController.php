@@ -34,12 +34,15 @@ class EmailVerificationController extends Controller
 
         DB::transaction(function () use ($user, $superAdmin) {
             $user->update(['email_verified_at' => now(), 'status' => 'active']);
-            DB::table('user_roles')
+
+            if ($user->isStudent()) {
+                DB::table('user_roles')
                 ->where('user_id', $user->id)
                 ->update([
                     'granted_by' => $superAdmin->id,
                     'granted_at' => now(),
                 ]);
+            }
         });
 
         return redirect(rtrim(env('FRONTEND_URL', 'http://localhost:5173'), '/').'/verified');
