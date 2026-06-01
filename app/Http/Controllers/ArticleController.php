@@ -9,6 +9,10 @@ use Illuminate\Support\Facades\Gate;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
+/**
+ * @tags Article Management
+ * Endpoints for managing news articles, processing localized translations, and handling cover image uploads.
+ */
 class ArticleController extends Controller
 {
     /**

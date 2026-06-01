@@ -8,6 +8,10 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
 
+/**
+ * @tags Mentorship Management
+ * Endpoints for administering mentorship assignments, tracking active mentorship tracks by mentors, and facilitating administrative oversight of program-wide mentorship distributions.
+ */
 class MentorshipController extends Controller
 {
     /**

@@ -8,6 +8,10 @@ use Illuminate\Http\Request;
 use App\Models\NewsArticleTranslation;
 use App\Http\Resources\NewsArticleTranslationResource;
 
+/**
+ * @tags Content Management
+ * Endpoints for retrieving localized news article versions and facilitating the addition of translated content for specific article entries.
+ */
 class TranslationController extends Controller
 {
     /**

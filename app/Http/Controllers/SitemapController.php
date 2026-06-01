@@ -8,6 +8,10 @@ use Illuminate\Support\Facades\Cache;
 use Spatie\Sitemap\Sitemap;
 use Spatie\Sitemap\Tags\Url;
 
+/**
+ * @tags SEO Management
+ * Endpoints for generating and caching dynamic XML sitemaps, encompassing static site routes, program listings, and news article content for search engine indexing optimization.
+ */
 class SitemapController extends Controller
 {
     /**

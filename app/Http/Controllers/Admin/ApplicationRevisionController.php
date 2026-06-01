@@ -9,6 +9,10 @@ use App\Models\StudentProfile;
 use App\Services\AdminApplicationService;
 use Illuminate\Http\Request;
 
+/**
+ * @tags Admin Management
+ * Endpoints for managing application correction workflows, including initiating formal revision requests via service-layer notification logic and retrieving chronological audit logs of all revision history for both administrators and applicants.
+ */
 class ApplicationRevisionController extends Controller
 {
     protected $adminService;

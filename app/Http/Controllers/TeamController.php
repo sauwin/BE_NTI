@@ -9,6 +9,10 @@ use Illuminate\Support\Facades\Gate;
 use App\Models\Team;
 use App\Models\User;
 
+/**
+ * @tags Team Collaboration
+ * Endpoints for managing student team lifecycles, including team creation, member invitations, invitation response workflows, and participant management during the 'forming' state.
+ */
 class TeamController extends Controller
 {
     /**

@@ -10,6 +10,10 @@ use Illuminate\Validation\ValidationException;
 use App\Models\Application;
 use Illuminate\Support\Facades\DB;
 
+/**
+ * @tags Call Management
+ * Endpoints for configuring program calls, tracking active submission windows, managing form configurations, and scheduling application evaluation phases.
+ */
 class CallController extends Controller
 {
     public function active(Request $request, ?string $program_type = null)

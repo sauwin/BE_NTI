@@ -8,6 +8,10 @@ use App\Models\Application;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 
+/**
+ * @tags System Reporting
+ * Endpoints for aggregating high-level system analytics, including user role distribution, operational call statuses, and application lifecycle metrics for administrative dashboard visualization.
+ */
 class ReportingController extends Controller
 {
     /**
