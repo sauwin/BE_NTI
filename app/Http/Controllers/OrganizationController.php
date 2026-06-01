@@ -74,4 +74,12 @@ class OrganizationController extends Controller
 
         return response()->json(['message' => 'Profile updated']);
     }
+
+    public function publicPartners()
+    {
+        $partners = Organization::where('is_public_partner', true)
+            ->get(['id', 'name', 'sector', 'website', 'description']);
+
+        return response()->json($partners);
+    }
 }

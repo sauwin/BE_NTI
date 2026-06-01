@@ -18,6 +18,8 @@ class CallController extends Controller
             ->where('status', 'open');
 
         if ($program_type) {
+            $program_type = strtolower(trim($program_type));
+
             $query->whereHas('program', fn ($q) =>
                 $q->where('code', 'program_' . $program_type)
             );
@@ -25,9 +27,9 @@ class CallController extends Controller
 
         $calls = $query
             ->orderBy('deadline_at')
-            ->get();
+            ->first();
 
-        return response()->json($calls);
+        return response()->json($call);
     }
 
     public function index(Request $request)
@@ -41,10 +43,17 @@ class CallController extends Controller
 
     public function store(Request $request)
     {
-        if ($request->has('program_id')) {
-            $rawProgram = $request->input('program_id');
-            $type = str_contains($rawProgram, 'program_a') ? 'a' : (str_contains($rawProgram, 'program_b') ? 'b' : null);
+        $programId = $request->input('program_id');
+        
+        if ($programId && !is_numeric($programId)) {
+            $type = str_contains($programId, 'program_a') ? 'a' : (str_contains($programId, 'program_b') ? 'b' : null);
             if ($type) {
+                $request->merge(['program_type' => $type]);
+            }
+        } else if (is_numeric($programId)) {
+            $p = Program::find($programId);
+            if ($p) {
+                $type = str_replace('program_', '', $p->code);
                 $request->merge(['program_type' => $type]);
             }
         }
@@ -100,7 +109,7 @@ class CallController extends Controller
 
         AuditService::log('create_call', 'call', [
             'call_id' => $call->id,
-            'program_type' => $call->program_type,
+            'program_type' => str_replace('program_', '', $program->code), 
             'name' => $callName,
         ]);
 
