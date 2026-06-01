@@ -2,49 +2,68 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\User;
+use App\Models\Call;
+use App\Models\Application;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 
 class ReportingController extends Controller
 {
     /**
-     * Reporting stats for admin dashboard
+     * Reporting for dashboard stats
      */
     public function dashboardStats(Request $request)
     {
-        abort_unless(
-            $request->user()?->roles()->whereIn('slug', ['nti_admin', 'super_admin'])->exists(),
-            403,
-            'Unauthorized. Admin required.'
-        );
+        Gate::authorize('viewDashboardStats', 'reporting');
 
-        $users = DB::table('users')
-            ->selectRaw('1 as total_users, 0 as active_projects, 0 as pending_approvals, 0 as open_calls');
+        $totalUsers = User::count();
 
-        $applications = DB::table('applications')
-            ->selectRaw('0 as total_users, CASE WHEN status = ? THEN 1 ELSE 0 END as active_projects, 0 as pending_approvals, 0 as open_calls', ['active']);
+        $students = User::whereHas('roles', function($q) { 
+            $q->where('slug', 'student'); 
+        })->count();
+        $admins = User::whereHas('roles', function($q) { 
+            $q->where('slug', 'nti_admin'); 
+        })->count();
+        $contentEditors = User::whereHas('roles', function($q) { 
+            $q->where('slug', 'content_editor'); 
+        })->count();
+        $evaluators = User::whereHas('roles', function($q) { 
+            $q->where('slug', 'evaluator'); 
+        })->count();
+        $mentors = User::whereHas('roles', function($q) { 
+            $q->where('slug', 'mentor'); 
+        })->count();
 
-        $pendingApprovals = DB::table('user_roles')
-            ->selectRaw('0 as total_users, 0 as active_projects, CASE WHEN granted_by IS NULL THEN 1 ELSE 0 END as pending_approvals, 0 as open_calls');
+        $companyOwners = User::where('role_in_org', 'owner')
+            ->whereHas('roles', function($q) { 
+                $q->where('slug', 'company'); 
+            })->count();
 
-        $calls = DB::table('calls')
-            ->selectRaw('0 as total_users, 0 as active_projects, 0 as pending_approvals, CASE WHEN status = ? THEN 1 ELSE 0 END as open_calls', ['open']);
+        $totalCalls = Call::count();
+        $openCalls = Call::where('status', 'open')->count();
 
-        $unionQuery = $users->unionAll($applications)->unionAll($pendingApprovals)->unionAll($calls);
+        $totalApplications = Application::count();
+        $appSubmitted = Application::where('status', 'submitted')->count();
+        $appActive = Application::where('status', 'active')->count();
+        $appClosed = Application::where('status', 'closed')->count();
 
-        $metrics = DB::query()
-            ->fromSub($unionQuery, 'metric_rows')
-            ->selectRaw('COUNT(CASE WHEN total_users = 1 THEN 1 END) as total_users')
-            ->selectRaw('COUNT(CASE WHEN active_projects = 1 THEN 1 END) as active_projects')
-            ->selectRaw('COUNT(CASE WHEN pending_approvals = 1 THEN 1 END) as pending_approvals')
-            ->selectRaw('COUNT(CASE WHEN open_calls = 1 THEN 1 END) as open_calls')
-            ->first();
+        $data = [
+            'total_users' => $totalUsers,
+            'students' => $students,
+            'company_owners' => $companyOwners,
+            'admins' => $admins,
+            'content_editors' => $contentEditors,
+            'evaluators' => $evaluators,
+            'mentors' => $mentors,
+            'total_calls' => $totalCalls,
+            'open_calls' => $openCalls,
+            'total_applications' => $totalApplications,
+            'application_submitted'=> $appSubmitted,
+            'application_active' => $appActive,
+            'application_closed' => $appClosed,
+        ];
 
-        return response()->json([
-            'total_users' => (int) $metrics->total_users,
-            'active_projects' => (int) $metrics->active_projects,
-            'pending_approvals' => (int) $metrics->pending_approvals,
-            'open_calls' => (int) $metrics->open_calls,
-        ]);
+        return response()->json($data);
     }
 }
