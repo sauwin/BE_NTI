@@ -209,26 +209,33 @@ class AdminController extends Controller
             'last_name' => 'required|string|max:255',
             'email' => 'required|email|unique:users',
             'password' => 'required|string|min:8',
-            'role' => 'required|in:nti_admin,evaluator,content_editor',
-        ]);
-
-        $user = User::create([
-            'first_name' => $data['first_name'],
-            'last_name' => $data['last_name'],
-            'email' => $data['email'],
-            'password' => Hash::make($data['password']),
-            'status' => 'active',
-            'email_verified_at' => now(),
+            'role' => 'required|in:nti_admin,evaluator,content_editor,mentor',
         ]);
 
         $role = Role::where('slug', $data['role'])->firstOrFail();
 
-        DB::table('user_roles')->insert([
-            'user_id' => $user->id,
-            'role_id' => $role->id,
-            'granted_by' => $request->user()->id,
-            'granted_at' => now(),
-        ]);
+        $superAdmin = $request->user()->id;
+
+        $user = DB::transaction(function() use ($data, $role, $superAdmin) {
+            $user = User::create([
+                'first_name' => $data['first_name'],
+                'last_name' => $data['last_name'],
+                'email' => $data['email'],
+                'password' => Hash::make($data['password']),
+                'status' => 'active',
+                'email_verified_at' => now(),
+            ]);
+
+
+            DB::table('user_roles')->insert([
+                'user_id' => $user->id,
+                'role_id' => $role->id,
+                'granted_by' => $superAdmin,
+                'granted_at' => now(),
+            ]);
+
+            return $user;
+        });
 
         AuditService::log('create', 'admin', [
             'target_user_id' => $user->id,
