@@ -15,8 +15,10 @@ class EvaluationCriteriaController extends Controller
     /**
      * Display all evaluation criteria
      */
-    public function index(Call $call)
+    public function index(Request $request, Call $call)
     {
+        $this->authorize('viewCriteria', $call);
+
         return response()->json($call->criteria);
     }
 

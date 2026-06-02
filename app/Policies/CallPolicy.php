@@ -63,4 +63,16 @@ class CallPolicy
     {
         return false;
     }
+
+    /**
+     * Determine whether the user can view call evaluation criteria.
+     */
+    public function viewCriteria(User $user, Call $call): bool
+    {
+        if ($user->hasRole('evaluator')) {
+            return $call->evaluators()->whereKey($user->id)->exists();
+        }
+
+        return $user->hasRole(['admin', 'super_admin']);
+    }
 }
