@@ -242,36 +242,15 @@ class CallController extends Controller
         ]);
         
         try {
-            $result = DB::transaction(function () use ($call, $validated) {
-                $applicationsToMove = Application::where('call_id', $call->id)
-                    ->where('status', 'formally_verified')
-                    ->count();
-                $call->update([
-                    'evaluation_scheduled_at' => $validated['evaluation_scheduled_at'],
-                ]);
-                
-                if ($applicationsToMove > 0) {
-                    Application::where('call_id', $call->id)
-                        ->where('status', 'formally_verified')
-                        ->update([
-                            'status' => 'under_evaluation',
-                            'updated_at' => now(),
-                        ]);
-                }
-                
-                return [
-                    'call_id' => $call->id,
-                    'evaluation_scheduled_at' => $call->evaluation_scheduled_at,
-                    'applications_moved' => $applicationsToMove,
-                ];
-            });
+            $call->update([
+                'evaluation_scheduled_at' => $validated['evaluation_scheduled_at'],
+            ]);
             
             return response()->json([
                 'message' => 'Evaluation scheduled successfully',
                 'data' => [
-                    'call_id' => $result['call_id'],
-                    'evaluation_scheduled_at' => $result['evaluation_scheduled_at'],
-                    'applications_moved' => $result['applications_moved'],
+                    'call_id' => $call->id,
+                    'evaluation_scheduled_at' => $call->evaluation_scheduled_at,
                 ],
             ], 200);
             
@@ -281,6 +260,15 @@ class CallController extends Controller
                 'error' => $e->getMessage(),
             ], 500);
         }
+    }
+
+    public function moveApplicationsUnderEvaluation(Call $call) {
+
+        $this->authorize('update', $call);
+            
+        $movedAppsCount = $call->startEvaluation();
+
+        return response()->json(['applications_moved' => $movedAppsCount], 200);
     }
 
     public function getEvaluationInfo(int $id)

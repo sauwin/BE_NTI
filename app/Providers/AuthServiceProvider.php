@@ -12,6 +12,7 @@ use App\Models\NewsArticle;
 use App\Models\Organization;
 use App\Models\Task;
 use App\Models\Team;
+use App\Models\EvaluationCriterion;
 use App\Policies\ApplicationPolicy;
 use App\Policies\DocumentPolicy;
 use App\Policies\EvaluationPolicy;

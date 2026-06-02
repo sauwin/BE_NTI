@@ -32,6 +32,7 @@ use App\Http\Controllers\ReportingController;
 use App\Http\Controllers\StudentProfileController;
 use App\Http\Controllers\TaskController;
 use App\Http\Controllers\TeamController;
+use App\Http\Controllers\EvaluationCriteriaController;
 
 // Public
 Route::post('/auth/register', [AuthController::class, 'register'])->middleware('throttle:3,15');
@@ -231,12 +232,17 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/reporting/dashboard-stats', [ReportingController::class, 'dashboardStats']);
 
         Route::patch('/calls/{id}/schedule-evaluation', [CallController::class, 'scheduleEvaluation'])->middleware(['throttle:30,1'])->name('calls.schedule-evaluation');
+        Route::post('/calls/{call}/move-applications', [CallController::class, 'moveApplicationsUnderEvaluation'])->middleware(['throttle:30,1'])->name('calls.move-applications');
         Route::get('/calls/{id}/evaluation-info', [CallController::class, 'getEvaluationInfo'])->name('calls.evaluation-info');
 
         // Call Evaluators
         Route::get('/calls/{id}/evaluators', [CallEvaluatorController::class, 'index']);
         Route::post('/calls/{id}/evaluators', [CallEvaluatorController::class, 'assign'])->middleware('throttle:10,1');
         Route::delete('/calls/{id}/evaluators/{userId}', [CallEvaluatorController::class, 'remove'])->middleware('throttle:10,1');
+
+        //Evaluation criteria
+        Route::get('/calls/{call}/criteria', [EvaluationCriteriaController::class, 'index']);
+        Route::put('/calls/{call}/criteria', [EvaluationCriteriaController::class, 'sync']);
 
         // export
         Route::get('/export/applications', [ExportController::class, 'exportApplications']);
