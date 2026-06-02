@@ -57,6 +57,8 @@ Route::post('/auth/verify-reset-token', [PasswordResetController::class, 'verify
 
 // Authenticated
 Route::middleware('auth:sanctum')->group(function () {
+    //Criteria
+    Route::get('/calls/{call}/criteria', [EvaluationCriteriaController::class, 'index']);
 
     // Programs
     Route::get('/programs', [ProgramController::class, 'index']);
@@ -241,7 +243,6 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('/calls/{id}/evaluators/{userId}', [CallEvaluatorController::class, 'remove'])->middleware('throttle:10,1');
 
         //Evaluation criteria
-        Route::get('/calls/{call}/criteria', [EvaluationCriteriaController::class, 'index']);
         Route::put('/calls/{call}/criteria', [EvaluationCriteriaController::class, 'sync']);
 
         // export
