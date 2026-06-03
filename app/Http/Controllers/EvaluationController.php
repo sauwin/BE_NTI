@@ -143,8 +143,6 @@ class EvaluationController extends Controller
                     ]);
                 }
 
-                $this->checkAndProcessCollectiveConsensus($application);
-
                 return $evaluation;
             });
 
@@ -209,8 +207,6 @@ class EvaluationController extends Controller
                 $evaluation->status = 'completed';
                 $evaluation->evaluated_at = now();
                 $evaluation->save();
-
-                $this->checkAndProcessCollectiveConsensus($evaluation->application);
             });
 
             return response()->json(['message' => 'Evaluation updated']);
@@ -219,16 +215,25 @@ class EvaluationController extends Controller
         }
     }
 
-    private function checkAndProcessCollectiveConsensus(Application $application): void
+    public function finalizeEvaluation(Request $request, Application $application)
     {
+        //request data validation and authorization
+        $this->authorize('finalize', $application);
+
+        $validated = $request->validate([
+            'status' => 'required|in:approved,rejected,request_revision',
+            'comment' => 'nullable|string',
+        ]);
+
+        //logic validation
         if (!$application->call_id) {
-            return;
+            return response()->json(['message' => 'Application does not belong to a valid call'], 500);
         }
 
         $totalEvaluatorsCount = CallEvaluator::where('call_id', $application->call_id)->count();
 
         if ($totalEvaluatorsCount === 0) {
-            return;
+            return response()->json(['message' => 'Application must have evaluators assigned'], 500);
         }
 
         $completedEvaluations = Evaluation::where('application_id', $application->id)
@@ -236,27 +241,10 @@ class EvaluationController extends Controller
             ->get();
 
         if ($completedEvaluations->count() < $totalEvaluatorsCount) {
-            return;
+            return response()->json(['message' => 'Not all evaluators have completed their evaluations yet'], 500);
         }
 
-        $recommendations = $completedEvaluations->pluck('recommendation')->toArray();
-
-        $counts = array_count_values($recommendations);
-        $counts = array_merge(['approve' => 0, 'reject' => 0, 'request_revision' => 0], $counts);
-
-        $finalStatus = 'under_evaluation'; 
-
-        if ($counts['reject'] > $counts['approve'] && $counts['reject'] > $counts['request_revision']) {
-            $finalStatus = 'rejected';
-        } elseif ($counts['request_revision'] > $counts['approve']) {
-            $finalStatus = 'revision_requested'; 
-        } elseif ($counts['approve'] >= (count($recommendations) / 2)) {
-            $finalStatus = 'approved';
-        }
-
-        $systemUser = Auth::user();
-        $internalComment = 'Automatické rozhodnutie systému na základe kolektívneho konsenzu hodnotiacej komisie.';
-
-        $this->adminService->updateStatus($application, $finalStatus, $internalComment, $systemUser);
+        //submit final verdict and update application status
+        $this->adminService->updateStatus($application, $validated['status'], $validated['comment'] ?? null, $request->user());
     }
 }

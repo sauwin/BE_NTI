@@ -88,4 +88,9 @@ class ApplicationPolicy
             ->where('mentor_id', $user->id)
             ->exists();
     }
+
+    public function finalize(User $user, Application $application): bool
+    {
+        return $this->isAdmin($user);
+    }
 }
