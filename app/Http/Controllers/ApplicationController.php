@@ -26,6 +26,11 @@ class ApplicationController extends Controller
         $this->adminService = $adminService;
     }
 
+    public function getEvaluations(Request $request, Application $application)
+    {
+        return response()->json($application->evaluations()->with('scores', 'scores.criterion', 'evaluator')->get());
+    }
+
     /**
      * Select all applications for admins and application owned by student
      */

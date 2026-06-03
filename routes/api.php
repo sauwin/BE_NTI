@@ -224,6 +224,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::patch('/applications/{id}/status', [ApplicationController::class, 'updateStatus'])->middleware('throttle:10,1');
         Route::post('/applications/{id}/revisions', [ApplicationRevisionController::class, 'requestRevision'])
             ->middleware('throttle:10,1');
+        Route::get('/applications/{application}/evaluations', [ApplicationController::class, 'getEvaluations']);
+        Route::post('/applications/{application}/finalize-evaluation', [EvaluationController::class, 'finalizeEvaluation'])->middleware('throttle:10,1');
 
         Route::get('/documents', [DocumentController::class, 'index']);
         Route::get('/calls', [CallController::class, 'index']);
