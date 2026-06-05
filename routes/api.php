@@ -54,7 +54,9 @@ Route::post('/auth/reset-password', [PasswordResetController::class, 'reset'])->
 Route::post('/auth/verify-reset-token', [PasswordResetController::class, 'verify'])->middleware('throttle:5,15');
 
 // Authenticated
-Route::middleware('auth:sanctum')->group(function () {
+Route::middleware('auth:sanctum', 'not_blocked')->group(function () {
+    //Criteria
+    Route::get('/calls/{call}/criteria', [EvaluationCriteriaController::class, 'index']);
 
     // Programs
     Route::get('/programs', [ProgramController::class, 'index']);
