@@ -37,7 +37,7 @@ class CallPolicy
      */
     public function update(User $user, Call $call): bool
     {
-        return $user->hasRole(['nti_admin', 'super_admin']);
+        return $user->isAdmin();
     }
 
     /**
@@ -73,6 +73,6 @@ class CallPolicy
             return $call->evaluators()->whereKey($user->id)->exists();
         }
 
-        return $user->hasRole(['admin', 'super_admin']);
+        return $user->isAdmin();
     }
 }

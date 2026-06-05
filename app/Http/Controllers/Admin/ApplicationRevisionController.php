@@ -6,7 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Application;
 use App\Models\ApplicationRevisionRequest;
 use App\Models\StudentProfile;
-use App\Services\AdminApplicationService;
+use App\Services\ApplicationWorkflowService;
 use Illuminate\Http\Request;
 
 /**
@@ -15,40 +15,12 @@ use Illuminate\Http\Request;
  */
 class ApplicationRevisionController extends Controller
 {
-    protected $adminService;
+    protected $applicationWorkflowService;
 
-    public function __construct(AdminApplicationService $adminService)
+    public function __construct(ApplicationWorkflowService $applicationWorkflowService)
     {
-        $this->adminService = $adminService;
+        $this->applicationWorkflowService = $applicationWorkflowService;
     }
 
-    /**
-     * Send revesion request and notified student
-     */
-    public function requestRevision(Request $request, int $id)
-    {
-        $request->validate([
-            'message' => 'required|string|min:5|max:2000'
-        ]);
-
-        $application = Application::findOrFail($id);
-        
-        $this->adminService->createRevisionRequest($application, $request->message, $request->user());
-
-        return response()->json(['message' => 'Revision request created successfully and student notified.']);
-    }
-
-    /**
-     * Select history for revision requests
-     */
-    public function getRevisionHistory(Application $application)
-    {
-        $this->authorize('view', $application);
-
-        return response()->json(
-            ApplicationRevisionRequest::where('application_id', $application->id)
-                ->latest()
-                ->get()
-        );
-    }
+    
 }

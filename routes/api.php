@@ -3,7 +3,6 @@
 use Illuminate\Support\Facades\Route;
 
 use App\Http\Controllers\Admin\ApplicationManagementController;
-use App\Http\Controllers\Admin\ApplicationRevisionController;
 use App\Http\Controllers\Admin\BulkNotificationController;
 use App\Http\Controllers\Admin\ExportController;
 use App\Http\Controllers\Admin\ProgramController;
@@ -187,7 +186,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/company/members/{userId}/kick', [OrganizationMembershipController::class, 'kickMember']);
 
     Route::get('/applications/{id}/history', [ApplicationController::class, 'getHistory']);
-    Route::get('/applications/{id}/revision-request', [ApplicationController::class, 'getRevisionRequest']);
+    Route::get('/applications/{id}/revision-request', [ApplicationController::class, 'getLastRevisionRequest']);
 
     // Super Admin Only
     Route::middleware('super_admin')->group(function () {
@@ -222,7 +221,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/applications', [ApplicationManagementController::class, 'index']);
         Route::get('/applications/{id}', [ApplicationManagementController::class, 'show']);
         Route::patch('/applications/{id}/status', [ApplicationController::class, 'updateStatus'])->middleware('throttle:10,1');
-        Route::post('/applications/{id}/revisions', [ApplicationRevisionController::class, 'requestRevision'])
+        Route::post('/applications/{id}/revisions', [ApplicationManagementController::class, 'requestRevision'])
             ->middleware('throttle:10,1');
         Route::get('/applications/{application}/evaluations', [ApplicationController::class, 'getEvaluations']);
         Route::post('/applications/{application}/finalize-evaluation', [EvaluationController::class, 'finalizeEvaluation'])->middleware('throttle:10,1');

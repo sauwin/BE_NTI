@@ -58,6 +58,11 @@ class Call extends Model
         return $count;
     }
 
+    public function creator(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+
     public function program(): BelongsTo
     {
         return $this->belongsTo(Program::class);

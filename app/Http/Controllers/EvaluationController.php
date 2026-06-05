@@ -6,7 +6,7 @@ use App\Models\Application;
 use App\Models\Evaluation;
 use App\Models\CallEvaluator;
 use App\Models\EvaluationCriteriaScore;
-use App\Services\AdminApplicationService;
+use App\Services\ApplicationWorkflowService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -17,11 +17,11 @@ use Illuminate\Support\Facades\DB;
  */
 class EvaluationController extends Controller
 {
-    protected $adminService;
+    protected $applicationWorkflowService;
 
-    public function __construct(AdminApplicationService $adminService)
+    public function __construct(ApplicationWorkflowService $applicationWorkflowService)
     {
-        $this->adminService = $adminService;
+        $this->applicationWorkflowService = $applicationWorkflowService;
     }
 
     public function evaluatorApplications(Request $request)
@@ -107,7 +107,7 @@ class EvaluationController extends Controller
         ]);
 
         $application = Application::findOrFail($validated['application_id']);
-        if ($application->status !== 'under_evaluation' && !$user->hasRole(['nti_admin', 'super_admin'])) {
+        if ($application->status !== 'under_evaluation' && !$user->isAdmin()) {
             return response()->json(['message' => 'Táto prihláška momentálne nie je vo fáze hodnotenia komisiou.'], 403);
         }
 
@@ -245,6 +245,6 @@ class EvaluationController extends Controller
         }
 
         //submit final verdict and update application status
-        $this->adminService->updateStatus($application, $validated['status'], $validated['comment'] ?? null, $request->user());
+        $this->applicationWorkflowService->updateStatus($application, $validated['status'], $validated['comment'] ?? null, $request->user());
     }
 }

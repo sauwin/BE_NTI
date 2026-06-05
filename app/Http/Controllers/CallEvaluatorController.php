@@ -37,7 +37,7 @@ class CallEvaluatorController extends Controller
 
     public function assign(Request $request, $callId)
     {
-        if (! Auth::user()->hasRole(['nti_admin', 'super_admin'])) {
+        if (! Auth::user()->isAdmin()) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
@@ -85,7 +85,7 @@ class CallEvaluatorController extends Controller
 
     public function remove($callId, $userId)
     {
-        if (! Auth::user()->hasRole(['nti_admin', 'super_admin'])) {
+        if (! Auth::user()->isAdmin()) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
