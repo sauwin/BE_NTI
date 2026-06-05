@@ -43,7 +43,7 @@ class ApplicationController extends Controller
      */
     public function index(Request $request)
     {
-        $this->authorize('viewAny');
+        $this->authorize('viewAny', Application::class);
 
         $user = $request->user();
 
@@ -59,7 +59,7 @@ class ApplicationController extends Controller
      */
     public function store(StoreApplicationRequest $request)
     {
-        $this->authorize('create');
+        $this->authorize('create', Application::class);
 
         $application = $this->applicationService->createApplication(
             $request->validated(),

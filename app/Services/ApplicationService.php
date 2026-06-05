@@ -22,7 +22,7 @@ class ApplicationService
     {
         $isFinalSubmit = ($data['submit_type'] ?? 'final') === 'final';
 
-        $call = Call::whereHas('program', fn ($q) => $q->where('code', 'program_'.$data['program_type']))
+        $call = Call::where('program', $data['program_type'])
             ->where('status', 'open')
             ->latest()
             ->first();

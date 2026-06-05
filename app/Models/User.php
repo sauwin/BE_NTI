@@ -69,6 +69,10 @@ class User extends Authenticatable
     {
         $roles = is_array($roles) ? $roles : [$roles];
 
+        if ($this->relationLoaded('roles')) {
+            return $this->roles->whereIn('slug', $roles)->isNotEmpty();
+        }
+
         return $this->roles()->whereIn('slug', $roles)->exists();
     }
 

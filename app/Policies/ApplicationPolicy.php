@@ -16,12 +16,13 @@ class ApplicationPolicy
     protected function ownsApplicationAsStudent(User $user, Application $application): Response
     {
         if ($user->isStudent()) {
-            if ($application->student_profile_id === $user->studentProfile) {
+            if ($application->student_profile_id === $user->studentProfile?->id) {
                 return Response::allow();
-            } else {
-                return Response::deny('It seems that you are not owner of this application.');
             }
+            return Response::deny('It seems that you are not owner of this application.');
         }
+
+        return Response::deny('Access denied.');
     }
 
     public function viewAny(User $user): Response
