@@ -27,16 +27,15 @@ class AuthTest extends TestCase
 
     public function test_register_student_returns_201(): void
     {
-        $this->app['config']->set('app.student_allowed_domains', '');
-        putenv('STUDENT_ALLOWED_DOMAINS=test.com');
-
+        $this->withoutMiddleware(\Illuminate\Routing\Middleware\ThrottleRequests::class);
+        
         $res = $this->postJson('/api/auth/register', [
             'first_name' => 'Jan',
             'last_name' => 'Novak',
-            'email' => 'jan@test.com',
+            'email' => 'jan@ukf.sk',
             'password' => 'password1',
             'password_confirmation' => 'password1',
-            'role' => 'mentor',
+            'role' => 'student',
             'agreed_terms' => true,
             'gdpr_consent' => true,
         ]);
@@ -45,12 +44,12 @@ class AuthTest extends TestCase
 
     public function test_register_student_invalid_domain_returns_422(): void
     {
-        putenv('STUDENT_ALLOWED_DOMAINS=ukf.sk');
+        $this->withoutMiddleware(\Illuminate\Routing\Middleware\ThrottleRequests::class);
 
         $res = $this->postJson('/api/auth/register', [
             'first_name' => 'Jan',
             'last_name' => 'Novak',
-            'email' => 'jan@gmail.com',
+            'email' => 'jan@test.com',
             'password' => 'password1',
             'password_confirmation' => 'password1',
             'role' => 'student',
@@ -63,12 +62,12 @@ class AuthTest extends TestCase
 
     public function test_register_duplicate_email_returns_422(): void
     {
-        User::factory()->create(['email' => 'dup@test.com']);
+        User::factory()->create(['email' => 'dup@ukf.sk']);
 
         $res = $this->postJson('/api/auth/register', [
             'first_name' => 'A',
             'last_name' => 'B',
-            'email' => 'dup@test.com',
+            'email' => 'dup@ukf.sk',
             'password' => 'password1',
             'password_confirmation' => 'password1',
             'role' => 'mentor',

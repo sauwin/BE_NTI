@@ -45,8 +45,8 @@ class ApplicationTest extends TestCase
 
         $res = $this->actingAs($this->student)->postJson('/api/applications', [
             'applicant_type' => 'student',
-            'program_type'   => 'a',
-            'submit_type'    => 'draft',
+            'program_type' => 'a',
+            'submit_type' => 'draft',
         ]);
 
         $res->assertStatus(201)->assertJsonStructure(['application_id']);
@@ -57,8 +57,8 @@ class ApplicationTest extends TestCase
     {
         $res = $this->actingAs($this->student)->postJson('/api/applications', [
             'applicant_type' => 'student',
-            'program_type'   => 'a',
-            'submit_type'    => 'final',
+            'program_type' => 'a',
+            'submit_type' => 'final',
         ]);
 
         $res->assertStatus(403);
@@ -70,7 +70,7 @@ class ApplicationTest extends TestCase
 
         $res = $this->actingAs($this->student)->postJson('/api/applications', [
             'applicant_type' => 'invalid',
-            'program_type'   => 'a',
+            'program_type' => 'a',
         ]);
 
         $res->assertStatus(422)->assertJsonValidationErrors(['applicant_type']);
@@ -82,7 +82,7 @@ class ApplicationTest extends TestCase
 
         $res = $this->actingAs($this->student)->postJson('/api/applications', [
             'applicant_type' => 'student',
-            'program_type'   => 'z',
+            'program_type' => 'z',
         ]);
 
         $res->assertStatus(422)->assertJsonValidationErrors(['program_type']);
@@ -95,9 +95,9 @@ class ApplicationTest extends TestCase
 
         $res = $this->actingAs($this->student)->postJson('/api/applications', [
             'applicant_type' => 'student',
-            'program_type'   => 'a',
-            'submit_type'    => 'final',
-            'category'       => 'AI',
+            'program_type' => 'a',
+            'submit_type' => 'final',
+            'category' => 'AI',
         ]);
 
         $res->assertStatus(422);
@@ -107,11 +107,11 @@ class ApplicationTest extends TestCase
     {
         $profile = StudentProfile::factory()->create(['user_id' => $this->student->id]);
         $app = Application::factory()->create([
-            'call_id'            => $this->call->id,
+            'call_id' => $this->call->id,
             'student_profile_id' => $profile->id,
-            'status'             => 'draft',
-            'program_type'       => 'a',
-            'applicant_type'     => 'student',
+            'status' => 'draft',
+            'program_type' => 'a',
+            'applicant_type' => 'student',
         ]);
 
         $res = $this->actingAs($this->student)->postJson("/api/applications/{$app->id}/submit");
@@ -124,11 +124,11 @@ class ApplicationTest extends TestCase
     {
         $profile = StudentProfile::factory()->create(['user_id' => $this->student->id]);
         $app = Application::factory()->create([
-            'call_id'            => $this->call->id,
+            'call_id' => $this->call->id,
             'student_profile_id' => $profile->id,
-            'status'             => 'submitted',
-            'program_type'       => 'a',
-            'applicant_type'     => 'student',
+            'status' => 'submitted',
+            'program_type' => 'a',
+            'applicant_type' => 'student',
         ]);
 
         $res = $this->actingAs($this->student)->patchJson("/api/applications/{$app->id}", [
@@ -142,11 +142,11 @@ class ApplicationTest extends TestCase
     {
         $profile = StudentProfile::factory()->create(['user_id' => $this->student->id]);
         $app = Application::factory()->create([
-            'call_id'            => $this->call->id,
+            'call_id' => $this->call->id,
             'student_profile_id' => $profile->id,
-            'status'             => 'draft',
-            'program_type'       => 'a',
-            'applicant_type'     => 'student',
+            'status' => 'draft',
+            'program_type' => 'a',
+            'applicant_type' => 'student',
         ]);
 
         $res = $this->actingAs($this->student)->deleteJson("/api/applications/{$app->id}");
@@ -159,11 +159,11 @@ class ApplicationTest extends TestCase
     {
         $profile = StudentProfile::factory()->create(['user_id' => $this->student->id]);
         $app = Application::factory()->create([
-            'call_id'            => $this->call->id,
+            'call_id' => $this->call->id,
             'student_profile_id' => $profile->id,
-            'status'             => 'submitted',
-            'program_type'       => 'a',
-            'applicant_type'     => 'student',
+            'status' => 'submitted',
+            'program_type' => 'a',
+            'applicant_type' => 'student',
         ]);
 
         $res = $this->actingAs($this->student)->deleteJson("/api/applications/{$app->id}");

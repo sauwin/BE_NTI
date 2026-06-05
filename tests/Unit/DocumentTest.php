@@ -21,19 +21,20 @@ class DocumentTest extends TestCase
 
     private Application $application;
 
-    protected function setUp(): void
+   protected function setUp(): void
     {
         parent::setUp();
         Storage::fake('local');
         putenv('CLAMAV_SKIP_VALIDATION=true');
 
-        Role::insert([
-            ['name' => 'Student', 'slug' => 'student', 'description' => ''],
-        ]);
+        $this->withoutMiddleware(\Illuminate\Routing\Middleware\ThrottleRequests::class);
+
+        $studentRole = Role::create(['name' => 'Student', 'slug' => 'student', 'description' => '']);
 
         $this->user = User::factory()->create(['status' => 'active']);
+        $this->user->roles()->attach($studentRole->id);
 
-        $call = Call::factory()->create(['program_id' => $program->id, 'status' => 'open']);
+        $call = Call::factory()->create(['program' => 'a', 'status' => 'open']);
         $profile = StudentProfile::factory()->create(['user_id' => $this->user->id]);
 
         $this->application = Application::factory()->create([
@@ -185,18 +186,18 @@ class DocumentTest extends TestCase
 
     public function test_uploader_can_download_own_document(): void
     {
-        $file = UploadedFile::fake()->create('doc.pdf', 100, 'application/pdf');
+        $file = $this->fakeFile('doc.pdf', 'application/pdf');
 
         $uploadRes = $this->actingAs($this->user)->postJson('/api/documents/upload', [
-            'file' => $file,
-            'type' => 'cv',
+            'file'           => $file,
+            'type'           => 'cv',
             'application_id' => $this->application->id,
         ]);
 
+        $uploadRes->assertStatus(201);
         $id = $uploadRes->json('id');
 
         $res = $this->actingAs($this->user)->getJson("/api/documents/{$id}/download");
-
         $res->assertStatus(200);
     }
 
