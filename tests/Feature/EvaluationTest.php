@@ -28,6 +28,20 @@ function makeUser(string $roleSlug): User
 function makeApplication(): Application
 {
     $call = Call::factory()->create(['program' => 'a']);
+
+    \App\Models\EvaluationCriterion::create([
+        'call_id' => $call->id,
+        'slug' => 'innovation',
+        'title' => 'Innovation',
+        'weight' => 50,
+    ]);
+    \App\Models\EvaluationCriterion::create([
+        'call_id' => $call->id,
+        'slug' => 'feasibility',
+        'title' => 'Feasibility',
+        'weight' => 50,
+    ]);
+
     return Application::create([
         'call_id' => $call->id,
         'applicant_type' => 'student',
@@ -37,24 +51,19 @@ function makeApplication(): Application
 
 function validPayload(int $applicationId): array
 {
+    $app = Application::find($applicationId);
+    $criteria = \App\Models\EvaluationCriterion::where('call_id', $app->call_id)->get();
+
     return [
         'application_id' => $applicationId,
         'recommendation' => 'approve',
         'comment' => 'Looks good',
-        'scores' => [
-            [
-                'criterion_key' => 'innovation',
-                'score' => 80,
-                'weight_at_moment' => 50,
-                'comment' => 'Strong idea',
-            ],
-            [
-                'criterion_key' => 'feasibility',
-                'score' => 60,
-                'weight_at_moment' => 50,
-                'comment' => null,
-            ],
-        ],
+        'scores' => $criteria->map(fn($c) => [
+            'criterion_id' => $c->id,
+            'score' => 80,
+            'weight_at_moment' => $c->weight,
+            'comment' => null,
+        ])->toArray(),
     ];
 }
 
@@ -78,10 +87,13 @@ test('unauthorized role cannot create evaluation', function () {
 test('non-existent application returns 404 not 403 for authorized user', function () {
     $user = makeUser('evaluator');
 
-    $payload = validPayload(99999);
-
     $this->actingAs($user)
-        ->postJson('/api/evaluations', $payload)
+        ->postJson('/api/evaluations', [
+            'application_id' => 99999,
+            'recommendation' => 'approve',
+            'comment' => 'test',
+            'scores' => [],
+        ])
         ->assertStatus(422);
 });
 
@@ -125,12 +137,14 @@ test('update sets status completed and evaluated_at', function () {
 
     $id = $createResponse->json('id');
 
+    $criterion = \App\Models\EvaluationCriterion::where('call_id', $app->call_id)->first();
+
     $this->actingAs($user)
         ->patchJson("/api/evaluations/{$id}", [
             'recommendation' => 'reject',
             'scores' => [
                 [
-                    'criterion_key' => 'innovation',
+                    'criterion_id' => $criterion->id,
                     'score' => 40,
                     'weight_at_moment' => 100,
                     'comment' => null,

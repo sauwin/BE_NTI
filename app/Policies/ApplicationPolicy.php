@@ -84,6 +84,10 @@ class ApplicationPolicy
 
     public function update(User $user, Application $application): Response
     {
+        if ($user->isAdmin()) {
+            return Response::allow();
+        }
+
         if (! in_array($application->status, ['draft', 'pending_revision'])) {
             return Response::deny('Applications can be edited only in draft or pending_revision.');
         }
@@ -93,6 +97,10 @@ class ApplicationPolicy
 
     public function delete(User $user, Application $application): Response
     {
+        if ($user->isAdmin()) {
+            return Response::allow();
+        }
+
         if ($application->status !== 'draft') {
             return Response::deny('Only drafts can be deleted.');
         }

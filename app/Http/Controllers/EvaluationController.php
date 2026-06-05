@@ -164,12 +164,11 @@ class EvaluationController extends Controller
     public function update(Request $request, $id)
     {
         $evaluation = Evaluation::findOrFail($id);
-
         $this->authorize('update', $evaluation);
 
         $validated = $request->validate([
             'scores' => 'sometimes|array',
-            'scores.*.criterion_key' => 'required|string',
+            'scores.*.criterion_id' => 'required|exists:evaluation_criteria,id',
             'scores.*.score' => 'required|numeric|min:0|max:100',
             'scores.*.weight_at_moment' => 'required|numeric|min:0|max:100',
             'scores.*.comment' => 'nullable|string',
@@ -182,13 +181,14 @@ class EvaluationController extends Controller
                 if (isset($validated['scores'])) {
                     $evaluation->scores()->delete();
 
-                    $overallScore = collect($validated['scores'])->sum(fn ($s) => $s['score'] * $s['weight_at_moment'] / 100);
+                    $overallScore = collect($validated['scores'])
+                        ->sum(fn ($s) => $s['score'] * $s['weight_at_moment'] / 100);
                     $evaluation->overall_score = $overallScore;
 
                     foreach ($validated['scores'] as $score) {
                         EvaluationCriteriaScore::create([
                             'evaluation_id' => $evaluation->id,
-                            'criterion_key' => $score['criterion_key'],
+                            'criterion_id' => $score['criterion_id'],
                             'score' => $score['score'],
                             'weight_at_moment' => $score['weight_at_moment'],
                             'comment' => $score['comment'] ?? null,
@@ -199,7 +199,6 @@ class EvaluationController extends Controller
                 if (isset($validated['recommendation'])) {
                     $evaluation->recommendation = $validated['recommendation'];
                 }
-
                 if (isset($validated['comment'])) {
                     $evaluation->comment = $validated['comment'];
                 }
