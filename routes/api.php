@@ -5,7 +5,6 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Admin\ApplicationManagementController;
 use App\Http\Controllers\Admin\BulkNotificationController;
 use App\Http\Controllers\Admin\ExportController;
-use App\Http\Controllers\Admin\ProgramController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\ApplicationController;
 use App\Http\Controllers\ArticleController;
@@ -58,9 +57,6 @@ Route::post('/auth/verify-reset-token', [PasswordResetController::class, 'verify
 Route::middleware('auth:sanctum', 'not_blocked')->group(function () {
     //Criteria
     Route::get('/calls/{call}/criteria', [EvaluationCriteriaController::class, 'index']);
-
-    // Programs
-    Route::get('/programs', [ProgramController::class, 'index']);
 
     // Tasks
     Route::get('/tasks/{id}', [TaskController::class, 'show']);
@@ -211,11 +207,6 @@ Route::middleware('auth:sanctum', 'not_blocked')->group(function () {
 
         Route::post('/notifications/bulk', [BulkNotificationController::class, 'send'])->middleware('throttle:5,1');
         Route::get('/notifications/history', [BulkNotificationController::class, 'history']);
-        Route::get('/programs', [ProgramController::class, 'index']);
-        Route::post('/programs', [ProgramController::class, 'store'])->middleware('throttle:10,1');
-        Route::get('/programs/{program}', [ProgramController::class, 'show']);
-        Route::put('/programs/{program}', [ProgramController::class, 'update'])->middleware('throttle:10,1');
-        Route::delete('/programs/{program}', [ProgramController::class, 'destroy'])->middleware('throttle:10,1');
 
         // Applications Management
         Route::get('/applications', [ApplicationManagementController::class, 'index']);

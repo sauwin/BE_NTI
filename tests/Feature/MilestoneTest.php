@@ -5,7 +5,6 @@ use App\Mail\MilestoneStatusChangedMail;
 use App\Models\Application;
 use App\Models\Call;
 use App\Models\Milestone;
-use App\Models\Program;
 use App\Models\Role;
 use App\Models\StudentProfile;
 use App\Models\User;
@@ -34,11 +33,7 @@ function msUser(string $roleSlug): User
 
 function msApplication(): Application
 {
-    $program = Program::firstOrCreate(
-        ['code' => 'program_a'],
-        ['type' => 'grant', 'is_active' => true, 'config' => null]
-    );
-    $call = Call::factory()->create(['program_id' => $program->id]);
+    $call = Call::factory()->create(['program' => 'a']);
 
     return Application::create([
         'call_id' => $call->id,

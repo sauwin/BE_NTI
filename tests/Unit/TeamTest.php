@@ -142,7 +142,7 @@ class TeamTest extends TestCase
 
     public function test_team_requires_min_3_members_for_final_submission(): void
     {
-        $call = \App\Models\Call::factory()->create(['status' => 'open', 'program_id' => \App\Models\Program::factory()->create(['code' => 'program_a'])->id]);
+        $call = \App\Models\Call::factory()->create(['status' => 'open', 'program' => 'a']);
         $profile = \App\Models\StudentProfile::factory()->create(['user_id' => $this->leader->id]);
 
         $team = Team::factory()->create(['leader_id' => $this->leader->id, 'status' => 'forming']);

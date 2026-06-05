@@ -4,7 +4,6 @@ use App\Models\Application;
 use App\Models\Call;
 use App\Models\CallEvaluator;
 use App\Models\GdprConsent;
-use App\Models\Program;
 use App\Models\Role;
 use App\Models\StudentProfile;
 use App\Models\User;
@@ -33,11 +32,7 @@ function auditCallWithApp(): array
     $student = auditUser('student');
     $profile = StudentProfile::factory()->create(['user_id' => $student->id]);
 
-    $program = Program::firstOrCreate(
-        ['code' => 'program_a'],
-        ['type' => 'grant', 'is_active' => true, 'config' => null]
-    );
-    $call = Call::factory()->create(['program_id' => $program->id, 'status' => 'draft']);
+    $call = Call::factory()->create(['program' => 'a', 'status' => 'draft']);
 
     $app = Application::factory()->create([
         'student_profile_id' => $profile->id,
@@ -129,10 +124,6 @@ test('remove evaluator writes audit log', function () {
 
 test('create call writes audit log', function () {
     $admin = auditUser('nti_admin');
-    $program = Program::firstOrCreate(
-        ['code' => 'program_a'],
-        ['type' => 'grant', 'is_active' => true, 'config' => null]
-    );
 
     $this->actingAs($admin)
         ->postJson('/api/admin/calls', [

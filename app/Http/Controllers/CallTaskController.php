@@ -43,7 +43,7 @@ class CallTaskController extends Controller
             $callRequest->setMethod('POST');
             $callRequest->setUserResolver(fn () => $request->user());
             $callRequest->merge([
-                'program_id'         => 'program_b', 
+                'program_type'       => 'b', 
                 'name'               => $request->input('title'),
                 'short_description'  => $request->input('short_description'),
                 'status'             => $callStatus,

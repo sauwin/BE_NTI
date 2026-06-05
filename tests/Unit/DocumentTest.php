@@ -5,7 +5,6 @@ namespace Tests\Unit;
 use App\Models\Application;
 use App\Models\Call;
 use App\Models\Document;
-use App\Models\Program;
 use App\Models\Role;
 use App\Models\StudentProfile;
 use App\Models\User;
@@ -34,7 +33,6 @@ class DocumentTest extends TestCase
 
         $this->user = User::factory()->create(['status' => 'active']);
 
-        $program = Program::factory()->create(['code' => 'program_a']);
         $call = Call::factory()->create(['program_id' => $program->id, 'status' => 'open']);
         $profile = StudentProfile::factory()->create(['user_id' => $this->user->id]);
 

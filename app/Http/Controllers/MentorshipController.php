@@ -86,9 +86,9 @@ class MentorshipController extends Controller
 
         $query = Mentorship::with(['mentor', 'application.team', 'application.call']);
 
-        if ($request->has('program_id')) {
+        if ($request->has('program')) {
             $query->whereHas('application', function ($q) use ($request) {
-                $q->where('program_id', $request->program_id);
+                $q->where('program', $request->program);
             });
         }
 
