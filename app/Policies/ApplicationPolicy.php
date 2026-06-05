@@ -13,34 +13,65 @@ class ApplicationPolicy
 {
     use AuthorizesApplicationAccess;
 
+    protected function ownsApplicationAsStudent(User $user, Application $application): Response
+    {
+        if ($user->isStudent()) {
+            if ($application->student_profile_id === $user->studentProfile) {
+                return Response::allow();
+            } else {
+                return Response::deny('It seems that you are not owner of this application.');
+            }
+        }
+    }
+
+    public function viewAny(User $user): Response
+    {
+        if ($user->isStudent()) {
+            return $user->studentProfile
+                ? Response::allow()
+                : Response::deny('Complete your student profile first.');
+        }
+        
+        if ($user->hasRole(['company', 'mentor', 'evaluator', 'nti_admin', 'super_admin'])) {
+            return Response::allow();
+            //For further verification scope exist additionally
+        }
+
+        return Response::deny('Your role does not allow to view applications');
+    }
+
+    public function viewAdminDashboard(User $user): bool
+    {
+        return $user->isAdmin();
+    }
+
     public function view(User $user, Application $application): bool
     {
-        if ($this->isAdminOrMentor($user)) {
+        if ($user->isAdmin()) {
             return true;
         }
 
-        if ($this->hasApplicationStake($user, $application)) {
-            return true;
+        if ($user->isStudent()) {
+            return $application->student_profile_id === $user->studentProfile?->id;
+        }
+
+        if ($user->hasRole('company')) {
+            return $application->call?->created_by === $user->id;
         }
 
         if ($user->hasRole('evaluator')) {
-            $isAssigned = DB::table('call_evaluators')
-                ->where('user_id', $user->id)
-                ->where('call_id', $application->call_id)
+            return $application->evaluations()
+                ->where('evaluator_id', $user->id)
                 ->exists();
-
-            return $isAssigned && $application->status === 'under_evaluation';
         }
 
-        if ($user->hasRole('student')) {
-            return false;
+        if ($user->hasRole('mentor')) {
+            return $application->mentorships()
+                ->where('mentor_id', $user->id)
+                ->exists();
         }
 
-        return DB::table('users')
-            ->where('id', $user->id)
-            ->where('role_in_org', 'owner')
-            ->where('organization_id', $application->call->task->organization_id)
-            ->exists();
+        return false;
     }
 
     public function create(User $user): Response
@@ -50,23 +81,40 @@ class ApplicationPolicy
             : Response::deny('Complete your student profile first.');
     }
 
-    public function update(User $user, Application $application): bool
+    public function update(User $user, Application $application): Response
     {
-        if ($this->isAdmin($user)) {
-            return true;
+        if (! in_array($application->status, ['draft', 'pending_revision'])) {
+            return Response::deny('Applications can be edited only in draft or pending_revision.');
         }
 
         return $this->ownsApplicationAsStudent($user, $application);
     }
 
-    public function delete(User $user, Application $application): bool
+    public function delete(User $user, Application $application): Response
     {
-        return $this->update($user, $application);
+        if ($application->status !== 'draft') {
+            return Response::deny('Only drafts can be deleted.');
+        }
+
+        return $this->ownsApplicationAsStudent($user, $application);
     }
 
-    public function submit(User $user, Application $application): bool
+    public function submitDraft(User $user, Application $application): Response
     {
-        return $this->hasApplicationStake($user, $application);
+        if ($application->status !== 'draft') {
+            return Response::deny("Youre can't submit this application because it is not in draft status");
+        }
+
+        return $this->ownsApplicationAsStudent($user, $application);
+    }
+
+    public function applyChanges(User $user, Application $application): Response
+    {
+        if ($application->status !== 'pending_revision') {
+            return Response::deny("Youre can't submit changes because this application is not in pending_revision status");
+        }
+
+        return $this->ownsApplicationAsStudent($user, $application);
     }
 
     public function uploadDocument(User $user, Application $application): bool
@@ -87,5 +135,10 @@ class ApplicationPolicy
         return Mentorship::where('application_id', $application->id)
             ->where('mentor_id', $user->id)
             ->exists();
+    }
+
+    public function finalize(User $user, Application $application): bool
+    {
+        return $this->isAdmin($user);
     }
 }

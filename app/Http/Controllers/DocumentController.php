@@ -11,6 +11,10 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
+/**
+ * @tags Document Management
+ * Endpoints for uploading files linked to applications or tasks, indexing system documentation, and handling secure document downloads or inline browser previews.
+ */
 class DocumentController extends Controller
 {
     public function upload(UploadDocumentRequest $request)

@@ -10,6 +10,10 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
+/**
+ * @tags User Management
+ * Endpoints for recording GDPR privacy consents, pulling structured personal data portability exports, and performing permanent account anonymization or right-to-be-forgotten purges.
+ */
 class GdprController extends Controller
 {
     /**

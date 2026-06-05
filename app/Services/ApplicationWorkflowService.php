@@ -12,7 +12,7 @@ use App\Models\ApplicationStatusHistory;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 
-class AdminApplicationService
+class ApplicationWorkflowService
 {
     public function updateStatus(Application $application, string $newStatus, ?string $comment, $admin): void
     {

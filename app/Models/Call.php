@@ -8,6 +8,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
+use App\Models\Program;
+use App\Models\User;
+use App\Models\Application;
+use App\Models\EvaluationCriterion;
+
 class Call extends Model
 {
     use HasFactory;
@@ -34,6 +39,30 @@ class Call extends Model
         'evaluation_scheduled_at' => 'datetime',
     ];
 
+    public function startEvaluation(): int
+    {
+        $query = $this->applications()
+            ->where('status', 'formally_verified');
+
+        $count = $query->count();
+
+        $query->update([
+            'status' => 'under_evaluation',
+            'updated_at' => now(),
+        ]);
+
+        $this->update([
+            'status' => 'closed',
+        ]);
+
+        return $count;
+    }
+
+    public function creator(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+
     public function program(): BelongsTo
     {
         return $this->belongsTo(Program::class);
@@ -49,5 +78,10 @@ class Call extends Model
     public function applications(): HasMany
     {
         return $this->hasMany(Application::class);
+    }
+
+    public function criteria(): HasMany
+    {
+        return $this->hasMany(EvaluationCriterion::class);
     }
 }

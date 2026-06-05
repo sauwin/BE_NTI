@@ -6,6 +6,10 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
+/**
+ * @tags User Notification
+ * Endpoints for retrieving user-specific activity feeds, managing notification status transitions (unread/read), and performing system-wide event logging.
+ */
 class NotificationController extends Controller
 {
     /**

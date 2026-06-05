@@ -6,6 +6,10 @@ use App\Models\Call;
 use App\Models\Task;
 use Illuminate\Http\Request;
 
+/**
+ * @tags Task Management
+ * Endpoints for managing technical task lifecycles, including drafting and publishing project requirements, defining technical architectures, budgeting, and assigning product ownership within specific organizational programs.
+ */
 class TaskController extends Controller
 {
     public function byOrganization($organizationId)

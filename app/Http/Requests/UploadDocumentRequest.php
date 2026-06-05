@@ -38,7 +38,7 @@ class UploadDocumentRequest extends FormRequest
                         ];
 
                         if (!in_array($realMimeType, $allowedMimes)) {
-                            $fail('Súbor má neplatný skutočný MIME typ (' . $realMimeType . '), aj keď prípona názvu hovorí inak.');
+                            $fail('The file has an invalid actual MIME type (' . $realMimeType . '), even though the file extension suggests otherwise.');
                         }
                     }
                 },
@@ -56,7 +56,7 @@ class UploadDocumentRequest extends FormRequest
                             $socket = @fsockopen($host, $port, $errno, $errstr, 2);
                             if (!$socket) {
                                 \Log::error("ClamAV connection failed: $errstr ($errno)");
-                                $fail('Antivírusový server je momentálne nedostupný.');
+                                $fail('The antivirus server is currently unavailable.');
                                 return;
                             }
 
@@ -65,11 +65,11 @@ class UploadDocumentRequest extends FormRequest
                             fclose($socket);
 
                             if (str_contains($response, 'FOUND')) {
-                                $fail('Súbor bol zablokovaný antivírusom z dôvodu bezpečnostného rizika.');
+                                $fail('The file was blocked by the antivirus software due to a security risk.');
                             }
                         } catch (\Exception $e) {
                             \Log::error("ClamAV scan error: " . $e->getMessage());
-                            $fail('Chyba pri antivírusovej kontrole súboru.');
+                            $fail('Error during the antivirus scan of the file.');
                         }
                     }
                 },
@@ -85,9 +85,9 @@ class UploadDocumentRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'file.required' => 'Vyberte súbor na nahranie.',
-            'file.file' => 'Odoslaný objekt musí byť platný súbor.',
-            'file.max' => 'Maximálna veľkosť súboru je 20 MB.',
+            'file.required' => 'Select the file you want to upload.',
+            'file.file' => 'The uploaded file must be a valid file.',
+            'file.max' => 'The maximum file size is 20 MB.',
         ];
     }
 }

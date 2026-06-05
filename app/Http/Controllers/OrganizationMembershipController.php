@@ -6,6 +6,10 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
+/**
+ * @tags Organization Management
+ * Endpoints for administering organizational membership life cycles, including approving pending member requests, listing active team members, revoking access permissions, and assigning internal organizational roles.
+ */
 class OrganizationMembershipController extends Controller
 {
     private function authorizeOrganizationManagement(Request $request): void

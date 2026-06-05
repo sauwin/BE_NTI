@@ -22,8 +22,6 @@ class ApplicationService
     {
         $isFinalSubmit = ($data['submit_type'] ?? 'final') === 'final';
 
-        Gate::authorize('create', Application::class);
-
         $call = Call::whereHas('program', fn ($q) => $q->where('code', 'program_'.$data['program_type']))
             ->where('status', 'open')
             ->latest()
@@ -110,12 +108,6 @@ class ApplicationService
 
     public function submitDraft(Application $application, $user): void
     {
-        if ($application->status !== 'draft') {
-            throw ValidationException::withMessages(['status' => 'Túto prihlášku nie je možné odoslať, pretože už nie je konceptom.']);
-        }
-
-        Gate::authorize('submit', $application);
-
         if ($application->applicant_type === 'team' && $application->team) {
             $team = Team::withCount(['members' => function ($query) {
                 $query->where('team_members.status', 'accepted');
@@ -157,18 +149,11 @@ class ApplicationService
 
     public function applyChanges(Application $application, $user): void
     {
-        if ($application->status !== 'pending_revision') {
-            throw ValidationException::withMessages([
-                'status' => 'Túto prihlášku nie je možné aktualizovať, pretože nie je v statuse pending_revision.'
-            ]);
-        }
-
-        Gate::authorize('submit', $application);
         $this->validateRequiredDocuments($application);
 
         DB::transaction(function () use ($application, $user) {
             $oldStatus = $application->status;
-            $newStatus = 'submitted'; // 'resubmitted' / 'under_review'
+            $newStatus = 'under_evaluation'; 
 
             $application->update(['status' => $newStatus]);
 

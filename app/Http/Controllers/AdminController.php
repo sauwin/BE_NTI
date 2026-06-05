@@ -2,11 +2,11 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Organization;
 use App\Mail\AdminPasswordResetMail;
 use App\Models\Audit;
 use App\Models\CompanyProfile;
 use App\Models\MentorProfile;
+use App\Models\Organization;
 use App\Models\Role;
 use App\Models\StudentProfile;
 use App\Models\User;
@@ -17,6 +17,10 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 
+/**
+ * @tags Admin Management
+ * Administrative endpoints for user management, system logging, role approvals, and elevated access control.
+ */
 class AdminController extends Controller
 {
     /**
@@ -40,7 +44,26 @@ class AdminController extends Controller
             });
         }
 
-        return response()->json($query->orderBy('created_at', 'desc')->get());
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('first_name', 'like', "%{$search}%")
+                    ->orWhere('last_name', 'like', "%{$search}%")
+                    ->orWhere('email', 'like', "%{$search}%");
+            });
+        }
+
+        if ($request->filled('role')) {
+            $query->whereHas('roles', fn ($q) => $q->where('slug', $request->role));
+        }
+
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+
+        return response()->json(
+            $query->orderBy('created_at', 'desc')->paginate(20)
+        );
     }
 
     /**
@@ -133,7 +156,10 @@ class AdminController extends Controller
             ->orderBy('users.created_at', 'desc')
             ->get();
 
-        return response()->json($rows);
+        return response()->json([
+            'data' => $rows,
+            'count' => $rows->count()
+        ]);
     }
 
     /**
@@ -205,26 +231,33 @@ class AdminController extends Controller
             'last_name' => 'required|string|max:255',
             'email' => 'required|email|unique:users',
             'password' => 'required|string|min:8',
-            'role' => 'required|in:nti_admin,evaluator,content_editor',
-        ]);
-
-        $user = User::create([
-            'first_name' => $data['first_name'],
-            'last_name' => $data['last_name'],
-            'email' => $data['email'],
-            'password' => Hash::make($data['password']),
-            'status' => 'active',
-            'email_verified_at' => now(),
+            'role' => 'required|in:nti_admin,evaluator,content_editor,mentor',
         ]);
 
         $role = Role::where('slug', $data['role'])->firstOrFail();
 
-        DB::table('user_roles')->insert([
-            'user_id' => $user->id,
-            'role_id' => $role->id,
-            'granted_by' => $request->user()->id,
-            'granted_at' => now(),
-        ]);
+        $superAdmin = $request->user()->id;
+
+        $user = DB::transaction(function() use ($data, $role, $superAdmin) {
+            $user = User::create([
+                'first_name' => $data['first_name'],
+                'last_name' => $data['last_name'],
+                'email' => $data['email'],
+                'password' => Hash::make($data['password']),
+                'status' => 'active',
+                'email_verified_at' => now(),
+            ]);
+
+
+            DB::table('user_roles')->insert([
+                'user_id' => $user->id,
+                'role_id' => $role->id,
+                'granted_by' => $superAdmin,
+                'granted_at' => now(),
+            ]);
+
+            return $user;
+        });
 
         AuditService::log('create', 'admin', [
             'target_user_id' => $user->id,
@@ -261,7 +294,7 @@ class AdminController extends Controller
         if ($data['role'] === 'company') {
             if (empty($data['registration_number']) || empty($data['role_in_org'])) {
                 return response()->json([
-                    'message' => 'The registration number and role in organization fields are required for company role.'
+                    'message' => 'The registration number and role in organization fields are required for company role.',
                 ], 422);
             }
 
@@ -281,7 +314,7 @@ class AdminController extends Controller
         ]);
 
         $hasExistingRole = $user->roles()->where('role_id', $role->id)->exists();
-        
+
         if ($hasExistingRole && $data['role'] !== 'company') {
             return response()->json(['message' => 'Role assigned']);
         }
@@ -407,19 +440,19 @@ class AdminController extends Controller
         ]);
     }
 
-    /** 
+    /**
      * Select all users with admin role
-    */
+     */
     public function adminUsers(Request $request)
     {
         $adminRoles = ['nti_admin', 'super_admin', 'evaluator', 'content_editor'];
 
         $users = User::select('id', 'first_name', 'last_name', 'email')
-            ->whereHas('roles', function ($q) use ($adminRoles) { 
+            ->whereHas('roles', function ($q) use ($adminRoles) {
                 $q->whereIn('slug', $adminRoles);
             })
-            ->with(['roles' => function ($q) { 
-                $q->select('roles.id', 'roles.name', 'roles.slug'); 
+            ->with(['roles' => function ($q) {
+                $q->select('roles.id', 'roles.name', 'roles.slug');
             }])
             ->orderBy('first_name')
             ->get();

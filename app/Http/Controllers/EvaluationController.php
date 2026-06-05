@@ -6,18 +6,22 @@ use App\Models\Application;
 use App\Models\Evaluation;
 use App\Models\CallEvaluator;
 use App\Models\EvaluationCriteriaScore;
-use App\Services\AdminApplicationService;
+use App\Services\ApplicationWorkflowService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
+/**
+ * @tags Evaluation Management
+ * Endpoints for managing expert review assignments, submitting structured evaluation criteria scores, tracking reviewer recommendations, and computing automated consensus-based application decisions.
+ */
 class EvaluationController extends Controller
 {
-    protected $adminService;
+    protected $applicationWorkflowService;
 
-    public function __construct(AdminApplicationService $adminService)
+    public function __construct(ApplicationWorkflowService $applicationWorkflowService)
     {
-        $this->adminService = $adminService;
+        $this->applicationWorkflowService = $applicationWorkflowService;
     }
 
     public function evaluatorApplications(Request $request)
@@ -94,7 +98,7 @@ class EvaluationController extends Controller
         $validated = $request->validate([
             'application_id' => 'required|exists:applications,id',
             'scores' => 'required|array',
-            'scores.*.criterion_key' => 'required|string',
+            'scores.*.criterion_id' => 'required|exists:evaluation_criteria,id',
             'scores.*.score' => 'required|numeric|min:0|max:100',
             'scores.*.weight_at_moment' => 'required|numeric|min:0|max:100',
             'scores.*.comment' => 'nullable|string',
@@ -103,7 +107,7 @@ class EvaluationController extends Controller
         ]);
 
         $application = Application::findOrFail($validated['application_id']);
-        if ($application->status !== 'under_evaluation' && !$user->hasRole(['nti_admin', 'super_admin'])) {
+        if ($application->status !== 'under_evaluation' && !$user->isAdmin()) {
             return response()->json(['message' => 'Táto prihláška momentálne nie je vo fáze hodnotenia komisiou.'], 403);
         }
 
@@ -132,14 +136,12 @@ class EvaluationController extends Controller
                 foreach ($validated['scores'] as $score) {
                     EvaluationCriteriaScore::create([
                         'evaluation_id' => $evaluation->id,
-                        'criterion_key' => $score['criterion_key'],
+                        'criterion_id' => $score['criterion_id'],
                         'score' => $score['score'],
                         'weight_at_moment' => $score['weight_at_moment'],
                         'comment' => $score['comment'] ?? null,
                     ]);
                 }
-
-                $this->checkAndProcessCollectiveConsensus($application);
 
                 return $evaluation;
             });
@@ -205,8 +207,6 @@ class EvaluationController extends Controller
                 $evaluation->status = 'completed';
                 $evaluation->evaluated_at = now();
                 $evaluation->save();
-
-                $this->checkAndProcessCollectiveConsensus($evaluation->application);
             });
 
             return response()->json(['message' => 'Evaluation updated']);
@@ -215,16 +215,25 @@ class EvaluationController extends Controller
         }
     }
 
-    private function checkAndProcessCollectiveConsensus(Application $application): void
+    public function finalizeEvaluation(Request $request, Application $application)
     {
+        //request data validation and authorization
+        $this->authorize('finalize', $application);
+
+        $validated = $request->validate([
+            'status' => 'required|in:approved,rejected,request_revision',
+            'comment' => 'nullable|string',
+        ]);
+
+        //logic validation
         if (!$application->call_id) {
-            return;
+            return response()->json(['message' => 'Application does not belong to a valid call'], 500);
         }
 
         $totalEvaluatorsCount = CallEvaluator::where('call_id', $application->call_id)->count();
 
         if ($totalEvaluatorsCount === 0) {
-            return;
+            return response()->json(['message' => 'Application must have evaluators assigned'], 500);
         }
 
         $completedEvaluations = Evaluation::where('application_id', $application->id)
@@ -232,27 +241,10 @@ class EvaluationController extends Controller
             ->get();
 
         if ($completedEvaluations->count() < $totalEvaluatorsCount) {
-            return;
+            return response()->json(['message' => 'Not all evaluators have completed their evaluations yet'], 500);
         }
 
-        $recommendations = $completedEvaluations->pluck('recommendation')->toArray();
-
-        $counts = array_count_values($recommendations);
-        $counts = array_merge(['approve' => 0, 'reject' => 0, 'request_revision' => 0], $counts);
-
-        $finalStatus = 'under_evaluation'; 
-
-        if ($counts['reject'] > $counts['approve'] && $counts['reject'] > $counts['request_revision']) {
-            $finalStatus = 'rejected';
-        } elseif ($counts['request_revision'] > $counts['approve']) {
-            $finalStatus = 'revision_requested'; 
-        } elseif ($counts['approve'] >= (count($recommendations) / 2)) {
-            $finalStatus = 'approved';
-        }
-
-        $systemUser = Auth::user();
-        $internalComment = 'Automatické rozhodnutie systému na základe kolektívneho konsenzu hodnotiacej komisie.';
-
-        $this->adminService->updateStatus($application, $finalStatus, $internalComment, $systemUser);
+        //submit final verdict and update application status
+        $this->applicationWorkflowService->updateStatus($application, $validated['status'], $validated['comment'] ?? null, $request->user());
     }
 }

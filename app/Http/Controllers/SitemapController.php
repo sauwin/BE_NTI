@@ -3,14 +3,17 @@
 namespace App\Http\Controllers;
 
 use App\Models\Program;
-use App\Models\Article;
+use App\Models\NewsArticle;
 use Illuminate\Support\Facades\Cache;
 use Spatie\Sitemap\Sitemap;
 use Spatie\Sitemap\Tags\Url;
 
+/**
+ * @tags SEO Management
+ * Endpoints for generating and caching dynamic XML sitemaps, encompassing static site routes, program listings, and news article content for search engine indexing optimization.
+ */
 class SitemapController extends Controller
 {
-
     /**
      * SEO logic
      */
@@ -19,7 +22,6 @@ class SitemapController extends Controller
         $sitemapXml = Cache::remember('sitemap.xml', 3600, function () {
 
             $sitemap = Sitemap::create()
-
                 // STATIC PAGES
                 ->add(
                     Url::create('/')
@@ -38,13 +40,17 @@ class SitemapController extends Controller
                 );
 
             // PROGRAMS (DYNAMIC)
-            Program::query()
-                ->select(['id', 'slug', 'updated_at'])
+            \App\Models\Program::query()
+                ->select(['id', 'code', 'updated_at']) 
                 ->orderBy('id')
                 ->chunk(200, function ($programs) use ($sitemap) {
                     foreach ($programs as $program) {
+                        $programIdentifier = isset($program->code) 
+                            ? str_replace('program_', '', $program->code) 
+                            : $program->id;
+
                         $sitemap->add(
-                            Url::create("/programs/" . (isset($program->slug) ? $program->slug : $program->id))
+                            Url::create("/programs/" . $programIdentifier)
                                 ->setLastModificationDate($program->updated_at)
                                 ->setPriority(0.9)
                                 ->setChangeFrequency('weekly')
@@ -53,14 +59,14 @@ class SitemapController extends Controller
                 });
 
             // ARTICLES (DYNAMIC)
-            Article::query()
+            NewsArticle::query()
                 ->select(['id', 'slug', 'updated_at'])
                 ->orderBy('id')
-                ->chunk(200, function ($articles) use ($sitemap) {
-                    foreach ($articles as $article) {
+                ->chunk(200, function ($newsArticles) use ($sitemap) {
+                    foreach ($newsArticles as $newsArticle) {
                         $sitemap->add(
-                            Url::create("/articles/" . (isset($article->slug) ? $article->slug : $article->id))
-                                ->setLastModificationDate($article->updated_at)
+                            Url::create("/articles/" . (isset($newsArticle->slug) ? $newsArticle->slug : $newsArticle->id))
+                                ->setLastModificationDate($newsArticle->updated_at)
                                 ->setPriority(0.8)
                                 ->setChangeFrequency('monthly')
                         );

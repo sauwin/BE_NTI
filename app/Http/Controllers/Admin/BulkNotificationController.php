@@ -9,6 +9,10 @@ use App\Models\BulkNotificationCampaign;
 use Illuminate\Http\Request;
 use App\Services\AuditService;
 
+/**
+ * @tags Admin Management
+ * Endpoints for administering bulk communication campaigns, including tracking historical distribution logs and dispatching queued notification jobs to segmented user groups (defined by roles or specific project calls).
+ */
 class BulkNotificationController extends Controller
 {
     /**

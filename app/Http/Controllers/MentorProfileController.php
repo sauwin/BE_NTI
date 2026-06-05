@@ -5,6 +5,10 @@ namespace App\Http\Controllers;
 use App\Models\MentorProfile;
 use Illuminate\Http\Request;
 
+/**
+ * @tags User Management
+ * Endpoints for retrieving and maintaining mentor-specific biographical information, areas of professional expertise, and current availability status.
+ */
 class MentorProfileController extends Controller
 {
     /**

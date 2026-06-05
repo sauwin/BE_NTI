@@ -19,7 +19,7 @@ class EvaluationPolicy
 
     public function view(User $user, Evaluation $evaluation): bool
     {
-        if ($user->hasRole(['nti_admin', 'super_admin'])) {
+        if ($user->isAdmin()) {
             return true;
         }
 
@@ -33,7 +33,7 @@ class EvaluationPolicy
 
     public function update(User $user, Evaluation $evaluation): bool
     {
-        if ($user->hasRole(['nti_admin', 'super_admin'])) {
+        if ($user->isAdmin()) {
             return true;
         }
 

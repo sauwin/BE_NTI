@@ -5,6 +5,7 @@ namespace App\Policies\Concerns;
 use App\Models\Application;
 use App\Models\User;
 
+
 trait AuthorizesApplicationAccess
 {
     protected function isAdmin(User $user): bool
