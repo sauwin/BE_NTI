@@ -19,6 +19,8 @@ class StudentProfileController extends Controller
      */
     public function store(Request $request)
     {
+        $this->authorize('create', StudentProfile::class);
+
         $data = $request->validate([
             'study_program' => 'required|string|max:255',
             'year_of_study' => 'required|integer|min:1|max:6',
@@ -55,7 +57,9 @@ class StudentProfileController extends Controller
     {
         $profile = StudentProfile::with('skills')
             ->where('user_id', $request->user()->id)
-            ->first();
+            ->firstOrFail();
+
+        $this->authorize('view', $profile);
 
         return response()->json($profile);
     }
@@ -77,18 +81,19 @@ class StudentProfileController extends Controller
             'skills.*.level' => 'required_with:skills|in:beginner,intermediate,advanced',
         ]);
 
-        DB::transaction(function () use ($request) {
-            $profile = StudentProfile::updateOrCreate(
-                ['user_id' => $request->user()->id],
-                [
-                    'university' => $request->university,
-                    'study_program' => $request->study_program,
-                    'year_of_study' => $request->year_of_study,
-                    'bio' => $request->bio,
-                    'github_url' => $request->github_url,
-                    'academic_declaration_confirmed' => $request->academic_declaration_confirmed ?? false,
-                ]
-            );
+        $profile = StudentProfile::firstOrNew(['user_id' => $request->user()->id]);
+
+        $this->authorize('update', $profile);
+
+        DB::transaction(function () use ($request, $profile) {
+            $profile->fill([
+                'university' => $request->university,
+                'study_program' => $request->study_program,
+                'year_of_study' => $request->year_of_study,
+                'bio' => $request->bio,
+                'github_url' => $request->github_url,
+                'academic_declaration_confirmed' => $request->academic_declaration_confirmed ?? false,
+            ])->save();
 
             $profile->skills()->delete();
 

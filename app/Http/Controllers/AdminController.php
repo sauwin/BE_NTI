@@ -156,7 +156,10 @@ class AdminController extends Controller
             ->orderBy('users.created_at', 'desc')
             ->get();
 
-        return response()->json($rows);
+        return response()->json([
+            'data' => $rows,
+            'count' => $rows->count()
+        ]);
     }
 
     /**
