@@ -34,6 +34,8 @@ class TeamController extends Controller
      */
     public function store(Request $request)
     {
+        $this->authorize('create');
+
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'description' => 'nullable|string'
@@ -61,7 +63,7 @@ class TeamController extends Controller
      */
     public function show(Team $team)
     {
-        Gate::authorize('view', $team);
+        $this->authorize('view', $team);
 
         $team->load([
             'leader',
@@ -76,7 +78,7 @@ class TeamController extends Controller
      */
     public function update(Request $request, Team $team)
     {
-        Gate::authorize('update', $team);
+        $this->authorize('update', $team);
 
         $validated = $request->validate([
             'name' => 'sometimes|string|max:255',
@@ -92,7 +94,7 @@ class TeamController extends Controller
      */
     public function destroy(Team $team)
     {
-        Gate::authorize('delete', $team);
+        $this->authorize('delete', $team);
 
         if ($team->status !== 'forming') {
             return response()->json([
@@ -107,7 +109,7 @@ class TeamController extends Controller
 
     public function invite(Request $request, Team $team) 
     {
-        Gate::authorize('manageMembers', $team);
+        $this->authorize('manageMembers', $team);
 
         if ($team->status !== 'forming') {
             return response()->json([
@@ -152,7 +154,7 @@ class TeamController extends Controller
      */
     public function removeMember(Request $request, Team $team, User $user) 
     {
-        Gate::authorize('manageMembers', $team);
+        $this->authorize('manageMembers', $team);
 
         if ($team->status !== 'forming') {
             return response()->json([
@@ -162,7 +164,7 @@ class TeamController extends Controller
 
         if ($team->leader_id === $user->id) {
             return response()->json([
-                'error' => 'You cannot remove the team leader.'
+                'message' => 'You cannot remove the team leader.'
             ], 403); 
         }
 
@@ -173,6 +175,9 @@ class TeamController extends Controller
         ], 200);
     }
 
+    /**
+     * Show all invitations for student
+     */
     public function myInvitations(Request $request)
     {
         $invitations = $request->user()
@@ -184,6 +189,9 @@ class TeamController extends Controller
         return response()->json($invitations);
     }
 
+    /**
+     * The student responds to the invitation
+     */
     public function respondToInvitation(Request $request, Team $team)
     {
         $validated = $request->validate([
@@ -193,12 +201,15 @@ class TeamController extends Controller
         if ($team->status !== 'forming') {
             return response()->json([
                 'message' => 'You cannot accept the invitation, because this team is in state ready.'
-            ], 422);
+            ], 400);
         }
 
         $user = $request->user();
 
-        $membership = $team->members()->where('user_id', $user->id)->first();
+        $membership = $team->members()
+            ->where('user_id', $user->id)
+            ->withPivot('status') 
+            ->first();
 
         if (!$membership || $membership->pivot->status !== 'pending') {
             return response()->json([
