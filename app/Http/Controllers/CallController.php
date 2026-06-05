@@ -18,15 +18,11 @@ class CallController extends Controller
 {
     public function active(Request $request, ?string $program_type = null)
     {
-        $query = Call::with('program')
-            ->where('status', 'open');
+        $query = Call::where('status', 'open');
 
         if ($program_type) {
             $program_type = strtolower(trim($program_type));
-
-            $query->whereHas('program', fn ($q) =>
-                $q->where('code', 'program_' . $program_type)
-            );
+            $query->where('program', $program_type);
         }
 
         $call = $query
@@ -38,27 +34,27 @@ class CallController extends Controller
 
     public function index(Request $request)
     {
-        $calls = Call::with('program')
-            ->orderByDesc('created_at')
-            ->get();
+        $calls = Call::orderByDesc('created_at')->get();
 
         return response()->json($calls);
     }
 
     public function store(Request $request)
     {
-        $programId = $request->input('program_id');
-        
-        if ($programId && !is_numeric($programId)) {
-            $type = str_contains($programId, 'program_a') ? 'a' : (str_contains($programId, 'program_b') ? 'b' : null);
-            if ($type) {
-                $request->merge(['program_type' => $type]);
-            }
-        } else if (is_numeric($programId)) {
-            $p = Program::find($programId);
-            if ($p) {
-                $type = str_replace('program_', '', $p->code);
-                $request->merge(['program_type' => $type]);
+        $programType = null;
+        if ($request->has('program_type')) {
+            $programType = $request->input('program_type');
+        } elseif ($request->has('program')) {
+            $programType = $request->input('program');
+        } elseif ($request->has('program_id')) {
+            $programId = $request->input('program_id');
+            if (is_numeric($programId)) {
+                $p = Program::find($programId);
+                if ($p) {
+                    $programType = str_replace('program_', '', $p->code);
+                }
+            } else {
+                $programType = str_contains($programId, 'program_a') ? 'a' : (str_contains($programId, 'program_b') ? 'b' : null);
             }
         }
 
@@ -84,10 +80,7 @@ class CallController extends Controller
             ], 422);
         }
 
-        $program = Program::where('code', 'program_'.$data['program_type'])->first();
-        if (! $program) {
-            return response()->json(['error' => 'Program not found for type: '.$data['program_type']], 422);
-        }
+        // use program_type directly as enum value on calls table
 
         $documents = $request->input('form_config') ?? $request->input('required_documents') ?? [];
         if (is_string($documents)) {
@@ -97,7 +90,7 @@ class CallController extends Controller
         $callName = $request->input('title') ?? $request->input('name') ?? 'Bez názvu';
 
         $call = Call::create([
-            'program_id' => $program->id,
+            'program' => $data['program_type'],
             'name' => $callName,
             'status' => $request->input('status') ?? 'draft',
             'opens_at' => $request->input('opens_at') ? now()->parse($request->input('opens_at')) : null,
@@ -113,7 +106,7 @@ class CallController extends Controller
 
         AuditService::log('create_call', 'call', [
             'call_id' => $call->id,
-            'program_type' => str_replace('program_', '', $program->code), 
+            'program_type' => $data['program_type'], 
             'name' => $callName,
         ]);
 
@@ -138,10 +131,7 @@ class CallController extends Controller
         ]);
 
         if (isset($data['program_type'])) {
-            $program = Program::where('code', 'program_'.$data['program_type'])->first();
-            if ($program) {
-                $call->program_id = $program->id;
-            }
+            $call->program = $data['program_type'];
         }
 
         if (isset($data['title'])) {
@@ -207,7 +197,7 @@ class CallController extends Controller
 
     public function show(int $id)
     {
-        $call = Call::with('program')->findOrFail($id);
+        $call = Call::findOrFail($id);
 
         return response()->json($call);
     }

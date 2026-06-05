@@ -7,8 +7,6 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-
-use App\Models\Program;
 use App\Models\User;
 use App\Models\Application;
 use App\Models\EvaluationCriterion;
@@ -18,7 +16,7 @@ class Call extends Model
     use HasFactory;
 
     protected $fillable = [
-        'program_id',
+        'program',
         'name',
         'status',
         'opens_at',
@@ -61,11 +59,6 @@ class Call extends Model
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
-    }
-
-    public function program(): BelongsTo
-    {
-        return $this->belongsTo(Program::class);
     }
 
     public function evaluators(): BelongsToMany

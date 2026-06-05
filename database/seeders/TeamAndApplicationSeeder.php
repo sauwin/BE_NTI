@@ -7,7 +7,6 @@ use App\Models\User;
 use App\Models\Team;
 use App\Models\StudentProfile;
 use App\Models\Application;
-use App\Models\Program;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 
@@ -15,7 +14,7 @@ class TeamAndApplicationSeeder extends Seeder
 {
     public function run(): void
     {
-        $callA = Call::whereHas('program', fn($q) => $q->where('code', 'program_a'))->first() 
+        $callA = Call::where('program', 'a')->first() 
             ?? Call::factory()->create(['status' => 'open']);
 
         $studentIds = DB::table('user_roles')

@@ -14,7 +14,7 @@ class TaskController extends Controller
 {
     public function byOrganization($organizationId)
     {
-        $tasks = Task::with(['call.program', 'organization'])
+        $tasks = Task::with(['call', 'organization'])
             ->where('organization_id', $organizationId)
             ->get();
 
@@ -23,10 +23,10 @@ class TaskController extends Controller
 
     public function publicTasks()
     {
-        $tasks = Task::with(['call.program', 'organization'])
+        $tasks = Task::with(['call', 'organization'])
             ->where('status', 'published')
-            ->whereHas('call.program', function ($query) {
-                $query->where('code', 'program_b');
+            ->whereHas('call', function ($query) {
+                $query->where('program', 'b');
             })
             ->get();
 
@@ -35,7 +35,7 @@ class TaskController extends Controller
 
     public function index(Request $request)
     {
-        $tasks = Task::with(['call.program', 'organization'])
+        $tasks = Task::with(['call', 'organization'])
             ->where('product_owner_user_id', $request->user()->id)
             ->get();
 
@@ -80,8 +80,8 @@ class TaskController extends Controller
 
         $organizationId = $request->user()->organization_id;
 
-        $call = Call::with('program')->findOrFail($data['call_id']);
-        if ($call->program->code !== 'program_b') {
+        $call = Call::findOrFail($data['call_id']);
+        if (($call->program ?? null) !== 'b') {
             return response()->json(['message' => 'Only Program B calls can receive company tasks.'], 422);
         }
 

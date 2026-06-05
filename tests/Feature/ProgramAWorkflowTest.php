@@ -7,7 +7,6 @@ use App\Models\Call;
 use App\Models\Evaluation;
 use App\Models\Mentorship;
 use App\Models\Milestone;
-use App\Models\Program;
 use App\Models\Role;
 use App\Models\StudentProfile;
 use App\Models\Team;
@@ -48,18 +47,10 @@ class ProgramAWorkflowTest extends TestCase
         return $user;
     }
 
-    private function makeProgram(): Program
-    {
-        return Program::firstOrCreate(
-            ['code' => 'program_a'],
-            ['type' => Program::TYPE_GRANT, 'is_active' => true, 'config' => null]
-        );
-    }
-
-    private function makeOpenCall(Program $program): Call
+    private function makeOpenCall(): Call
     {
         return Call::factory()->create([
-            'program_id' => $program->id,
+            'program' => 'a',
             'status' => 'open',
             'opens_at' => now()->subDay(),
             'deadline_at' => now()->addDays(7),
@@ -173,7 +164,7 @@ class ProgramAWorkflowTest extends TestCase
     public function test_leader_can_create_draft_application(): void
     {
         [$leader, $team] = $this->makeTeamWithMembers(3);
-        $call = $this->makeOpenCall($this->makeProgram());
+        $call = $this->makeOpenCall();
 
         $res = $this->actingAs($leader)->postJson('/api/applications', [
             'applicant_type' => 'team',
@@ -196,7 +187,7 @@ class ProgramAWorkflowTest extends TestCase
     public function test_leader_can_submit_draft_application(): void
     {
         [$leader, $team] = $this->makeTeamWithMembers(3);
-        $call = $this->makeOpenCall($this->makeProgram());
+        $call = $this->makeOpenCall();
 
         $app = Application::create([
             'call_id' => $call->id,
@@ -217,7 +208,7 @@ class ProgramAWorkflowTest extends TestCase
     public function test_admin_can_formally_verify_submitted_application(): void
     {
         $admin = $this->makeUser($this->adminRole);
-        $call = $this->makeOpenCall($this->makeProgram());
+        $call = $this->makeOpenCall();
 
         $app = Application::create([
             'call_id' => $call->id,
@@ -238,7 +229,7 @@ class ProgramAWorkflowTest extends TestCase
     public function test_admin_can_move_application_to_evaluation(): void
     {
         $admin = $this->makeUser($this->adminRole);
-        $call = $this->makeOpenCall($this->makeProgram());
+        $call = $this->makeOpenCall();
 
         $app = Application::create([
             'call_id' => $call->id,
@@ -259,7 +250,7 @@ class ProgramAWorkflowTest extends TestCase
     public function test_evaluator_can_evaluate_application(): void
     {
         $evaluator = $this->makeUser($this->evaluatorRole);
-        $call = $this->makeOpenCall($this->makeProgram());
+        $call = $this->makeOpenCall();
 
         $app = Application::create([
             'call_id' => $call->id,
@@ -286,7 +277,7 @@ class ProgramAWorkflowTest extends TestCase
     public function test_admin_can_request_revision(): void
     {
         $admin = $this->makeUser($this->adminRole);
-        $call = $this->makeOpenCall($this->makeProgram());
+        $call = $this->makeOpenCall();
 
         $app = Application::create([
             'call_id' => $call->id,
@@ -308,7 +299,7 @@ class ProgramAWorkflowTest extends TestCase
     public function test_applicant_can_resubmit_after_revision_request(): void
     {
         [$leader, $team] = $this->makeTeamWithMembers(3);
-        $call = $this->makeOpenCall($this->makeProgram());
+        $call = $this->makeOpenCall();
 
         $app = Application::create([
             'call_id' => $call->id,
@@ -328,7 +319,7 @@ class ProgramAWorkflowTest extends TestCase
     public function test_admin_can_approve_application(): void
     {
         $admin = $this->makeUser($this->adminRole);
-        $call = $this->makeOpenCall($this->makeProgram());
+        $call = $this->makeOpenCall();
 
         $app = Application::create([
             'call_id' => $call->id,
@@ -349,7 +340,7 @@ class ProgramAWorkflowTest extends TestCase
     public function test_admin_can_reject_application(): void
     {
         $admin = $this->makeUser($this->adminRole);
-        $call = $this->makeOpenCall($this->makeProgram());
+        $call = $this->makeOpenCall();
 
         $app = Application::create([
             'call_id' => $call->id,
@@ -371,7 +362,7 @@ class ProgramAWorkflowTest extends TestCase
     public function test_admin_can_move_approved_application_to_onboarding(): void
     {
         $admin = $this->makeUser($this->adminRole);
-        $call = $this->makeOpenCall($this->makeProgram());
+        $call = $this->makeOpenCall();
 
         $app = Application::create([
             'call_id' => $call->id,
@@ -394,7 +385,7 @@ class ProgramAWorkflowTest extends TestCase
         $admin = $this->makeUser($this->adminRole);
         $mentor = $this->makeUser($this->mentorRole);
         $student = $this->makeUser($this->studentRole);
-        $call = $this->makeOpenCall($this->makeProgram());
+        $call = $this->makeOpenCall();
 
         $app = Application::create([
             'call_id' => $call->id,
@@ -420,7 +411,7 @@ class ProgramAWorkflowTest extends TestCase
     public function test_admin_can_set_project_active(): void
     {
         $admin = $this->makeUser($this->adminRole);
-        $call = $this->makeOpenCall($this->makeProgram());
+        $call = $this->makeOpenCall();
 
         $app = Application::create([
             'call_id' => $call->id,
@@ -441,7 +432,7 @@ class ProgramAWorkflowTest extends TestCase
     public function test_mentor_can_record_consultation(): void
     {
         $mentor = $this->makeUser($this->mentorRole);
-        $call = $this->makeOpenCall($this->makeProgram());
+        $call = $this->makeOpenCall();
 
         $app = Application::create([
             'call_id' => $call->id,
@@ -473,7 +464,7 @@ class ProgramAWorkflowTest extends TestCase
     public function test_admin_can_create_milestone_for_active_project(): void
     {
         $admin = $this->makeUser($this->adminRole);
-        $call = $this->makeOpenCall($this->makeProgram());
+        $call = $this->makeOpenCall();
 
         $app = Application::create([
             'call_id' => $call->id,
@@ -499,7 +490,7 @@ class ProgramAWorkflowTest extends TestCase
     public function test_admin_can_suspend_active_project(): void
     {
         $admin = $this->makeUser($this->adminRole);
-        $call = $this->makeOpenCall($this->makeProgram());
+        $call = $this->makeOpenCall();
 
         $app = Application::create([
             'call_id' => $call->id,
@@ -520,7 +511,7 @@ class ProgramAWorkflowTest extends TestCase
     public function test_admin_can_close_completed_project(): void
     {
         $admin = $this->makeUser($this->adminRole);
-        $call = $this->makeOpenCall($this->makeProgram());
+        $call = $this->makeOpenCall();
 
         $app = Application::create([
             'call_id' => $call->id,
@@ -550,7 +541,7 @@ class ProgramAWorkflowTest extends TestCase
             'applicant_type' => 'team',
             'program_type' => 'a',
             'team_id' => $team->id,
-            'call_id' => $this->makeOpenCall($this->makeProgram())->id,
+            'call_id' => $this->makeOpenCall()->id,
             'category' => 'AI',
             'submit_type' => 'draft',
         ]);

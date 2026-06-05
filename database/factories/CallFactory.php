@@ -3,7 +3,6 @@
 namespace Database\Factories;
 
 use App\Models\Call;
-use App\Models\Program;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
@@ -14,7 +13,7 @@ class CallFactory extends Factory
     public function definition(): array
     {
         return [
-            'program_id' => Program::factory(),
+            'program' => $this->faker->randomElement(['a', 'b']),
             'name' => $this->faker->sentence(3),
             'status' => 'draft',
             'opens_at' => now(),

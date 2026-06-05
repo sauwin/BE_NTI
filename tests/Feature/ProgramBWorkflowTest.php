@@ -6,7 +6,6 @@ use App\Models\Application;
 use App\Models\Call;
 use App\Models\Mentorship;
 use App\Models\Organization;
-use App\Models\Program;
 use App\Models\Role;
 use App\Models\StudentProfile;
 use App\Models\Task;
@@ -54,14 +53,6 @@ class ProgramBWorkflowTest extends TestCase
         return $user;
     }
 
-    private function makeProgramB(): Program
-    {
-        return Program::firstOrCreate(
-            ['code' => 'program_b'],
-            ['type' => Program::TYPE_LIVE, 'is_active' => true, 'config' => null]
-        );
-    }
-
     private function makeOrg(): Organization
     {
         return Organization::create([
@@ -95,9 +86,8 @@ class ProgramBWorkflowTest extends TestCase
     {
         $org = $this->makeOrg();
         $company = $this->makeUser($this->companyRole, $org->id);
-        $program = $this->makeProgramB();
         $call = Call::factory()->create([
-            'program_id' => $program->id,
+            'program' => 'b',
             'status' => 'open',
         ]);
 
@@ -119,8 +109,10 @@ class ProgramBWorkflowTest extends TestCase
         $org = $this->makeOrg();
         $company = $this->makeUser($this->companyRole, $org->id);
         $productOwner = $this->makeUser($this->companyRole, $org->id);
-        $program = $this->makeProgramB();
-        $call = Call::factory()->create(['program_id' => $program->id, 'status' => 'open']);
+        $call = Call::factory()->create([
+            'program' => 'b',
+            'status' => 'open',
+        ]);
 
         $task = Task::create([
             'call_id' => $call->id,
@@ -144,14 +136,13 @@ class ProgramBWorkflowTest extends TestCase
     {
         $org = $this->makeOrg();
         $company = $this->makeUser($this->companyRole, $org->id);
-        $program = $this->makeProgramB();
 
         $res = $this->actingAs($company)->postJson('/api/calls-with-tasks', [
             'title' => 'E-commerce portal',
             'brief' => 'Build a shop',
             'budget' => 5000,
             'status' => 'published',
-            'program_id' => $program->id,
+            'program' => 'b',
             'call_opens_at' => now()->toDateTimeString(),
             'call_deadline_at' => now()->addDays(14)->toDateTimeString(),
             'min_team_size' => 3,
@@ -165,8 +156,11 @@ class ProgramBWorkflowTest extends TestCase
     public function test_published_tasks_visible_publicly(): void
     {
         $org = $this->makeOrg();
-        $program = $this->makeProgramB();
-        $call = Call::factory()->create(['program_id' => $program->id, 'status' => 'open']);
+        $call = Call::factory()->create([
+            'program' => 'b',
+            'status' => 'open',
+        ]);
+
         Task::create([
             'call_id' => $call->id,
             'organization_id' => $org->id,
@@ -185,8 +179,11 @@ class ProgramBWorkflowTest extends TestCase
     public function test_draft_task_not_visible_publicly(): void
     {
         $org = $this->makeOrg();
-        $program = $this->makeProgramB();
-        $call = Call::factory()->create(['program_id' => $program->id, 'status' => 'open']);
+        $call = Call::factory()->create([
+            'program' => 'b',
+            'status' => 'open',
+        ]);
+
         Task::create([
             'call_id' => $call->id,
             'organization_id' => $org->id,
@@ -208,8 +205,11 @@ class ProgramBWorkflowTest extends TestCase
     {
         $org = $this->makeOrg();
         $company = $this->makeUser($this->companyRole, $org->id);
-        $program = $this->makeProgramB();
-        $call = Call::factory()->create(['program_id' => $program->id, 'status' => 'open']);
+        $call = Call::factory()->create([
+            'program' => 'b',
+            'status' => 'open',
+        ]);
+
         $task = Task::create([
             'call_id' => $call->id,
             'organization_id' => $org->id,
@@ -231,8 +231,11 @@ class ProgramBWorkflowTest extends TestCase
     {
         $admin = $this->makeUser($this->adminRole);
         $org = $this->makeOrg();
-        $program = $this->makeProgramB();
-        $call = Call::factory()->create(['program_id' => $program->id, 'status' => 'open']);
+        $call = Call::factory()->create([
+            'program' => 'b',
+            'status' => 'open',
+        ]);
+
         $task = Task::create([
             'call_id' => $call->id,
             'organization_id' => $org->id,
@@ -254,8 +257,11 @@ class ProgramBWorkflowTest extends TestCase
     {
         $admin = $this->makeUser($this->adminRole);
         $org = $this->makeOrg();
-        $program = $this->makeProgramB();
-        $call = Call::factory()->create(['program_id' => $program->id, 'status' => 'open']);
+        $call = Call::factory()->create([
+            'program' => 'b',
+            'status' => 'open',
+        ]);
+
         $task = Task::create([
             'call_id' => $call->id,
             'organization_id' => $org->id,
@@ -276,9 +282,8 @@ class ProgramBWorkflowTest extends TestCase
 // Step 6: student submits application to program B call (spec 8.3)
     public function test_student_can_apply_to_program_b_call(): void
     {
-        $program = $this->makeProgramB();
         $call = Call::factory()->create([
-            'program_id' => $program->id,
+            'program' => 'b',
             'status' => 'open',
             'opens_at' => now()->subDay(),
             'deadline_at' => now()->addDays(7),
@@ -302,8 +307,10 @@ class ProgramBWorkflowTest extends TestCase
     public function test_commission_can_approve_program_b_application(): void
     {
         $admin = $this->makeUser($this->adminRole);
-        $program = $this->makeProgramB();
-        $call = Call::factory()->create(['program_id' => $program->id, 'status' => 'open']);
+        $call = Call::factory()->create([
+            'program' => 'b',
+            'status' => 'open',
+        ]);
 
         $app = Application::create([
             'call_id' => $call->id,
@@ -323,8 +330,10 @@ class ProgramBWorkflowTest extends TestCase
     public function test_commission_can_reject_program_b_application(): void
     {
         $admin = $this->makeUser($this->adminRole);
-        $program = $this->makeProgramB();
-        $call = Call::factory()->create(['program_id' => $program->id, 'status' => 'open']);
+        $call = Call::factory()->create([
+            'program' => 'b',
+            'status' => 'open',
+        ]);
 
         $app = Application::create([
             'call_id' => $call->id,
@@ -348,8 +357,10 @@ class ProgramBWorkflowTest extends TestCase
         $admin = $this->makeUser($this->adminRole);
         $mentor = $this->makeUser($this->mentorRole);
         [$leader, $team] = $this->makeTeamWithMembers(3);
-        $program = $this->makeProgramB();
-        $call = Call::factory()->create(['program_id' => $program->id, 'status' => 'open']);
+        $call = Call::factory()->create([
+            'program' => 'b',
+            'status' => 'open',
+        ]);
 
         $app = Application::create([
             'call_id' => $call->id,
@@ -376,8 +387,10 @@ class ProgramBWorkflowTest extends TestCase
     public function test_mentor_can_record_consultation_for_program_b(): void
     {
         $mentor = $this->makeUser($this->mentorRole);
-        $program = $this->makeProgramB();
-        $call = Call::factory()->create(['program_id' => $program->id, 'status' => 'open']);
+        $call = Call::factory()->create([
+            'program' => 'b',
+            'status' => 'open',
+        ]);
 
         $app = Application::create([
             'call_id' => $call->id,
@@ -409,8 +422,10 @@ class ProgramBWorkflowTest extends TestCase
     public function test_admin_can_create_milestone_for_program_b_project(): void
     {
         $admin = $this->makeUser($this->adminRole);
-        $program = $this->makeProgramB();
-        $call = Call::factory()->create(['program_id' => $program->id, 'status' => 'open']);
+        $call = Call::factory()->create([
+            'program' => 'b',
+            'status' => 'open',
+        ]);
 
         $app = Application::create([
             'call_id' => $call->id,
@@ -437,8 +452,11 @@ class ProgramBWorkflowTest extends TestCase
     {
         $org = $this->makeOrg();
         $company = $this->makeUser($this->companyRole, $org->id);
-        $program = $this->makeProgramB();
-        $call = Call::factory()->create(['program_id' => $program->id, 'status' => 'open']);
+        $call = Call::factory()->create([
+            'program' => 'b',
+            'status' => 'open',
+        ]);
+
         $task = Task::create([
             'call_id' => $call->id,
             'organization_id' => $org->id,
@@ -461,8 +479,10 @@ class ProgramBWorkflowTest extends TestCase
     public function test_admin_can_close_program_b_application(): void
     {
         $admin = $this->makeUser($this->adminRole);
-        $program = $this->makeProgramB();
-        $call = Call::factory()->create(['program_id' => $program->id, 'status' => 'open']);
+        $call = Call::factory()->create([
+            'program' => 'b',
+            'status' => 'open',
+        ]);
 
         $app = Application::create([
             'call_id' => $call->id,
@@ -497,7 +517,6 @@ class ProgramBWorkflowTest extends TestCase
         $org = $this->makeOrg();
         $company = $this->makeUser($this->companyRole, $org->id);
         [$leader, $team] = $this->makeTeamWithMembers(3);
-        $program = $this->makeProgramB();
 
 // company creates and publishes task
         $callTaskRes = $this->actingAs($company)->postJson('/api/calls-with-tasks', [
@@ -505,7 +524,7 @@ class ProgramBWorkflowTest extends TestCase
             'brief' => 'Build logistics tracking',
             'budget' => 6000,
             'status' => 'published',
-            'program_id' => $program->id,
+            'program' => 'b',
             'call_opens_at' => now()->toDateTimeString(),
             'call_deadline_at' => now()->addDays(14)->toDateTimeString(),
             'min_team_size' => 3,

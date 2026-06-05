@@ -4,7 +4,6 @@ namespace Tests\Unit;
 
 use App\Models\Application;
 use App\Models\Call;
-use App\Models\Program;
 use App\Models\Role;
 use App\Models\StudentProfile;
 use App\Models\User;
@@ -36,16 +35,7 @@ class ApplicationTest extends TestCase
 
     private function makeActiveCall(string $programType): Call
     {
-        $program = Program::firstOrCreate(
-            ['code' => 'program_'.$programType],
-            [
-                'type' => $programType === 'a' ? 'grant' : 'live_practice',
-                'is_active' => true,
-                'config' => [],
-            ]
-        );
-
-        return Call::factory()->create(['program_id' => $program->id, 'status' => 'open']);
+        return Call::factory()->create(['program' => 'a', 'status' => 'open']);
     }
 
     public function test_student_can_create_draft_application(): void

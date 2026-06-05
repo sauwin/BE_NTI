@@ -31,15 +31,9 @@ class CallPeriodSeeder extends Seeder
             ]);
         }
 
-        $programA = DB::table('programs')->where('code', 'program_a')->first();
-        $programAId = $programA ? $programA->id : 1;
-
-        $programB = DB::table('programs')->where('code', 'program_b')->first();
-        $programBId = $programB ? $programB->id : 2;
-
         DB::table('calls')->insert([
             [
-                'program_id' => $programAId,
+                'program' => 'a',
                 'name' => 'Summer Semester 2026 - Program A Call',
                 'status' => 'open',
                 'opens_at' => now()->subDays(2),

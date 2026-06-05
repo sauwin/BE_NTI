@@ -18,7 +18,7 @@ class CallsExport implements FromQuery, WithHeadings, WithMapping
 
     public function query()
     {
-        $query = Call::with('program');
+        $query = Call::query();
 
         if (!empty($this->filters['status'])) {
             $query->where('status', $this->filters['status']);
@@ -26,10 +26,7 @@ class CallsExport implements FromQuery, WithHeadings, WithMapping
 
         if (!empty($this->filters['program_type'])) {
             $programType = $this->filters['program_type'];
-            
-            $query->whereHas('program', function ($q) use ($programType) {
-                $q->where('code', 'program_' . $programType);
-            });
+            $query->where('program', $programType);
         }
 
         return $query;
@@ -51,16 +48,11 @@ class CallsExport implements FromQuery, WithHeadings, WithMapping
 
     public function map($call): array
     {
-        $programLabel = '—';
-        if ($call->program) {
-            if ($call->program->code === 'program_a') {
-                $programLabel = 'Program A';
-            } elseif ($call->program->code === 'program_b') {
-                $programLabel = 'Program B';
-            } else {
-                $programLabel = $call->program->title ?? $call->program->name ?? '—';
-            }
-        }
+        $programLabel = match($call->program ?? null) {
+            'a' => 'Program A',
+            'b' => 'Program B',
+            default => '—',
+        };
 
         return [
             $call->id,

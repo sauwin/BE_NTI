@@ -13,9 +13,7 @@ return new class extends Migration
     {
         Schema::create('calls', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('program_id')
-                ->constrained('programs')
-                ->onDelete('cascade');
+            $table->enum('program', ['a', 'b'])->default('a');
             $table->string('name');
             $table->enum('status', ['draft', 'open', 'closed', 'archived'])->default('draft');
             $table->timestamp('opens_at')->nullable();
@@ -30,7 +28,7 @@ return new class extends Migration
                 ->constrained('users')
                 ->onDelete('cascade');
             $table->timestamps();
-            $table->index('program_id');
+            $table->index('program');
             $table->index('status');
             $table->index('evaluation_scheduled_at');
         });

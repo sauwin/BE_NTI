@@ -2,7 +2,6 @@
 
 use App\Models\Application;
 use App\Models\Call;
-use App\Models\Program;
 use App\Models\Role;
 use App\Models\StudentProfile;
 use App\Models\User;
@@ -29,11 +28,7 @@ function appWithOwner(): array
     $owner = appUser('student');
     $profile = StudentProfile::factory()->create(['user_id' => $owner->id]);
 
-    $program = Program::firstOrCreate(
-        ['code' => 'program_a'],
-        ['type' => 'grant', 'is_active' => true, 'config' => null]
-    );
-    $call = Call::factory()->create(['program_id' => $program->id]);
+    $call = Call::factory()->create(['program' => 'a']);
 
     $application = Application::factory()->create([
         'student_profile_id' => $profile->id,
@@ -117,11 +112,7 @@ test('nti_admin can delete any application', function () {
 test('student sees only own applications', function () {
     [$owner, $app] = appWithOwner();
 
-    $program = \App\Models\Program::firstOrCreate(
-        ['code' => 'program_b'],
-        ['type' => 'live_practice', 'is_active' => true, 'config' => null]
-    );
-    $call = \App\Models\Call::factory()->create(['program_id' => $program->id]);
+    $call = \App\Models\Call::factory()->create(['program' => 'b']);
     Application::factory()->create(['call_id' => $call->id]);
 
     $response = $this->actingAs($owner)->getJson('/api/applications');

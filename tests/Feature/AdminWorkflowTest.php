@@ -3,7 +3,6 @@
 namespace Tests\Feature;
 
 use App\Models\Call;
-use App\Models\Program;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -155,7 +154,6 @@ class AdminWorkflowTest extends TestCase
     public function test_admin_can_create_call(): void
     {
         $admin = $this->makeUser($this->adminRole);
-        $program = Program::factory()->programA()->create();
 
         $res = $this->actingAs($admin)->postJson('/api/admin/calls', [
             'program_type' => 'a',
@@ -174,8 +172,7 @@ class AdminWorkflowTest extends TestCase
     public function test_admin_can_open_call(): void
     {
         $admin = $this->makeUser($this->adminRole);
-        $program = Program::factory()->programA()->create();
-        $call = Call::factory()->create(['program_id' => $program->id, 'status' => 'draft']);
+        $call = Call::factory()->create(['program' => 'a', 'status' => 'draft']);
 
         $res = $this->actingAs($admin)->patchJson("/api/admin/calls/{$call->id}/status", [
             'status' => 'open',
@@ -188,8 +185,7 @@ class AdminWorkflowTest extends TestCase
     public function test_admin_can_close_call(): void
     {
         $admin = $this->makeUser($this->adminRole);
-        $program = Program::factory()->programA()->create();
-        $call = Call::factory()->create(['program_id' => $program->id, 'status' => 'open']);
+        $call = Call::factory()->create(['program' => 'a', 'status' => 'open']);
 
         $res = $this->actingAs($admin)->patchJson("/api/admin/calls/{$call->id}/status", [
             'status' => 'closed',

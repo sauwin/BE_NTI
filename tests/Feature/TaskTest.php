@@ -5,7 +5,6 @@ namespace Tests\Feature;
 use App\Models\User;
 use App\Models\Call;
 use App\Models\Task;
-use App\Models\Program;
 use App\Models\Organization;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -36,12 +35,8 @@ class TaskTest extends TestCase
             'status' => 'active'
         ]);
 
-        $program = Program::factory()->create([
-            'code' => 'program_b'
-        ]);
-
         $this->call = Call::create([
-            'program_id' => $program->id,
+            'program' => 'b',
             'name' => 'Test Call B',
             'status' => 'open',
             'min_team_size' => 1,
