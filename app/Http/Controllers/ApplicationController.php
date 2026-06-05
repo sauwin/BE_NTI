@@ -6,20 +6,36 @@ use App\Http\Requests\StoreApplicationRequest;
 use App\Models\Application;
 use App\Models\StudentProfile;
 use App\Models\ApplicationRevisionRequest;
-use App\Services\AdminApplicationService;
+use App\Models\CallEvaluator;
+use App\Services\ApplicationWorkflowService;
 use App\Services\ApplicationService;
 use Illuminate\Http\Request;
 
+/**
+ * @tags Application Management
+ * Endpoints for creating, managing, updating statuses, and processing user program applications and related documentation.
+ */
 class ApplicationController extends Controller
 {
     protected $applicationService;
+    protected $applicationWorkflowService;
 
-    protected $adminService;
-
-    public function __construct(ApplicationService $applicationService, AdminApplicationService $adminService)
+    public function __construct(ApplicationService $applicationService, ApplicationWorkflowService $applicationWorkflowService)
     {
         $this->applicationService = $applicationService;
-        $this->adminService = $adminService;
+        $this->applicationWorkflowService = $applicationWorkflowService;
+    }
+
+    /**
+     * Returns information about all evaluations of application
+     */
+    public function getEvaluations(Request $request, Application $application)
+    {
+        $this->authorize('view', $application);
+
+        return response()->json($application->evaluations()
+            ->with('scores', 'scores.criterion', 'evaluator')
+            ->get());
     }
 
     /**
@@ -27,26 +43,15 @@ class ApplicationController extends Controller
      */
     public function index(Request $request)
     {
+        $this->authorize('viewAny');
+
         $user = $request->user();
 
-        if ($user->hasRole(['nti_admin', 'super_admin'])) {
-            return response()->json(
-                Application::with(['team', 'call'])->orderBy('created_at', 'desc')->get()
-            );
-        }
-
-        $profile = StudentProfile::where('user_id', $user->id)->first();
-
-        if (! $profile) {
-            return response()->json([], 200);
-        }
-
-        return response()->json(
-            Application::with(['team', 'call'])
-                ->where('student_profile_id', $profile->id)
-                ->orderBy('created_at', 'desc')
-                ->get()
-        );
+        return Application::query()
+            ->visibleTo($user)
+            ->with(['team', 'call'])
+            ->latest()
+            ->get();
     }
 
     /**
@@ -54,6 +59,8 @@ class ApplicationController extends Controller
      */
     public function store(StoreApplicationRequest $request)
     {
+        $this->authorize('create');
+
         $application = $this->applicationService->createApplication(
             $request->validated(),
             $request->user()
@@ -63,7 +70,7 @@ class ApplicationController extends Controller
     }
 
     /**
-     * Select application and the assessment status
+     * Select application and the evaluation status
      */
     public function show(Request $request, int $id)
     {
@@ -75,7 +82,7 @@ class ApplicationController extends Controller
 
         $this->authorize('view', $application);
 
-        $totalEvaluators = \App\Models\CallEvaluator::where('call_id', $application->call_id)->count();
+        $totalEvaluators = CallEvaluator::where('call_id', $application->call_id)->count();
         
         $application->total_evaluators_count = $totalEvaluators;
         $application->pending_evaluators_count = max(0, $totalEvaluators - $application->completed_evaluations_count);
@@ -84,15 +91,11 @@ class ApplicationController extends Controller
     }
 
     /**
-     * Update application (only draft)
+     * Update applications data by student (if application is in draft/pending_revision status)
      */
     public function update(Request $request, int $id)
     {
         $application = Application::findOrFail($id);
-
-        if (! in_array($application->status, ['draft', 'pending_revision'])) {
-            return response()->json(['message' => 'Only drafts can be edited.'], 422);
-        }
 
         $this->authorize('update', $application);
 
@@ -107,17 +110,19 @@ class ApplicationController extends Controller
     }
 
     /**
-     * Submitting an application
+     * Submitting changes in application with status pending_revision
      */
     public function applyChanges(Request $request, int $id)
     {
         $application = Application::findOrFail($id);
 
+        $this->authorize('applyChanges', $application);
+
         $this->applicationService->applyChanges($application, $request->user());
 
         return response()->json([
             'message' => 'Application submitted successfully',
-            'status' => 'submitted',
+            'status' => 'under_evaluation',
         ]);
     }
 
@@ -128,6 +133,8 @@ class ApplicationController extends Controller
     {
         $application = Application::findOrFail($id);
 
+        $this->authorize('submitDraft', $application);
+
         $this->applicationService->submitDraft($application, $request->user());
 
         return response()->json([
@@ -137,15 +144,11 @@ class ApplicationController extends Controller
     }
 
     /**
-     * Delete application (only draft)
+     * Delete application (only draft for student)
      */
     public function destroy(Request $request, int $id)
     {
         $application = Application::findOrFail($id);
-
-        if ($application->status !== 'draft') {
-            return response()->json(['message' => 'Only drafts can be deleted.'], 422);
-        }
 
         $this->authorize('delete', $application);
 
@@ -178,10 +181,8 @@ class ApplicationController extends Controller
 
         $this->authorize('updateStatus', $application);
 
-        $isAdmin = $user->hasRole(['nti_admin', 'super_admin']);
-
-        $statusValidationRule = $isAdmin
-            ? 'required|in:submitted,formally_verified,under_evaluation,revision_requested,approved,rejected,onboarding,active,suspended,closed'
+        $statusValidationRule = $user->isAdmin()
+            ? 'required|in:submitted,formally_verified,under_evaluation,pending_revision,approved,rejected,onboarding,active,suspended,closed'
             : 'required|in:onboarding,active,approved,suspended,closed';
 
         $request->validate([
@@ -189,7 +190,7 @@ class ApplicationController extends Controller
             'comment' => 'nullable|string|max:1000',
         ]);
 
-        $this->adminService->updateStatus($application, $request->status, $request->comment, $user);
+        $this->applicationWorkflowService->updateStatus($application, $request->status, $request->comment, $user);
 
         return response()->json(['message' => "Application status updated successfully to {$request->status}."]);
     }
@@ -199,7 +200,6 @@ class ApplicationController extends Controller
      */
     public function getLastRevisionRequest(Application $application)
     {
-        \Log::info($application->id);
         $this->authorize('view', $application);
 
         return response()->json(

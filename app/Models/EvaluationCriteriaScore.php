@@ -5,11 +5,13 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+use App\Models\EvaluationCriterion;
+
 class EvaluationCriteriaScore extends Model
 {
     protected $fillable = [
         'evaluation_id',
-        'criterion_key',
+        'criterion_id',
         'score',
         'weight_at_moment',
         'comment',
@@ -23,5 +25,10 @@ class EvaluationCriteriaScore extends Model
     public function evaluation(): BelongsTo
     {
         return $this->belongsTo(Evaluation::class);
+    }
+
+    public function criterion(): BelongsTo
+    {
+        return $this->belongsTo(EvaluationCriterion::class);
     }
 }

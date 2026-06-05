@@ -11,6 +11,10 @@ use App\Models\Document;
 use App\Models\Task;
 use App\Models\Call;
 
+/**
+ * @tags Call Management
+ * Composite endpoints for atomic operations combining call orchestration, task assignments, and internal attachment management within single database transactions.
+ */
 class CallTaskController extends Controller
 {
     protected $callController;

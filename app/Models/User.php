@@ -14,6 +14,7 @@ use Laravel\Sanctum\HasApiTokens;
 use App\Models\Organization;
 use App\Models\Team;
 use App\Models\StudentProfile;
+use App\Models\Call;
 
 #[Fillable(['name', 'email', 'password'])]
 #[Hidden(['remember_token'])]
@@ -26,7 +27,7 @@ class User extends Authenticatable
         'first_name', 'last_name', 'email', 'password', 'status', 'language_preference', 'email_verified_at', 'organization_id', 'role_in_org',
     ];
 
-    protected $hidden = [''];
+    protected $hidden = ['password'];
 
     protected $casts = [
         'email_verified_at' => 'datetime',
@@ -76,8 +77,18 @@ class User extends Authenticatable
         return $this->hasRole('student');
     }
 
+    public function isAdmin(): bool
+    {
+        return $this->hasRole(['nti_admin', 'super_admin']);
+    }
+
     public function studentProfile()
     {
         return $this->hasOne(StudentProfile::class);
+    }
+
+    public function createdCalls(): HasMany
+    {
+        return $this->hasMany(Call::class, 'created_by');
     }
 }

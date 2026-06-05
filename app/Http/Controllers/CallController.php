@@ -10,6 +10,10 @@ use Illuminate\Validation\ValidationException;
 use App\Models\Application;
 use Illuminate\Support\Facades\DB;
 
+/**
+ * @tags Call Management
+ * Endpoints for configuring program calls, tracking active submission windows, managing form configurations, and scheduling application evaluation phases.
+ */
 class CallController extends Controller
 {
     public function active(Request $request, ?string $program_type = null)
@@ -18,16 +22,18 @@ class CallController extends Controller
             ->where('status', 'open');
 
         if ($program_type) {
+            $program_type = strtolower(trim($program_type));
+
             $query->whereHas('program', fn ($q) =>
                 $q->where('code', 'program_' . $program_type)
             );
         }
 
-        $calls = $query
+        $call = $query
             ->orderBy('deadline_at')
-            ->get();
+            ->first();
 
-        return response()->json($calls);
+        return response()->json($call);
     }
 
     public function index(Request $request)
@@ -41,10 +47,17 @@ class CallController extends Controller
 
     public function store(Request $request)
     {
-        if ($request->has('program_id')) {
-            $rawProgram = $request->input('program_id');
-            $type = str_contains($rawProgram, 'program_a') ? 'a' : (str_contains($rawProgram, 'program_b') ? 'b' : null);
+        $programId = $request->input('program_id');
+        
+        if ($programId && !is_numeric($programId)) {
+            $type = str_contains($programId, 'program_a') ? 'a' : (str_contains($programId, 'program_b') ? 'b' : null);
             if ($type) {
+                $request->merge(['program_type' => $type]);
+            }
+        } else if (is_numeric($programId)) {
+            $p = Program::find($programId);
+            if ($p) {
+                $type = str_replace('program_', '', $p->code);
                 $request->merge(['program_type' => $type]);
             }
         }
@@ -100,7 +113,7 @@ class CallController extends Controller
 
         AuditService::log('create_call', 'call', [
             'call_id' => $call->id,
-            'program_type' => $call->program_type,
+            'program_type' => str_replace('program_', '', $program->code), 
             'name' => $callName,
         ]);
 
@@ -229,36 +242,15 @@ class CallController extends Controller
         ]);
         
         try {
-            $result = DB::transaction(function () use ($call, $validated) {
-                $applicationsToMove = Application::where('call_id', $call->id)
-                    ->where('status', 'formally_verified')
-                    ->count();
-                $call->update([
-                    'evaluation_scheduled_at' => $validated['evaluation_scheduled_at'],
-                ]);
-                
-                if ($applicationsToMove > 0) {
-                    Application::where('call_id', $call->id)
-                        ->where('status', 'formally_verified')
-                        ->update([
-                            'status' => 'under_evaluation',
-                            'updated_at' => now(),
-                        ]);
-                }
-                
-                return [
-                    'call_id' => $call->id,
-                    'evaluation_scheduled_at' => $call->evaluation_scheduled_at,
-                    'applications_moved' => $applicationsToMove,
-                ];
-            });
+            $call->update([
+                'evaluation_scheduled_at' => $validated['evaluation_scheduled_at'],
+            ]);
             
             return response()->json([
                 'message' => 'Evaluation scheduled successfully',
                 'data' => [
-                    'call_id' => $result['call_id'],
-                    'evaluation_scheduled_at' => $result['evaluation_scheduled_at'],
-                    'applications_moved' => $result['applications_moved'],
+                    'call_id' => $call->id,
+                    'evaluation_scheduled_at' => $call->evaluation_scheduled_at,
                 ],
             ], 200);
             
@@ -268,6 +260,15 @@ class CallController extends Controller
                 'error' => $e->getMessage(),
             ], 500);
         }
+    }
+
+    public function moveApplicationsUnderEvaluation(Call $call) {
+
+        $this->authorize('update', $call);
+            
+        $movedAppsCount = $call->startEvaluation();
+
+        return response()->json(['applications_moved' => $movedAppsCount], 200);
     }
 
     public function getEvaluationInfo(int $id)

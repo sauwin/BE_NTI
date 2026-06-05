@@ -7,6 +7,10 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 
+/**
+ * @tags Organization Management
+ * Endpoints for retrieving authenticated user-associated organization profiles, handling atomic creation or update operations for organization entities, and fetching a directory of public partners.
+ */
 class OrganizationController extends Controller
 {
     /**
@@ -73,5 +77,13 @@ class OrganizationController extends Controller
         });
 
         return response()->json(['message' => 'Profile updated']);
+    }
+
+    public function publicPartners()
+    {
+        $partners = Organization::where('is_public_partner', true)
+            ->get(['id', 'name', 'sector', 'website', 'description']);
+
+        return response()->json($partners);
     }
 }

@@ -14,6 +14,10 @@ use App\Models\User;
 use App\Models\GdprConsent; 
 use App\Http\Resources\UserResource;
 
+/**
+ * @tags Authentication
+ * Endpoints for user authentication, Sanctum session management, and token verification.
+ */
 class AuthController extends Controller
 {
     public function register(Request $request)

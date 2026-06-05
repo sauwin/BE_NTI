@@ -8,6 +8,10 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 
+/**
+ * @tags System Configuration
+ * Endpoints for managing frequently asked questions (FAQs), localized item text translations, and display sort order.
+ */
 class FaqItemController extends Controller
 {
     /**

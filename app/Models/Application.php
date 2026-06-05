@@ -13,6 +13,7 @@ use App\Models\StudentProfile;
 use App\Models\User;
 use App\Models\Team;
 use App\Models\Evaluation;
+use App\Models\Mentorship;
 use App\Models\Milestone;
 use App\Models\Document;
 use App\Models\ApplicationRevisionRequest;
@@ -40,6 +41,7 @@ class Application extends Model
         'decision_at' => 'datetime',
     ];
 
+    //Relations
     public function call(): BelongsTo
     {
         return $this->belongsTo(Call::class);
@@ -65,6 +67,11 @@ class Application extends Model
         return $this->hasMany(Evaluation::class);
     }
 
+    public function mentorships(): HasMany
+    {
+        return $this->hasMany(Mentorship::class);
+    }
+
     public function milestones(): HasMany
     {
         return $this->hasMany(Milestone::class);
@@ -78,5 +85,30 @@ class Application extends Model
     public function revisionRequests(): HasMany
     {
         return $this->hasMany(ApplicationRevisionRequest::class);
+    }
+
+    //Scopes
+    public function scopeVisibleTo($query, User $user) {
+        if ($user->isAdmin()) {
+            return $query;
+        }
+
+        if ($user->isStudent()) {
+            return $query->whereBelongsTo($user->studentProfile);
+        }
+
+        if ($user->hasRole('company')) {
+            return $query->whereRelation('call', 'created_by', $user->id);
+        }
+
+        if ($user->hasRole('evaluator')) {
+            return $query->whereRelation('evaluations', 'evaluator_id', $user->id);
+        }
+
+        if ($user->hasRole('mentor')) {
+            return $query->whereRelation('mentorships', 'mentor_id', $user->id);
+        }
+
+        throw new LogicException('Unhandled role');
     }
 }

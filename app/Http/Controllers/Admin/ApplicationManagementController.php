@@ -4,16 +4,21 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Application;
-use App\Services\AdminApplicationService;
+use App\Models\ApplicationRevisionRequest;
+use App\Services\ApplicationWorkflowService;
 use Illuminate\Http\Request;
 
+/**
+ * @tags Admin Management
+ * Endpoints for administrative oversight of student applications, providing paginated access to submission data including profile details, team associations, and program call context, with filtering capabilities by status and program type.
+ */
 class ApplicationManagementController extends Controller
 {
-    protected $adminService;
+    protected $applicationWorkflowService;
 
-    public function __construct(AdminApplicationService $adminService)
+    public function __construct(ApplicationWorkflowService $applicationWorkflowService)
     {
-        $this->adminService = $adminService;
+        $this->applicationWorkflowService = $applicationWorkflowService;
     }
 
     /**
@@ -21,6 +26,8 @@ class ApplicationManagementController extends Controller
      */
     public function index(Request $request)
     {
+        $this->authorize('viewAdminDashboard', Application::class);
+
         $applications = Application::with(['studentProfile.user', 'team', 'call'])
             ->when($request->status, fn($q, $status) => $q->where('status', $status))
             ->when($request->program, fn($q, $program) => $q->where('program_type', $program))
@@ -28,5 +35,37 @@ class ApplicationManagementController extends Controller
             ->paginate($request->input('per_page', 20));
 
         return response()->json($applications);
+    }
+
+    /**
+     * Send revesion request and notified student
+     */
+    public function requestRevision(Request $request, int $id)
+    {
+        $application = Application::findOrFail($id);
+
+        $this->authorize('updateStatus', $application);
+
+        $request->validate([
+            'message' => 'required|string|min:5|max:2000'
+        ]);
+        
+        $this->applicationWorkflowService->createRevisionRequest($application, $request->message, $request->user());
+
+        return response()->json(['message' => 'Revision request created successfully and student notified.']);
+    }
+
+    /**
+     * Select history for revision requests
+     */
+    public function getRevisionHistory(Application $application)
+    {
+        $this->authorize('view', $application);
+
+        return response()->json(
+            ApplicationRevisionRequest::where('application_id', $application->id)
+                ->latest()
+                ->get()
+        );
     }
 }

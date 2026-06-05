@@ -37,7 +37,7 @@ class CallPolicy
      */
     public function update(User $user, Call $call): bool
     {
-        return $user->hasRole(['nti_admin', 'super_admin']);
+        return $user->isAdmin();
     }
 
     /**
@@ -62,5 +62,17 @@ class CallPolicy
     public function forceDelete(User $user, Call $call): bool
     {
         return false;
+    }
+
+    /**
+     * Determine whether the user can view call evaluation criteria.
+     */
+    public function viewCriteria(User $user, Call $call): bool
+    {
+        if ($user->hasRole('evaluator')) {
+            return $call->evaluators()->whereKey($user->id)->exists();
+        }
+
+        return $user->isAdmin();
     }
 }
