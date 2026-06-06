@@ -11,6 +11,8 @@ use App\Models\Role;
 use App\Models\StudentProfile;
 use App\Models\Team;
 use App\Models\User;
+use App\Models\EvaluationCriterion;
+use App\Models\CallEvaluator;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
 use Tests\TestCase;
@@ -83,8 +85,8 @@ class ProgramAWorkflowTest extends TestCase
     public function test_student_can_register(): void
     {
         Role::firstOrCreate(['slug' => 'student'], ['name' => 'Student', 'description' => '']);
-        putenv('STUDENT_ALLOWED_DOMAINS=');
-        $this->app['config']->set('app.student_allowed_domains', '');
+        putenv('STUDENT_ALLOWED_DOMAINS=test.sk');
+        $this->app['config']->set('app.student_allowed_domains', 'test.sk');
 
         $res = $this->postJson('/api/auth/register', [
             'first_name' => 'Jan',
@@ -92,7 +94,7 @@ class ProgramAWorkflowTest extends TestCase
             'email' => 'jan@test.sk',
             'password' => 'password1',
             'password_confirmation' => 'password1',
-            'role' => 'mentor',
+            'role' => 'student',
             'agreed_terms' => true,
             'gdpr_consent' => true,
         ]);
@@ -191,11 +193,12 @@ class ProgramAWorkflowTest extends TestCase
 
         $app = Application::create([
             'call_id' => $call->id,
+            'student_profile_id' => $leader->studentProfile->id,
             'applicant_type' => 'team',
             'program_type' => 'a',
             'team_id' => $team->id,
             'status' => 'draft',
-            'category' => 'AI',
+            'category' => 'Software Development',
         ]);
 
         $res = $this->actingAs($leader)->postJson("/api/applications/{$app->id}/submit");
@@ -246,11 +249,65 @@ class ProgramAWorkflowTest extends TestCase
         $this->assertDatabaseHas('applications', ['id' => $app->id, 'status' => 'under_evaluation']);
     }
 
-// Step 9: evaluator submits evaluation (spec section 5, 6.3)
+// Step 9: admin moves to under_evaluation (spec: V hodnotení komisiou)
+    public function test_admin_can_create_criteria(): void
+    {
+        $admin = $this->makeUser($this->adminRole);
+
+        $call = $this->makeOpenCall();
+
+        $this->actingAs($admin)->putJson(
+            "api/admin/calls/{$call->id}/criteria",
+            [
+                'criteria' => [
+                    [
+                        'call_id' => $call->id,
+                        'slug' => 'test_criterion',
+                        'title' => 'Test Criterion',
+                        'weight' => 80,
+                    ],
+                    [
+                        'call_id' => $call->id,
+                        'slug' => 'other_test_criterion',
+                        'title' => 'Other Test Criterion',
+                        'weight' => 20,
+                    ],
+                ],
+            ]
+        );
+
+        $this->assertDatabaseHas('evaluation_criteria', ['call_id' => $call->id]);
+    }
+
+// Step 10: evaluator submits evaluation (spec section 5, 6.3)
     public function test_evaluator_can_evaluate_application(): void
     {
         $evaluator = $this->makeUser($this->evaluatorRole);
+        $admin = $this->makeUser($this->adminRole);
+
         $call = $this->makeOpenCall();
+
+        $res = $this->actingAs($admin)->putJson(
+            "api/admin/calls/{$call->id}/criteria",
+            [
+                'criteria' => [
+                    [
+                        'call_id' => $call->id,
+                        'slug' => 'test_criterion',
+                        'title' => 'Test Criterion',
+                        'weight' => 80,
+                    ],
+                    [
+                        'call_id' => $call->id,
+                        'slug' => 'other_test_criterion',
+                        'title' => 'Other Test Criterion',
+                        'weight' => 20,
+                    ],
+                ],
+            ]
+        );
+
+        $data = $res->json();
 
         $app = Application::create([
             'call_id' => $call->id,
@@ -264,13 +321,47 @@ class ProgramAWorkflowTest extends TestCase
             'recommendation' => 'approve',
             'comment' => 'Strong project',
             'scores' => [
-                ['criterion_key' => 'innovation', 'score' => 85, 'weight_at_moment' => 50, 'comment' => null],
-                ['criterion_key' => 'feasibility', 'score' => 70, 'weight_at_moment' => 50, 'comment' => null],
+                ['criterion_id' => $data[0]['id'], 'score' => 85, 'weight_at_moment' => 50, 'comment' => null],
+                ['criterion_id' => $data[0]['id'], 'score' => 70, 'weight_at_moment' => 50, 'comment' => null],
             ],
         ]);
 
         $res->assertStatus(201);
         $this->assertDatabaseHas('evaluations', ['application_id' => $app->id, 'evaluator_id' => $evaluator->id]);
+    }
+
+// Step 10: admin finalizes evaluation (spec section 5, 6.3)
+    public function test_admin_can_finalize_evaluation(): void
+    {
+        $admin = $this->makeUser($this->adminRole);
+        $evaluator = $this->makeUser($this->evaluatorRole);
+        $call = $this->makeOpenCall();
+
+        $app = Application::create([
+            'call_id' => $call->id,
+            'applicant_type' => 'student',
+            'program_type' => 'a',
+            'status' => 'under_evaluation',
+        ]);
+
+        Evaluation::create([
+            'application_id' => $app->id,
+            'evaluator_id' => $evaluator->id,
+            'status' => 'completed'
+        ]);
+
+        CallEvaluator::create([
+            'call_id' => $call->id,
+            'user_id' => $evaluator->id
+        ]);
+
+        $res = $this->actingAs($admin)->postJson("/api/admin/applications/{$app->id}/finalize-evaluation", [
+            'status' => 'approved',
+            'comment' => 'Good job',
+        ]);
+
+        $res->assertStatus(200);
+        $this->assertDatabaseHas('applications', ['id' => $app->id, 'status' => 'approved']);
     }
 
 // Step 10: admin requests revision (spec: Vyžiadané doplnenie)
@@ -299,14 +390,21 @@ class ProgramAWorkflowTest extends TestCase
     public function test_applicant_can_resubmit_after_revision_request(): void
     {
         [$leader, $team] = $this->makeTeamWithMembers(3);
+        $admin = $this->makeUser($this->adminRole);
         $call = $this->makeOpenCall();
 
         $app = Application::create([
             'call_id' => $call->id,
+            'student_profile_id' => $leader->studentProfile->id,
             'applicant_type' => 'team',
             'program_type' => 'a',
             'team_id' => $team->id,
+            'status' => 'submitted',
+        ]);
+
+        $this->actingAs($admin)->patchJson("/api/applications/{$app->id}/status", [
             'status' => 'pending_revision',
+            'comment' => 'Please add budget breakdown',
         ]);
 
         $res = $this->actingAs($leader)->postJson("/api/applications/{$app->id}/apply-changes");
@@ -408,9 +506,11 @@ class ProgramAWorkflowTest extends TestCase
     }
 
 // Step 16: admin activates project (spec: Aktívny projekt)
-    public function test_admin_can_set_project_active(): void
+    public function test_mentor_can_set_project_active(): void
     {
         $admin = $this->makeUser($this->adminRole);
+        $mentor = $this->makeUser($this->mentorRole);
+        $student = $this->makeUser($this->studentRole);
         $call = $this->makeOpenCall();
 
         $app = Application::create([
@@ -420,7 +520,13 @@ class ProgramAWorkflowTest extends TestCase
             'status' => 'onboarding',
         ]);
 
-        $res = $this->actingAs($admin)->patchJson("/api/applications/{$app->id}/status", [
+        $this->actingAs($admin)->postJson('/api/mentorships/assign', [
+            'application_id' => $app->id,
+            'mentor_id' => $mentor->id,
+            'student_id' => $student->id,
+        ]);
+
+        $res = $this->actingAs($mentor)->patchJson("/api/applications/{$app->id}/status", [
             'status' => 'active',
         ]);
 
@@ -460,10 +566,12 @@ class ProgramAWorkflowTest extends TestCase
         ]);
     }
 
-// Step 18: mentor or admin creates milestone on active project (spec: Milestone entity)
-    public function test_admin_can_create_milestone_for_active_project(): void
+// Step 18: mentor creates milestone on active project (spec: Milestone entity)
+    public function test_mentor_can_create_milestone_for_active_project(): void
     {
         $admin = $this->makeUser($this->adminRole);
+        $mentor = $this->makeUser($this->mentorRole);
+        $student = $this->makeUser($this->studentRole);
         $call = $this->makeOpenCall();
 
         $app = Application::create([
@@ -473,7 +581,13 @@ class ProgramAWorkflowTest extends TestCase
             'status' => 'active',
         ]);
 
-        $res = $this->actingAs($admin)->postJson("/api/applications/{$app->id}/milestones", [
+        $this->actingAs($admin)->postJson('/api/mentorships/assign', [
+            'application_id' => $app->id,
+            'mentor_id' => $mentor->id,
+            'student_id' => $student->id,
+        ]);
+
+        $res = $this->actingAs($mentor)->postJson("/api/applications/{$app->id}/milestones", [
             'title' => 'MVP Release',
             'due_date' => now()->addDays(30)->toDateString(),
             'description' => 'First working prototype',
@@ -486,10 +600,12 @@ class ProgramAWorkflowTest extends TestCase
         ]);
     }
 
-// Step 19: admin can suspend active project (spec: Pozastavené)
-    public function test_admin_can_suspend_active_project(): void
+// Step 19: mentor can suspend active project (spec: Pozastavené)
+    public function test_mentor_can_suspend_active_project(): void
     {
         $admin = $this->makeUser($this->adminRole);
+        $mentor = $this->makeUser($this->mentorRole);
+        $student = $this->makeUser($this->studentRole);
         $call = $this->makeOpenCall();
 
         $app = Application::create([
@@ -499,7 +615,13 @@ class ProgramAWorkflowTest extends TestCase
             'status' => 'active',
         ]);
 
-        $res = $this->actingAs($admin)->patchJson("/api/applications/{$app->id}/status", [
+        $this->actingAs($admin)->postJson('/api/mentorships/assign', [
+            'application_id' => $app->id,
+            'mentor_id' => $mentor->id,
+            'student_id' => $student->id,
+        ]);
+
+        $res = $this->actingAs($mentor)->patchJson("/api/applications/{$app->id}/status", [
             'status' => 'suspended',
         ]);
 
@@ -507,10 +629,12 @@ class ProgramAWorkflowTest extends TestCase
         $this->assertDatabaseHas('applications', ['id' => $app->id, 'status' => 'suspended']);
     }
 
-// Step 20: admin closes project (spec: Ukončené / archivované)
-    public function test_admin_can_close_completed_project(): void
+// Step 20: mentor closes project (spec: Ukončené / archivované)
+    public function test_mentor_can_close_completed_project(): void
     {
         $admin = $this->makeUser($this->adminRole);
+        $mentor = $this->makeUser($this->mentorRole);
+        $student = $this->makeUser($this->studentRole);
         $call = $this->makeOpenCall();
 
         $app = Application::create([
@@ -520,7 +644,13 @@ class ProgramAWorkflowTest extends TestCase
             'status' => 'active',
         ]);
 
-        $res = $this->actingAs($admin)->patchJson("/api/applications/{$app->id}/status", [
+        $this->actingAs($admin)->postJson('/api/mentorships/assign', [
+            'application_id' => $app->id,
+            'mentor_id' => $mentor->id,
+            'student_id' => $student->id,
+        ]);
+
+        $res = $this->actingAs($mentor)->patchJson("/api/applications/{$app->id}/status", [
             'status' => 'closed',
         ]);
 
@@ -531,9 +661,11 @@ class ProgramAWorkflowTest extends TestCase
 // Full happy path chained (spec section 5 full lifecycle)
     public function test_full_program_a_workflow(): void
     {
+        $this->withoutExceptionHandling();
         $admin = $this->makeUser($this->adminRole);
         $evaluator = $this->makeUser($this->evaluatorRole);
         $mentor = $this->makeUser($this->mentorRole);
+        $call = $this->makeOpenCall();
         [$leader, $team] = $this->makeTeamWithMembers(3);
 
 // submit draft
@@ -557,13 +689,31 @@ class ProgramAWorkflowTest extends TestCase
 // formally_verified → under_evaluation
         $this->actingAs($admin)->patchJson("/api/applications/{$appId}/status", ['status' => 'under_evaluation'])->assertStatus(200);
 
+// set criteria
+        $crits = $this->actingAs($admin)->putJson(
+            "api/admin/calls/{$call->id}/criteria",
+            [
+                'criteria' => [
+                    [
+                        'call_id' => $call->id,
+                        'slug' => 'test_criterion',
+                        'title' => 'Test Criterion',
+                        'weight' => 100,
+                    ]
+                ],
+            ]
+        );
+        $crits->assertStatus(200);
+
+        $critData = $crits->json();
+
 // evaluate
         $this->actingAs($evaluator)->postJson('/api/evaluations', [
             'application_id' => $appId,
             'recommendation' => 'approve',
             'comment' => 'good',
             'scores' => [
-                ['criterion_key' => 'innovation', 'score' => 90, 'weight_at_moment' => 100, 'comment' => null],
+                ['criterion_id' => $critData[0]['id'], 'score' => 90, 'weight_at_moment' => 100, 'comment' => null],
             ],
         ])->assertStatus(201);
 
