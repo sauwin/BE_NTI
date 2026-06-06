@@ -3,8 +3,6 @@ version: "3.9"
 services:
   app:
     build: .
-    ports:
-      - "8000:8000"
     depends_on:
       - db
       - redis
@@ -14,25 +12,24 @@ services:
       DB_USERNAME: laravel
       DB_PASSWORD: secret
       REDIS_HOST: redis
+      restart: unless-stopped
 
   db:
     image: mysql:8
-    restart: always
     environment:
       MYSQL_DATABASE: laravel
       MYSQL_USER: laravel
       MYSQL_PASSWORD: secret
       MYSQL_ROOT_PASSWORD: root
-    ports:
-      - "3306:3306"
     volumes:
       - db_data:/var/lib/mysql
+    restart: unless-stopped
+
   redis:
     image: redis:7-alpine
-    ports:
-      - "6379:6379"
     volumes:
       - redis_data:/data
+    restart: unless-stopped
 
 volumes:
   db_data:
