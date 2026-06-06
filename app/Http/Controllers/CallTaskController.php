@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use App\Http\Controllers\CallController;
 use App\Http\Controllers\TaskController;
 use App\Models\Document;
@@ -37,6 +38,14 @@ class CallTaskController extends Controller
             $requiredDocs = $request->input('required_documents');
             if (is_string($requiredDocs)) {
                 $requiredDocs = json_decode($requiredDocs, true);
+            }
+
+            if (is_array($requiredDocs)) {
+                foreach ($requiredDocs as &$document) {
+                    if (is_array($document) && empty($document['type']) && !empty($document['document_name'])) {
+                        $document['type'] = Str::snake($document['document_name']);
+                    }
+                }
             }
 
             $callRequest = new Request();
@@ -125,6 +134,14 @@ class CallTaskController extends Controller
             $requiredDocs = $request->input('required_documents');
             if (is_string($requiredDocs)) {
                 $requiredDocs = json_decode($requiredDocs, true);
+            }
+
+            if (is_array($requiredDocs)) {
+                foreach ($requiredDocs as &$document) {
+                    if (is_array($document) && empty($document['type']) && !empty($document['document_name'])) {
+                        $document['type'] = Str::snake($document['document_name']);
+                    }
+                }
             }
 
             $callModel->update([

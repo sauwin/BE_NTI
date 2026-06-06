@@ -21,7 +21,10 @@ class CallFactory extends Factory
             'min_team_size' => 3,
             'max_team_size' => 5,
             'evaluation_criteria' => [],
-            'required_documents' => [],
+            'required_documents' => json_encode([
+                ['document_name' => 'Project Proposal', 'is_mandatory' => false, 'max_size_mb' => 10, 'type' => 'project_proposal'],
+                ['document_name' => 'Technical Documentation', 'is_mandatory' => false, 'max_size_mb' => 15, 'type' => 'technical_documentation'],
+            ]),
             'created_by' => User::factory(),
         ];
     }
