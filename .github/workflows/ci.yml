@@ -31,7 +31,7 @@ jobs:
 
       - run: php artisan key:generate
 
-      - run: php artisan test --env=testing
+      - run: php artisan test --env=testing --stop-on-failure -v
 
   frontend:
     name: Frontend
