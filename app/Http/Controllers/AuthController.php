@@ -2,17 +2,17 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Resources\UserResource;
+use App\Mail\RegistrationSubmit;
+use App\Models\GdprConsent;
+use App\Models\Organization;
+use App\Models\Role;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
-
-use App\Mail\RegistrationSubmit;
-use App\Models\Organization;
-use App\Models\Role;
-use App\Models\User;
-use App\Models\GdprConsent; 
-use App\Http\Resources\UserResource;
+use Illuminate\Validation\Rules\Password;
 
 /**
  * @tags Authentication
@@ -27,7 +27,7 @@ class AuthController extends Controller
             'first_name' => 'required|string|max:255',
             'last_name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email',
-            'password' => 'required|string|min:8|confirmed',
+            'password' => ['required', 'string', 'confirmed', Password::min(8)->mixedCase()->numbers()->symbols()],
             'role' => 'required|in:student,company',
             'role_in_org' => 'required_if:role,company|in:owner,member',
             'registration_number' => 'required_if:role_in_org,member|nullable|integer|exists:organizations,registration_number',
@@ -54,7 +54,7 @@ class AuthController extends Controller
         $user = DB::transaction(function () use ($data, $request) {
             $organization_id = null;
 
-            if ($data['role'] === 'company'){ 
+            if ($data['role'] === 'company') {
 
                 if ($data['role_in_org'] === 'owner' && ! empty($data['organization_name'])) {
                     $organization = Organization::create([
@@ -77,7 +77,7 @@ class AuthController extends Controller
                     )->value('id');
                 }
 
-                //Mapping 'member' to contact role
+                // Mapping 'member' to contact role
                 $roleInOrg = match ($data['role_in_org']) {
                     'owner' => 'owner',
                     'member' => 'contact',
