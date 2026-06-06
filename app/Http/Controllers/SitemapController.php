@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Call;
 use App\Models\NewsArticle;
+use App\Models\Program;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Spatie\Sitemap\Sitemap;
@@ -47,7 +48,7 @@ class SitemapController extends Controller
                 ->chunk(200, function ($programs) use ($sitemap) {
                     foreach ($programs as $program) {
                         $sitemap->add(
-                            Url::create('/programs/' . $program->program)
+                            Url::create('/programs/'.$program->program)
                                 ->setLastModificationDate($program->updated_at)
                                 ->setPriority(0.9)
                                 ->setChangeFrequency('weekly')
@@ -62,7 +63,7 @@ class SitemapController extends Controller
                 ->chunk(200, function ($newsArticles) use ($sitemap) {
                     foreach ($newsArticles as $newsArticle) {
                         $sitemap->add(
-                            Url::create('/articles/' . ($newsArticle->slug ?? $newsArticle->id))
+                            Url::create('/articles/'.(isset($newsArticle->slug) ? $newsArticle->slug : $newsArticle->id))
                                 ->setLastModificationDate($newsArticle->updated_at)
                                 ->setPriority(0.8)
                                 ->setChangeFrequency('monthly')

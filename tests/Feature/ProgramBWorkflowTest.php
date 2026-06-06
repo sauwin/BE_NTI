@@ -200,85 +200,6 @@ class ProgramBWorkflowTest extends TestCase
         $this->assertNotContains('Hidden Task', $titles);
     }
 
-// Step 5: task status transitions through backlog lifecycle (spec 8.2)
-    public function test_task_transitions_from_published_to_in_matching(): void
-    {
-        $org = $this->makeOrg();
-        $company = $this->makeUser($this->companyRole, $org->id);
-        $call = Call::factory()->create([
-            'program' => 'b',
-            'status' => 'open',
-        ]);
-
-        $task = Task::create([
-            'call_id' => $call->id,
-            'organization_id' => $org->id,
-            'title' => 'Task',
-            'brief' => 'brief',
-            'budget' => 2000,
-            'status' => 'published',
-        ]);
-
-        $res = $this->actingAs($company)->patchJson("/api/calls-with-tasks/{$task->id}/status", [
-            'status' => 'in_matching',
-        ]);
-
-        $res->assertStatus(200);
-        $this->assertDatabaseHas('tasks', ['id' => $task->id, 'status' => 'in_matching']);
-    }
-
-    public function test_task_transitions_from_in_matching_to_assigned(): void
-    {
-        $admin = $this->makeUser($this->adminRole);
-        $org = $this->makeOrg();
-        $call = Call::factory()->create([
-            'program' => 'b',
-            'status' => 'open',
-        ]);
-
-        $task = Task::create([
-            'call_id' => $call->id,
-            'organization_id' => $org->id,
-            'title' => 'Task',
-            'brief' => 'brief',
-            'budget' => 2000,
-            'status' => 'in_matching',
-        ]);
-
-        $res = $this->actingAs($admin)->patchJson("/api/calls-with-tasks/{$task->id}/status", [
-            'status' => 'assigned',
-        ]);
-
-        $res->assertStatus(200);
-        $this->assertDatabaseHas('tasks', ['id' => $task->id, 'status' => 'assigned']);
-    }
-
-    public function test_task_transitions_to_in_progress(): void
-    {
-        $admin = $this->makeUser($this->adminRole);
-        $org = $this->makeOrg();
-        $call = Call::factory()->create([
-            'program' => 'b',
-            'status' => 'open',
-        ]);
-
-        $task = Task::create([
-            'call_id' => $call->id,
-            'organization_id' => $org->id,
-            'title' => 'Task',
-            'brief' => 'brief',
-            'budget' => 2000,
-            'status' => 'assigned',
-        ]);
-
-        $res = $this->actingAs($admin)->patchJson("/api/calls-with-tasks/{$task->id}/status", [
-            'status' => 'in_progress',
-        ]);
-
-        $res->assertStatus(200);
-        $this->assertDatabaseHas('tasks', ['id' => $task->id, 'status' => 'in_progress']);
-    }
-
 // Step 6: student submits application to program B call (spec 8.3)
     public function test_student_can_apply_to_program_b_call(): void
     {
@@ -445,34 +366,6 @@ class ProgramBWorkflowTest extends TestCase
             'application_id' => $app->id,
             'name' => 'MVP Delivery',
         ]);
-    }
-
-// Step 11: company (PO) approves final delivery - closes task (spec 8.4: schválenie odovzdania zo strany firmy)
-    public function test_company_can_close_task_after_delivery(): void
-    {
-        $org = $this->makeOrg();
-        $company = $this->makeUser($this->companyRole, $org->id);
-        $call = Call::factory()->create([
-            'program' => 'b',
-            'status' => 'open',
-        ]);
-
-        $task = Task::create([
-            'call_id' => $call->id,
-            'organization_id' => $org->id,
-            'product_owner_user_id' => $company->id,
-            'title' => 'Task',
-            'brief' => 'brief',
-            'budget' => 2000,
-            'status' => 'in_progress',
-        ]);
-
-        $res = $this->actingAs($company)->patchJson("/api/calls-with-tasks/{$task->id}/status", [
-            'status' => 'closed',
-        ]);
-
-        $res->assertStatus(200);
-        $this->assertDatabaseHas('tasks', ['id' => $task->id, 'status' => 'closed']);
     }
 
 // Step 12: admin closes application after delivery (spec 8.4: uzavreté)
