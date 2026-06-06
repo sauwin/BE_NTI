@@ -37,12 +37,13 @@ class AdminController extends Controller
                     'user_roles.granted_by', 'user_roles.granted_at');
             }]);
 
-        if (! $isSuperAdmin) {
-            $adminRoles = ['nti_admin', 'super_admin'];
-            $query->whereDoesntHave('roles', function ($q) use ($adminRoles) {
-                $q->whereIn('slug', $adminRoles);
-            });
-        }
+        // Old filter that forbids admins to see other admins
+        // if (! $isSuperAdmin) {
+        //     $adminRoles = ['nti_admin', 'super_admin'];
+        //     $query->whereDoesntHave('roles', function ($q) use ($adminRoles) {
+        //         $q->whereIn('slug', $adminRoles);
+        //     });
+        // }
 
         if ($request->filled('search')) {
             $search = $request->search;
@@ -135,61 +136,6 @@ class AdminController extends Controller
     }
 
     /**
-     * List users whose role is not yet approved (granted_by = null)
-     */
-    public function pendingApprovals()
-    {
-        $rows = DB::table('user_roles')
-            ->whereNull('granted_by')
-            ->join('users', 'users.id', '=', 'user_roles.user_id')
-            ->join('roles', 'roles.id', '=', 'user_roles.role_id')
-            ->select(
-                'users.id',
-                'users.first_name',
-                'users.last_name',
-                'users.email',
-                'users.status',
-                'users.created_at',
-                'roles.slug as role_slug',
-                'roles.name as role_name'
-            )
-            ->orderBy('users.created_at', 'desc')
-            ->get();
-
-        return response()->json([
-            'data' => $rows,
-            'count' => $rows->count()
-        ]);
-    }
-
-    /**
-     * Approve a user's role (set granted_by to current admin)
-     */
-    public function approveRole(Request $request, int $userId)
-    {
-        $user = User::findOrFail($userId);
-
-        $updated = DB::table('user_roles')
-            ->where('user_id', $userId)
-            ->whereNull('granted_by')
-            ->update([
-                'granted_by' => $request->user()->id,
-                'granted_at' => now(),
-            ]);
-
-        if (! $updated) {
-            return response()->json(['message' => 'No pending role found for this user'], 404);
-        }
-
-        AuditService::log('approve', 'user', [
-            'target_user_id' => $userId,
-            'target_user_email' => $user->email,
-        ]);
-
-        return response()->json(['message' => 'Role approved']);
-    }
-
-    /**
      * Block a user
      */
     public function blockUser(Request $request, int $userId)
@@ -273,18 +219,21 @@ class AdminController extends Controller
      */
     public function assignRole(Request $request, int $userId)
     {
+        //Data validation
         $data = $request->validate([
-            'role' => 'required|in:student,company,mentor,evaluator,content_editor',
+            'role' => 'required|in:student,company,mentor,evaluator,content_editor,nti_admin',
             'registration_number' => 'sometimes|nullable|string',
             'role_in_org' => 'sometimes|nullable|string|in:owner,contact,evaluator,mentor',
         ]);
 
+        //Ensure whether admin can manage admin roles
         if (! $request->user()->roles()->where('slug', 'super_admin')->exists()) {
-            if (in_array($data['role'], ['super_admin', 'nti_admin', 'evaluator', 'content_editor'])) {
+            if (in_array($data['role'], ['super_admin', 'nti_admin'])) {
                 return response()->json(['message' => 'Admin cannot assign admin roles'], 403);
             }
         }
 
+        //Checks for company role additional logic
         $user = User::findOrFail($userId);
         $role = Role::where('slug', $data['role'])->firstOrFail();
 
@@ -302,6 +251,11 @@ class AdminController extends Controller
 
             if (! $organization) {
                 return response()->json(['message' => 'Organization with this registration number not found.'], 422);
+            }
+
+            if ($data['role_in_org'] === 'owner' &&
+                $organization->members()->where('role_in_org', 'owner')->exists()) {
+                return response()->json(['message' => 'This organization already has owner.'], 422);
             }
 
             $organizationId = $organization->id;
@@ -357,13 +311,13 @@ class AdminController extends Controller
         ]);
 
         if (! $request->user()->roles()->where('slug', 'super_admin')->exists()) {
-            if (in_array($data['role'], ['super_admin', 'nti_admin', 'evaluator', 'content_editor'])) {
+            if (in_array($data['role'], ['super_admin', 'nti_admin'])) {
                 return response()->json(['message' => 'Admin cannot remove admin roles'], 403);
             }
         }
 
-        if (in_array($data['role'], ['nti_admin', 'super_admin'])) {
-            return response()->json(['message' => 'Cannot remove admin roles'], 403);
+        if ($data['role'] == ['super_admin']) {
+            return response()->json(['message' => 'Cannot remove super admin role'], 403);
         }
 
         $user = User::findOrFail($userId);

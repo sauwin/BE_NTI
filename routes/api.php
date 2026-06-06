@@ -100,7 +100,7 @@ Route::middleware('auth:sanctum', 'not_blocked')->group(function () {
     Route::get('/applications/{id}/documents', [ApplicationController::class, 'documents']);
     Route::patch('/applications/{id}/status', [ApplicationController::class, 'updateStatus'])
         ->middleware('throttle:10,1');
-    Route::post('/applications/{application}/last_revision', [ApplicationController::class, 'getLastRevisionRequest'])
+    Route::get('/applications/{application}/last_revision', [ApplicationController::class, 'getLastRevisionRequest'])
             ->middleware('throttle:10,1');
 
     // Milestones
@@ -195,9 +195,7 @@ Route::middleware('auth:sanctum', 'not_blocked')->group(function () {
     Route::middleware('admin')->prefix('admin')->group(function () {
         Route::get('/users', [AdminController::class, 'users']);
         Route::get('/users/{id}', [AdminController::class, 'showUser']);
-        Route::get('/approvals', [AdminController::class, 'pendingApprovals']);
         Route::get('/logs', [AdminController::class, 'logs']);
-        Route::post('/approve/{userId}', [AdminController::class, 'approveRole'])->middleware('throttle:10,1');
         Route::post('/block/{userId}', [AdminController::class, 'blockUser'])->middleware('throttle:10,1');
         Route::post('/unblock/{userId}', [AdminController::class, 'unblockUser'])->middleware('throttle:10,1');
         Route::post('/users/{userId}/roles', [AdminController::class, 'assignRole'])->middleware('throttle:10,1');

@@ -121,8 +121,7 @@ class ApplicationController extends Controller
         $this->applicationService->applyChanges($application, $request->user());
 
         return response()->json([
-            'message' => 'Application submitted successfully',
-            'status' => 'under_evaluation',
+            'message' => 'Application submitted successfully'
         ]);
     }
 
@@ -138,8 +137,7 @@ class ApplicationController extends Controller
         $this->applicationService->submitDraft($application, $request->user());
 
         return response()->json([
-            'message' => 'Application submitted successfully',
-            'status' => 'submitted',
+            'message' => 'Application submitted successfully'
         ]);
     }
 

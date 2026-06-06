@@ -5,6 +5,7 @@ namespace App\Policies;
 use App\Models\Application;
 use App\Models\Mentorship;
 use App\Models\User;
+use App\Models\CallEvaluator;
 use App\Policies\Concerns\AuthorizesApplicationAccess;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Auth\Access\Response;
@@ -61,8 +62,8 @@ class ApplicationPolicy
         }
 
         if ($user->hasRole('evaluator')) {
-            return $application->evaluations()
-                ->where('evaluator_id', $user->id)
+            return CallEvaluator::where('call_id', $application->call->id)
+                ->where('user_id', $user->id)
                 ->exists();
         }
 

@@ -123,4 +123,5 @@ return [
         'store' => env('APP_MAINTENANCE_STORE', 'database'),
     ],
 
+    'student_allowed_domains' => env('STUDENT_ALLOWED_DOMAINS', ''),
 ];
