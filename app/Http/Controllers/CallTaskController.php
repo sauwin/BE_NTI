@@ -2,18 +2,12 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Call;
 use App\Models\Document;
 use App\Models\Task;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
-use App\Http\Controllers\CallController;
-use App\Http\Controllers\TaskController;
-use App\Models\Document;
-use App\Models\Task;
-use App\Models\Call;
 
 /**
  * @tags Call Management
@@ -46,13 +40,13 @@ class CallTaskController extends Controller
 
             if (is_array($requiredDocs)) {
                 foreach ($requiredDocs as &$document) {
-                    if (is_array($document) && empty($document['type']) && !empty($document['document_name'])) {
+                    if (is_array($document) && empty($document['type']) && ! empty($document['document_name'])) {
                         $document['type'] = Str::snake($document['document_name']);
                     }
                 }
             }
 
-            $callRequest = new Request();
+            $callRequest = new Request;
             $callRequest->setMethod('POST');
             $callRequest->setUserResolver(fn () => $request->user());
             $callRequest->merge([
@@ -60,8 +54,8 @@ class CallTaskController extends Controller
                 'name' => $request->input('title'),
                 'short_description' => $request->input('short_description'),
                 'status' => $callStatus,
-                'start_date' => now()->format('Y-m-d'),
-                'end_date' => $request->input('deadline'),
+                'opens_at' => $request->input('call_opens_at'),
+                'deadline_at' => $request->input('call_deadline_at'),
                 'required_documents' => $requiredDocs ?? [],
             ]);
 
@@ -142,7 +136,7 @@ class CallTaskController extends Controller
 
             if (is_array($requiredDocs)) {
                 foreach ($requiredDocs as &$document) {
-                    if (is_array($document) && empty($document['type']) && !empty($document['document_name'])) {
+                    if (is_array($document) && empty($document['type']) && ! empty($document['document_name'])) {
                         $document['type'] = Str::snake($document['document_name']);
                     }
                 }
