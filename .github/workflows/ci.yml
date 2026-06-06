@@ -54,7 +54,7 @@ jobs:
       - run: npm ci
         working-directory: fe_nti
 
-      - run: npx vue-tsc --noEmit
+      - run: npx vue-tsc -p tsconfig.app.json --noEmit
         working-directory: fe_nti
 
       - run: npm run build
