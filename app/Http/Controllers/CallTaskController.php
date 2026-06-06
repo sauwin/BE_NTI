@@ -2,6 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Call;
+use App\Models\Document;
+use App\Models\Task;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -19,6 +22,7 @@ use App\Models\Call;
 class CallTaskController extends Controller
 {
     protected $callController;
+
     protected $taskController;
 
     public function __construct(CallController $callController, TaskController $taskController)
@@ -32,9 +36,9 @@ class CallTaskController extends Controller
         $frontendStatus = $request->input('status', 'draft');
 
         return DB::transaction(function () use ($request, $frontendStatus) {
-            
+
             $callStatus = ($frontendStatus === 'published') ? 'open' : 'draft';
-            
+
             $requiredDocs = $request->input('required_documents');
             if (is_string($requiredDocs)) {
                 $requiredDocs = json_decode($requiredDocs, true);
@@ -52,12 +56,12 @@ class CallTaskController extends Controller
             $callRequest->setMethod('POST');
             $callRequest->setUserResolver(fn () => $request->user());
             $callRequest->merge([
-                'program_type'       => 'b', 
-                'name'               => $request->input('title'),
-                'short_description'  => $request->input('short_description'),
-                'status'             => $callStatus,
-                'start_date'         => now()->format('Y-m-d'),
-                'end_date'           => $request->input('deadline'),
+                'program_type' => 'b',
+                'name' => $request->input('title'),
+                'short_description' => $request->input('short_description'),
+                'status' => $callStatus,
+                'start_date' => now()->format('Y-m-d'),
+                'end_date' => $request->input('deadline'),
                 'required_documents' => $requiredDocs ?? [],
             ]);
 
@@ -65,7 +69,7 @@ class CallTaskController extends Controller
             $callData = $callResponse->getData(true)['call'] ?? $callResponse->getData(true);
             $callId = $callData['id'];
 
-            $taskRequest = new Request();
+            $taskRequest = new Request;
             $taskRequest->setMethod('POST');
             $taskRequest->setUserResolver(fn () => $request->user());
             $taskRequest->merge(array_merge($request->all(), [
@@ -80,7 +84,7 @@ class CallTaskController extends Controller
 
             if ($request->hasFile('files')) {
                 $userId = $request->user()->id ?? 1;
-                $uploadedFiles = $request->file('files'); 
+                $uploadedFiles = $request->file('files');
 
                 foreach ($uploadedFiles as $type => $file) {
                     $existing = $taskModel->documents()->where('type', $type)->first();
@@ -109,10 +113,10 @@ class CallTaskController extends Controller
 
             return response()->json([
                 'message' => 'Call, Task and all Documents successfully created inside a single transaction!',
-                'call'    => $callData,
-                'task'    => $taskModel->load('documents') 
+                'call' => $callData,
+                'task' => $taskModel->load('documents'),
             ], 201);
-            
+
         });
     }
 
@@ -121,16 +125,16 @@ class CallTaskController extends Controller
         $taskModel = Task::with('call', 'documents')->findOrFail($id);
         $callModel = $taskModel->call;
 
-        if (!$callModel) {
+        if (! $callModel) {
             return response()->json(['message' => 'Associated Call not found for this Task.'], 404);
         }
 
         $frontendStatus = $request->input('status', 'draft');
 
         return DB::transaction(function () use ($request, $taskModel, $callModel, $frontendStatus) {
-            
+
             $callStatus = ($frontendStatus === 'published') ? 'open' : 'draft';
-            
+
             $requiredDocs = $request->input('required_documents');
             if (is_string($requiredDocs)) {
                 $requiredDocs = json_decode($requiredDocs, true);
@@ -145,10 +149,10 @@ class CallTaskController extends Controller
             }
 
             $callModel->update([
-                'name'               => $request->input('title', $callModel->name),
-                'short_description'  => $request->input('short_description', $callModel->short_description),
-                'status'             => $callStatus,
-                'end_date'           => $request->input('deadline', $callModel->end_date),
+                'name' => $request->input('title', $callModel->name),
+                'short_description' => $request->input('short_description', $callModel->short_description),
+                'status' => $callStatus,
+                'end_date' => $request->input('deadline', $callModel->end_date),
                 'required_documents' => $requiredDocs ?? $callModel->required_documents,
             ]);
 
@@ -156,7 +160,7 @@ class CallTaskController extends Controller
 
             if ($request->hasFile('files')) {
                 $userId = $request->user()->id ?? 1;
-                $uploadedFiles = $request->file('files'); 
+                $uploadedFiles = $request->file('files');
 
                 foreach ($uploadedFiles as $type => $file) {
                     $existing = $taskModel->documents()->where('type', $type)->first();
@@ -185,8 +189,8 @@ class CallTaskController extends Controller
 
             return response()->json([
                 'message' => 'Call, Task and Documents successfully updated inside a single transaction!',
-                'call'    => $callModel,
-                'task'    => $taskModel->load('documents')
+                'call' => $callModel,
+                'task' => $taskModel->load('documents'),
             ], 200);
         });
     }
@@ -197,14 +201,14 @@ class CallTaskController extends Controller
         $callModel = $taskModel->call;
 
         return DB::transaction(function () use ($taskModel, $callModel) {
-            
+
             foreach ($taskModel->documents as $document) {
                 if (Storage::disk('local')->exists($document->file_path)) {
                     Storage::disk('local')->delete($document->file_path);
                 }
-                
+
                 $taskModel->documents()->detach($document->id);
-                
+
                 $document->delete();
             }
 
@@ -215,7 +219,7 @@ class CallTaskController extends Controller
             }
 
             return response()->json([
-                'message' => 'Task, associated Call and all connected documents successfully deleted!'
+                'message' => 'Task, associated Call and all connected documents successfully deleted!',
             ], 200);
         });
     }
