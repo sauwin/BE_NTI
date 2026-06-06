@@ -25,7 +25,7 @@ jobs:
           path: vendor
           key: composer-${{ hashFiles('composer.lock') }}
 
-      - run: composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader
+      - run: composer install --no-interaction --prefer-dist --optimize-autoloader
 
       - run: cp .env.testing .env
 
