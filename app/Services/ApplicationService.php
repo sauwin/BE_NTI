@@ -181,12 +181,21 @@ class ApplicationService
                 ->toArray();
 
             foreach ($call->required_documents as $reqDoc) {
-                $docName = is_string($reqDoc) ? $reqDoc : ($reqDoc['document_name'] ?? $reqDoc['type'] ?? '');
-                $docTypeKey = Str::snake(trim($docName));
+                // Handle both old string format and new object format
+                if (is_string($reqDoc)) {
+                    $docName = $reqDoc;
+                    $isMandatory = true;
+                } else {
+                    $docName = $reqDoc['document_name'] ?? $reqDoc['type'] ?? '';
+                    $isMandatory = $reqDoc['is_mandatory'] ?? true;
+                }
 
-                if (! in_array($docTypeKey, $uploadedTypes)) {
+                $docTypeKey = $reqDoc['type'] ?? Str::snake(trim($docName));
+
+                // Only validate if the document is mandatory
+                if ($isMandatory && ! in_array($docTypeKey, $uploadedTypes)) {
                     throw ValidationException::withMessages([
-                        'documents' => 'Chýba povinný dokument: '.(is_string($reqDoc) ? $reqDoc : ($reqDoc['document_name'] ?? $docTypeKey)),
+                        'documents' => 'Chýba povinný dokument: '.$docName,
                     ]);
                 }
             }

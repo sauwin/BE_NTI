@@ -8,6 +8,12 @@ use App\Models\Task;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
+use App\Http\Controllers\CallController;
+use App\Http\Controllers\TaskController;
+use App\Models\Document;
+use App\Models\Task;
+use App\Models\Call;
 
 /**
  * @tags Call Management
@@ -38,7 +44,15 @@ class CallTaskController extends Controller
                 $requiredDocs = json_decode($requiredDocs, true);
             }
 
-            $callRequest = new Request;
+            if (is_array($requiredDocs)) {
+                foreach ($requiredDocs as &$document) {
+                    if (is_array($document) && empty($document['type']) && !empty($document['document_name'])) {
+                        $document['type'] = Str::snake($document['document_name']);
+                    }
+                }
+            }
+
+            $callRequest = new Request();
             $callRequest->setMethod('POST');
             $callRequest->setUserResolver(fn () => $request->user());
             $callRequest->merge([
@@ -124,6 +138,14 @@ class CallTaskController extends Controller
             $requiredDocs = $request->input('required_documents');
             if (is_string($requiredDocs)) {
                 $requiredDocs = json_decode($requiredDocs, true);
+            }
+
+            if (is_array($requiredDocs)) {
+                foreach ($requiredDocs as &$document) {
+                    if (is_array($document) && empty($document['type']) && !empty($document['document_name'])) {
+                        $document['type'] = Str::snake($document['document_name']);
+                    }
+                }
             }
 
             $callModel->update([

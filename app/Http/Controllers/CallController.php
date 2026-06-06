@@ -9,6 +9,8 @@ use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 use App\Models\Application;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Str;
 
 /**
  * @tags Call Management
@@ -87,6 +89,25 @@ class CallController extends Controller
             $documents = json_decode($documents, true) ?? [];
         }
 
+        if ($documents) {
+            Validator::make(
+                ['documents' => $documents],
+                [
+                    'documents' => 'array',
+                    'documents.*.max_size_mb' => 'nullable|numeric',
+                    'documents.*.is_mandatory' => 'required|boolean',
+                    'documents.*.document_name' => 'required|string',
+                    'documents.*.type' => 'nullable|string',
+                ]
+            )->validate();
+
+            foreach ($documents as &$document) {
+                if (empty($document['type'])) {
+                    $document['type'] = Str::snake($document['document_name']);
+                }
+            }
+        }
+
         $callName = $request->input('title') ?? $request->input('name') ?? 'Bez názvu';
 
         $call = Call::create([
@@ -153,6 +174,25 @@ class CallController extends Controller
             $documents = json_decode($documents, true) ?? [];
         } elseif (isset($data['required_documents'])) {
             $documents = $data['required_documents'];
+        }
+
+        if (is_array($documents)) {
+            Validator::make(
+                ['documents' => $documents],
+                [
+                    'documents' => 'array',
+                    'documents.*.max_size_mb' => 'nullable|numeric',
+                    'documents.*.is_mandatory' => 'required|boolean',
+                    'documents.*.document_name' => 'required|string',
+                    'documents.*.type' => 'nullable|string',
+                ]
+            )->validate();
+
+            foreach ($documents as &$document) {
+                if (is_array($document) && empty($document['type']) && !empty($document['document_name'])) {
+                    $document['type'] = Str::snake($document['document_name']);
+                }
+            }
         }
 
         if ($documents !== null) {
