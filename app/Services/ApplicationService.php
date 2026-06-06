@@ -153,7 +153,7 @@ class ApplicationService
 
         DB::transaction(function () use ($application, $user) {
             $oldStatus = $application->status;
-            $newStatus = 'under_evaluation'; 
+            $newStatus = $this->getPreviousStatus($application); 
 
             $application->update(['status' => $newStatus]);
 
@@ -221,5 +221,12 @@ class ApplicationService
         } catch (\Exception $e) {
             logger()->error('Failed sending revision email notifications: ' . $e->getMessage());
         }
+    }
+
+    private function getPreviousStatus(Application $application)
+    {
+        return ApplicationStatusHistory::where('application_id', $application->id)
+            ->latest('changed_at')
+            ->value('old_status');
     }
 }

@@ -40,7 +40,7 @@ class AuthController extends Controller
         ]);
 
         if ($data['role'] === 'student') {
-            $allowedDomains = explode(',', env('STUDENT_ALLOWED_DOMAINS', ''));
+            $allowedDomains = explode(',', config('app.student_allowed_domains'));
             $emailDomain = substr(strrchr($data['email'], '@'), 1);
             if (! in_array($emailDomain, $allowedDomains)) {
                 return response()->json([

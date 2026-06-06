@@ -100,7 +100,7 @@ Route::middleware('auth:sanctum', 'not_blocked')->group(function () {
     Route::get('/applications/{id}/documents', [ApplicationController::class, 'documents']);
     Route::patch('/applications/{id}/status', [ApplicationController::class, 'updateStatus'])
         ->middleware('throttle:10,1');
-    Route::post('/applications/{application}/last_revision', [ApplicationController::class, 'getLastRevisionRequest'])
+    Route::get('/applications/{application}/last_revision', [ApplicationController::class, 'getLastRevisionRequest'])
             ->middleware('throttle:10,1');
 
     // Milestones
