@@ -39,62 +39,108 @@ class AdminWorkflowTest extends TestCase
         return $user;
     }
 
-    private function makePendingStudent(): User
-    {
-        $user = User::factory()->create(['status' => 'active']);
-        \DB::table('user_roles')->insert([
-            'user_id' => $user->id,
-            'role_id' => $this->studentRole->id,
-            'granted_by' => null,
-            'granted_at' => now(),
-        ]);
-        return $user;
-    }
+// --- Dashboard stats ---
 
-// --- Role approval ---
-
-    public function test_admin_can_see_pending_approvals(): void
+    public function test_admin_can_get_all_dashboard_stats(): void
     {
         $admin = $this->makeUser($this->adminRole);
-        $pending = $this->makePendingStudent();
 
-        $res = $this->actingAs($admin)->getJson('/api/admin/approvals');
+        $res = $this->actingAs($admin)->getJson("/api/admin/reporting/dashboard-stats");
 
-        $res->assertStatus(200);
-        $ids = array_column($res->json(), 'id');
-        $this->assertContains($pending->id, $ids);
-    }
-
-    public function test_admin_can_approve_pending_role(): void
-    {
-        $admin = $this->makeUser($this->adminRole);
-        $pending = $this->makePendingStudent();
-
-        $res = $this->actingAs($admin)->postJson("/api/admin/approve/{$pending->id}");
-
-        $res->assertStatus(200)->assertJsonFragment(['message' => 'Role approved']);
-        $this->assertDatabaseHas('user_roles', [
-            'user_id' => $pending->id,
-            'granted_by' => $admin->id,
+        $res->assertOk()->assertJsonStructure([
+            'total_users',
+            'students',
+            'company_owners',
+            'admins',
+            'content_editors',
+            'evaluators',
+            'mentors',
+            'total_calls',
+            'open_calls',
+            'total_applications',
+            'application_submitted',
+            'application_active',
+            'application_closed'
         ]);
     }
 
-    public function test_approve_user_with_no_pending_role_returns_404(): void
-    {
-        $admin = $this->makeUser($this->adminRole);
-        $alreadyApproved = $this->makeUser($this->studentRole);
-
-        $res = $this->actingAs($admin)->postJson("/api/admin/approve/{$alreadyApproved->id}");
-
-        $res->assertStatus(404);
-    }
-
-    public function test_non_admin_cannot_approve_role(): void
+    public function test_non_admin_cannot_get_dashboard_stats(): void
     {
         $student = $this->makeUser($this->studentRole);
-        $pending = $this->makePendingStudent();
 
-        $this->actingAs($student)->postJson("/api/admin/approve/{$pending->id}")->assertStatus(403);
+        $this->actingAs($student)
+        ->getJson("/api/admin/reporting/dashboard-stats")
+        ->assertStatus(403);
+    }
+
+// --- Fetch users  ---
+
+    public function test_admin_can_get_users(): void
+    {
+        $admin = $this->makeUser($this->adminRole);
+
+        $response = $this->actingAs($admin)
+        ->getJson('/api/admin/users');
+
+        $response->assertOk()
+        ->assertJsonStructure([
+            'current_page',
+            'data',
+            'last_page',
+            'per_page',
+            'total',
+        ]);
+    }
+
+    public function test_pagination_in_admin_users_list_works() {
+        $admin = $this->makeUser($this->adminRole);
+        User::factory()->count(25)->create();
+
+        $response = $this->actingAs($admin)
+            ->getJson('/api/admin/users');
+
+        $response
+            ->assertOk()
+            ->assertJsonPath('current_page', 1)
+            ->assertJsonPath('last_page', 2)
+            ->assertJsonPath('per_page', 20)
+            ->assertJsonPath('total', 26); // 25 users + admin
+    }
+
+    public function test_role_filter_in_admin_users_list_works() {
+        $admin = $this->makeUser($this->adminRole);
+        $this->makeUser($this->studentRole);
+        $this->makeUser($this->studentRole);
+
+        $response = $this->actingAs($admin)
+            ->getJson('/api/admin/users?role=student');
+
+        expect(count($response['data']))->toBe(2);
+    }
+
+    public function test_search_in_admin_users_list_works() {
+        $admin = $this->makeUser($this->adminRole);
+        $user = User::factory()->create([
+            'first_name' => 'John',
+        ]);
+
+        $response = $this->actingAs($admin)
+            ->getJson('/api/admin/users?search=John');
+
+        $response
+            ->assertOk()
+            ->assertJsonFragment([
+                'first_name' => 'John',
+            ]);
+    }
+
+    public function test_non_admin_cannot_get_users(): void
+    {
+        $student = $this->makeUser($this->studentRole);
+
+        $response = $this->actingAs($student)
+        ->getJson('/api/admin/users')
+        ->assertStatus(403);
     }
 
 // --- Block / unblock ---
@@ -147,6 +193,14 @@ class AdminWorkflowTest extends TestCase
         $target = $this->makeUser($this->studentRole);
 
         $this->actingAs($student)->postJson("/api/admin/block/{$target->id}")->assertStatus(403);
+    }
+
+    public function test_non_admin_cannot_unblock_user(): void
+    {
+        $student = $this->makeUser($this->studentRole);
+        $target = $this->makeUser($this->studentRole);
+
+        $this->actingAs($student)->postJson("/api/admin/unblock/{$target->id}")->assertStatus(403);
     }
 
 // --- Create call (výzva) ---
@@ -209,13 +263,12 @@ class AdminWorkflowTest extends TestCase
     public function test_unauthenticated_cannot_access_admin_endpoints(): void
     {
         $this->getJson('/api/admin/users')->assertStatus(401);
-        $this->getJson('/api/admin/approvals')->assertStatus(401);
         $this->postJson('/api/admin/calls')->assertStatus(401);
     }
 
 // --- Super admin: create admin user ---
 
-    public function test_super_admin_can_create_admin_user(): void
+    public function test_super_admin_can_create_staff(): void
     {
         $super = $this->makeUser($this->superAdminRole);
         Role::firstOrCreate(['slug' => 'evaluator'], ['name' => 'Evaluator', 'description' => '']);
@@ -232,7 +285,7 @@ class AdminWorkflowTest extends TestCase
         $this->assertDatabaseHas('users', ['email' => 'tomas@nti.sk']);
     }
 
-    public function test_non_super_admin_cannot_create_admin_user(): void
+    public function test_non_super_admin_cannot_create_staff(): void
     {
         $admin = $this->makeUser($this->adminRole);
         Role::firstOrCreate(['slug' => 'evaluator'], ['name' => 'Evaluator', 'description' => '']);
@@ -271,5 +324,17 @@ class AdminWorkflowTest extends TestCase
         ]);
 
         $res->assertStatus(200);
+    }
+
+    public function test_admin_cannot_remove_role_from_other_admin(): void
+    {
+        $admin = $this->makeUser($this->adminRole);
+        $target = $this->makeUser($this->adminRole);
+
+        $res = $this->actingAs($admin)->deleteJson("/api/admin/users/{$target->id}/roles", [
+            'role' => 'nti_admin',
+        ]);
+
+        $res->assertStatus(403);
     }
 }

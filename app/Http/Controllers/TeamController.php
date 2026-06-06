@@ -34,7 +34,7 @@ class TeamController extends Controller
      */
     public function store(Request $request)
     {
-        $this->authorize('create');
+        $this->authorize('create', Team::class);
 
         $validated = $request->validate([
             'name' => 'required|string|max:255',

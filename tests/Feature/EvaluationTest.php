@@ -6,6 +6,7 @@ use App\Models\Evaluation;
 use App\Models\EvaluationCriteriaScore;
 use App\Models\Role;
 use App\Models\User;
+use \App\Models\EvaluationCriterion;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
@@ -137,7 +138,7 @@ test('update sets status completed and evaluated_at', function () {
 
     $id = $createResponse->json('id');
 
-    $criterion = \App\Models\EvaluationCriterion::where('call_id', $app->call_id)->first();
+    $criterion = EvaluationCriterion::where('call_id', $app->call_id)->first();
 
     $this->actingAs($user)
         ->patchJson("/api/evaluations/{$id}", [
