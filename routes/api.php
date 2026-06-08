@@ -196,6 +196,8 @@ Route::middleware('auth:sanctum', 'not_blocked')->group(function () {
 
     // Admin Only
     Route::middleware('admin')->prefix('admin')->group(function () {
+
+        // Users Managment
         Route::get('/users', [AdminController::class, 'users']);
         Route::get('/users/{id}', [AdminController::class, 'showUser']);
         Route::get('/logs', [AdminController::class, 'logs']);
@@ -206,6 +208,14 @@ Route::middleware('auth:sanctum', 'not_blocked')->group(function () {
         Route::get('/mentorships', [MentorshipController::class, 'adminIndex'])->middleware('throttle:10,1');
         Route::delete('/mentorships/{id}', [MentorshipController::class, 'destroy'])->middleware('throttle:10,1');
 
+        // Company Managment
+        Route::get('/company', [OrganizationController::class, 'index']);
+        Route::post('/company/approve/{companyId}', [OrganizationController::class, 'approveCompany']);
+        Route::post('/company/reject/{companyId}', [OrganizationController::class, 'rejectCompany']);
+        Route::post('/company/activate/{companyId}', [OrganizationController::class, 'activateCompany']);
+        Route::post('/company/deactivate/{companyId}', [OrganizationController::class, 'deactivateCompany']);
+        Route::delete('/company/delete/${companyId}', [OrganizationController::class, 'deleteCompany']);
+       
         Route::post('/notifications/bulk', [BulkNotificationController::class, 'send'])->middleware('throttle:5,1');
         Route::get('/notifications/history', [BulkNotificationController::class, 'history']);
 
@@ -241,5 +251,6 @@ Route::middleware('auth:sanctum', 'not_blocked')->group(function () {
         Route::get('/export/users', [ExportController::class, 'exportUsers']);
         Route::get('/export/calls', [ExportController::class, 'exportCalls']);
         Route::get('/export/notifications', [ExportController::class, 'exportNotifications']);
+        Route::get('export/company', [ExportController::class, 'exportCompany']);
     });
 });

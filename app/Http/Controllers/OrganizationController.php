@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Organization;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
@@ -85,5 +86,83 @@ class OrganizationController extends Controller
             ->get(['id', 'name', 'sector', 'website', 'description']);
 
         return response()->json($partners);
+    }
+
+    public function index(Request $request) 
+    {
+        $query = Organization::query();
+
+        if ($request->has('search_name') && $request->search_name != '') {
+            $query->where('name', 'like', "%{$request->search_name}%");
+        }
+
+        if ($request->has('search_number') && $request->search_number != '') {
+            $query->where('registration_number', 'like', "%{$request->search_number}%");
+        }
+
+        if ($request->has('status') && $request->status != '') {
+            $query->where('status', $request->status);
+        }
+
+        $companies = $query->orderBy('created_at', 'desc')->paginate(20);
+
+        return response()->json($companies);
+    }
+
+    public function approveCompany(Request $request, int $orgId) 
+    {
+        $org = Organization::findOrFail($orgId);
+        $org->update(['status' => 'active']);
+
+        AuditService::log('approve', 'organization', [
+            'target_org_id' => $orgId,
+            'target_org_number' => $org->registration_number,
+        ]);
+
+        return response()->json(['message' => 'Company approved']);
+    }
+
+    public function rejectCompany(Request $request, int $orgId) 
+    {
+
+        DB::transaction(function () use ($orgId)
+        {
+            $org = Organization::findOrFail($orgId);
+
+            User::where('organization_id', $orgId)
+                ->where('role_in_org', 'owner')
+                ->update(['status' => 'pending_approvals']);
+
+            $org->delete();
+        });
+
+        return response()->json(['message' => 'Company rejected']);
+    }
+
+    public function activateCompany(Request $requst, int $orgId) 
+    {
+        $org = Organization::findOrFail($orgId);
+
+        $org->update(['status' => 'active']);
+
+        return response()->json(['message' => 'Company activated']);
+    }
+
+    public function deactivateCompany(Request $requst, int $orgId) 
+    {
+        $org = Organization::findOrFail($orgId);
+
+        $org->update(['status' => 'inactive']);
+
+        return response()->json(['message' => 'Company deactivated']);
+    }
+
+    public function deleteCompany(Request $requst, int $orgId) 
+    {
+        $org = Organization::findOrFail($orgId);
+
+        $org->delete();
+
+        return response()->json(['message' => 'Company deleted']);
     }
 }

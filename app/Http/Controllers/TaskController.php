@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Call;
 use App\Models\Task;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
 use App\Services\TaskService;
 use App\Services\CallService;
@@ -32,7 +33,7 @@ class TaskController extends Controller
 
         $frontendStatus = $request->input('status', 'draft');
 
-        return \DB::transaction(function () use ($request, $frontendStatus) {
+        return DB::transaction(function () use ($request, $frontendStatus) {
             $callStatus = ($frontendStatus === 'published') ? 'open' : 'draft';
 
             $callData = [

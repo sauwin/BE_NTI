@@ -27,7 +27,6 @@ class UserFactory extends Factory
         return [
             'email' => fake()->unique()->safeEmail(),
             'password' => static::$password ??= Hash::make('password'),
-            //'account_type' => $this->faker->randomElement(['student', 'organisation', 'mentor', 'internal']),
             'status' => 'active',
             'email_verified_at' => now(),
             'first_name' => fake()->firstName(),
