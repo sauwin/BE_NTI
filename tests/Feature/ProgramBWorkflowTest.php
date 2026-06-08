@@ -81,7 +81,7 @@ class ProgramBWorkflowTest extends TestCase
         return [$leader, $team];
     }
 
-// Step 1: company creates task as draft (spec 8.2: draft)
+// Step 1: company creates task as draft
     public function test_company_can_create_task(): void
     {
         $org = $this->makeOrg();
@@ -103,7 +103,7 @@ class ProgramBWorkflowTest extends TestCase
         $this->assertDatabaseHas('tasks', ['title' => 'E-commerce portal', 'organization_id' => $org->id]);
     }
 
-// Step 2: company sets Product Owner on the task (spec 8.1: Product Owner za firmu)
+// Step 2: company sets Product Owner on the task
     public function test_company_can_set_product_owner_on_task(): void
     {
         $org = $this->makeOrg();
@@ -131,7 +131,7 @@ class ProgramBWorkflowTest extends TestCase
         $this->assertDatabaseHas('tasks', ['id' => $task->id, 'product_owner_user_id' => $productOwner->id]);
     }
 
-// Step 3: company publishes task via call+task endpoint (spec 8.2: publikované do backlogu)
+// Step 3: company publishes task via call+task endpoint
     public function test_company_can_publish_task_with_call(): void
     {
         $org = $this->makeOrg();
@@ -152,7 +152,7 @@ class ProgramBWorkflowTest extends TestCase
         $res->assertStatus(201);
     }
 
-// Step 4: published tasks visible publicly, draft tasks not (spec 8.2 backlog)
+// Step 4: published tasks visible publicly, draft tasks not
     public function test_published_tasks_visible_publicly(): void
     {
         $org = $this->makeOrg();
@@ -200,7 +200,7 @@ class ProgramBWorkflowTest extends TestCase
         $this->assertNotContains('Hidden Task', $titles);
     }
 
-// Step 6: student submits application to program B call (spec 8.3)
+// Step 6: student submits application to program B call
     public function test_student_can_apply_to_program_b_call(): void
     {
         $call = Call::factory()->create([
@@ -224,7 +224,7 @@ class ProgramBWorkflowTest extends TestCase
         $this->assertDatabaseHas('applications', ['program_type' => 'b', 'team_id' => $team->id]);
     }
 
-// Step 7: committee approves or rejects (spec 8.3: výber tímu komisii so zástupcom firmy)
+// Step 7: committee approves or rejects
     public function test_commission_can_approve_program_b_application(): void
     {
         $admin = $this->makeUser($this->adminRole);
@@ -272,7 +272,7 @@ class ProgramBWorkflowTest extends TestCase
         $this->assertDatabaseHas('applications', ['id' => $app->id, 'status' => 'rejected']);
     }
 
-// Step 8: admin assigns NTI mentor after approval (spec 8.3: pridelí mentor za NTI)
+// Step 8: admin assigns NTI mentor after approval
     public function test_admin_assigns_mentor_after_program_b_approval(): void
     {
         $admin = $this->makeUser($this->adminRole);
@@ -304,7 +304,7 @@ class ProgramBWorkflowTest extends TestCase
         ]);
     }
 
-// Step 9: mentor records consultation during realization (spec 8.4)
+// Step 9: mentor records consultation during realization
     public function test_mentor_can_record_consultation_for_program_b(): void
     {
         $mentor = $this->makeUser($this->mentorRole);
@@ -339,7 +339,7 @@ class ProgramBWorkflowTest extends TestCase
         ]);
     }
 
-// Step 10: milestone tracking during active project (spec 8.4: míľniky projektu)
+// Step 10: milestone tracking during active project
     public function test_admin_can_create_milestone_for_program_b_project(): void
     {
         $admin = $this->makeUser($this->adminRole);
@@ -368,7 +368,7 @@ class ProgramBWorkflowTest extends TestCase
         ]);
     }
 
-// Step 12: admin closes application after delivery (spec 8.4: uzavreté)
+// Step 12: admin closes application after delivery
     public function test_admin_can_close_program_b_application(): void
     {
         $admin = $this->makeUser($this->adminRole);

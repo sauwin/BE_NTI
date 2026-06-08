@@ -98,7 +98,9 @@ class Application extends Model
         }
 
         if ($user->hasRole('company')) {
-            return $query->whereRelation('call', 'created_by', $user->id);
+            return $query
+                ->with(['studentProfile.user'])
+                ->whereRelation('call', 'created_by', $user->id);
         }
 
         if ($user->hasRole('evaluator')) {

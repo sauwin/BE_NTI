@@ -5,6 +5,10 @@ namespace App\Http\Controllers;
 use App\Models\Call;
 use App\Models\Task;
 use Illuminate\Http\Request;
+use App\Services\TaskService;
+use App\Services\CallService;
+use App\Http\Requests\StoreTaskRequest;
+use App\Http\Requests\UpdateTaskRequest;
 
 /**
  * @tags Task Management
@@ -12,6 +16,120 @@ use Illuminate\Http\Request;
  */
 class TaskController extends Controller
 {
+    protected $taskService;
+
+    protected $callService;
+
+    public function __construct(TaskService $taskService, CallService $callService)
+    {
+        $this->taskService = $taskService;
+        $this->callService = $callService;
+    }
+
+    public function storeCallWithTask(Request $request)
+    {
+        $this->authorize('create', Task::class);
+
+        $frontendStatus = $request->input('status', 'draft');
+
+        return \DB::transaction(function () use ($request, $frontendStatus) {
+            $callStatus = ($frontendStatus === 'published') ? 'open' : 'draft';
+
+            $callData = [
+                'program_type' => $request->input('program_type', 'b'),
+                'title' => $request->input('title'),
+                'short_description' => $request->input('short_description'),
+                'status' => $callStatus,
+                'min_team_size' => $request->input('min_team_size'),
+                'max_team_size' => $request->input('max_team_size'),
+                'opens_at' => $request->input('opens_at'),
+                'deadline_at' => $request->input('deadline_at'),
+                'required_documents' => $request->input('required_documents'),
+                'form_config' => $request->input('form_config'),
+            ];
+
+            $call = $this->callService->create($callData, $request->user()->id ?? 1);
+
+            $taskData = array_merge($request->all(), [
+                'call_id' => $call->id,
+            ]);
+
+            $task = $this->taskService->create($taskData, $request->user());
+
+            if ($request->hasFile('files')) {
+                $this->taskService->attachDocuments($task, $request->file('files'), $request->user()->id ?? 1);
+            }
+
+            return response()->json([
+                'message' => 'Call, Task and all Documents successfully created inside a single transaction!',
+                'call' => $call,
+                'task' => $task->load('documents'),
+            ], 201);
+        });
+    }
+
+    public function updateCallWithTask(Request $request, $id)
+    {
+        $taskModel = Task::with('call', 'documents')->findOrFail($id);
+        $callModel = $taskModel->call;
+
+        if (! $callModel) {
+            return response()->json(['message' => 'Associated Call not found for this Task.'], 404);
+        }
+
+        $frontendStatus = $request->input('status', 'draft');
+
+        return \DB::transaction(function () use ($request, $taskModel, $callModel, $frontendStatus) {
+            $callStatus = ($frontendStatus === 'published') ? 'open' : 'draft';
+
+            $callData = [
+                'title' => $request->input('title', $callModel->name),
+                'short_description' => $request->input('short_description', $callModel->short_description),
+                'status' => $callStatus,
+                'min_team_size' => $request->input('min_team_size'),
+                'max_team_size' => $request->input('max_team_size'),
+                'opens_at' => $request->input('opens_at'),
+                'deadline_at' => $request->input('deadline_at'),
+                'required_documents' => $request->input('required_documents') ?? $callModel->required_documents,
+            ];
+
+            $this->callService->update($callModel->id, $callData);
+
+            $this->taskService->update($taskModel->id, $request->all());
+
+            if ($request->hasFile('files')) {
+                $this->taskService->attachDocuments($taskModel, $request->file('files'), $request->user()->id ?? 1);
+            }
+
+            return response()->json([
+                'message' => 'Call, Task and Documents successfully updated inside a single transaction!',
+                'call' => $this->callService->find($callModel->id),
+                'task' => $taskModel->load('documents'),
+            ], 200);
+        });
+    }
+
+    public function updateCallWithTaskStatus(Request $request, $id)
+    {
+        $request->validate([
+            'status' => 'required|in:draft,published',
+        ]);
+
+        $task = Task::with('call')->findOrFail($id);
+        $this->authorize('update', $task);
+
+        $call = $task->call;
+        if (! $call) {
+            return response()->json(['message' => 'Associated call not found for this Task.'], 404);
+        }
+
+        $task->status = $request->input('status');
+        $task->save();
+        $call->status = $request->input('status') === 'published' ? 'open' : 'draft';
+        $call->save();
+
+        return response()->json(['message' => 'Status updated', 'call' => $call, 'task' => $task]);
+    }
     public function byOrganization($organizationId)
     {
         $tasks = Task::with(['call', 'organization'])
@@ -35,94 +153,36 @@ class TaskController extends Controller
 
     public function index(Request $request)
     {
-        $tasks = Task::with(['call', 'organization'])
-            ->where('product_owner_user_id', $request->user()->id)
-            ->get();
+        $tasks = $this->taskService->index($request->user()->id);
 
         return response()->json($tasks);
     }
 
     public function show(Request $request, $id)
     {
-        $task = Task::with(['organization', 'call', 'documents'])->findOrFail($id);
+        $task = $this->taskService->findWithRelations($id);
 
         $this->authorize('view', $task);
 
         return response()->json($task);
     }
 
-    public function store(Request $request)
+    public function store(StoreTaskRequest $request)
     {
         $this->authorize('create', Task::class);
 
-        $data = $request->validate([
-            'call_id' => 'required|integer|exists:calls,id',
-            'title' => 'required|string|max:255',
-            'budget' => 'nullable|numeric|min:0',
-            'brief' => 'nullable|string|max:2000',
-            'status' => 'nullable|in:draft,published',
-            'short_description' => 'nullable|string|max:500',
-            'project_goal' => 'nullable|string',
-            'expected_outcome' => 'nullable|string',
-            'detailed_technical_description' => 'nullable|string',
-            'required_technologies' => 'nullable|array',
-            'architecture_requirements' => 'nullable|string',
-            'integrations_apis' => 'nullable|string',
-            'platforms' => 'nullable|string',
-            'required_skills' => 'nullable|array',
-            'preferred_team_size' => 'nullable|integer',
-            'required_experience' => 'nullable|string',
-            'expected_duration' => 'nullable|string',
-            'milestones' => 'nullable|string',
-            'deadline' => 'nullable|date',
-            'product_owner_user_id' => 'nullable|exists:users,id',
-        ]);
-
-        $organizationId = $request->user()->organization_id;
-
-        $call = Call::findOrFail($data['call_id']);
-        if (($call->program ?? null) !== 'b') {
-            return response()->json(['message' => 'Only Program B calls can receive company tasks.'], 422);
-        }
-
-        $task = Task::create(array_merge($data, [
-            'organization_id' => $organizationId,
-            'product_owner_user_id' => $request->user()->id,
-            'status' => $data['status'] ?? 'draft',
-        ]));
+        $task = $this->taskService->create($request->validated(), $request->user());
 
         return response()->json($task, 201);
     }
 
-    public function update(Request $request, $id)
+    public function update(UpdateTaskRequest $request, $id)
     {
         $task = Task::findOrFail($id);
 
         $this->authorize('update', $task);
 
-        $data = $request->validate([
-            'title' => 'sometimes|required|string|max:255',
-            'brief' => 'nullable|string|max:2000',
-            'budget' => 'nullable|numeric|min:0',
-            'status' => 'sometimes|required|in:draft,published,in_matching,assigned,in_progress,closed',
-            'short_description' => 'nullable|string|max:500',
-            'project_goal' => 'nullable|string',
-            'expected_outcome' => 'nullable|string',
-            'detailed_technical_description' => 'nullable|string',
-            'required_technologies' => 'nullable|array',
-            'architecture_requirements' => 'nullable|string',
-            'integrations_apis' => 'nullable|string',
-            'platforms' => 'nullable|string',
-            'required_skills' => 'nullable|array',
-            'preferred_team_size' => 'nullable|integer',
-            'required_experience' => 'nullable|string',
-            'expected_duration' => 'nullable|string',
-            'milestones' => 'nullable|string',
-            'deadline' => 'nullable|date',
-            'product_owner_user_id' => 'nullable|exists:users,id',
-        ]);
-
-        $task->update($data);
+        $task = $this->taskService->update($id, $request->validated());
 
         return response()->json($task);
     }
@@ -133,7 +193,7 @@ class TaskController extends Controller
 
         $this->authorize('delete', $task);
 
-        $task->delete();
+        $this->taskService->delete($id);
 
         return response()->json(['message' => 'Task deleted successfully']);
     }

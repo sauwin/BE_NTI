@@ -38,24 +38,6 @@ class ApplicationManagementController extends Controller
     }
 
     /**
-     * Send revesion request and notified student
-     */
-    public function requestRevision(Request $request, int $id)
-    {
-        $application = Application::findOrFail($id);
-
-        $this->authorize('updateStatus', $application);
-
-        $request->validate([
-            'message' => 'required|string|min:5|max:2000'
-        ]);
-        
-        $this->applicationWorkflowService->createRevisionRequest($application, $request->message, $request->user());
-
-        return response()->json(['message' => 'Revision request created successfully and student notified.']);
-    }
-
-    /**
      * Select history for revision requests
      */
     public function getRevisionHistory(Application $application)

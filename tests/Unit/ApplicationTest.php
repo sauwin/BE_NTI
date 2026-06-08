@@ -8,7 +8,9 @@ use App\Models\Role;
 use App\Models\StudentProfile;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class ApplicationTest extends TestCase
@@ -51,6 +53,35 @@ class ApplicationTest extends TestCase
 
         $res->assertStatus(201)->assertJsonStructure(['application_id']);
         $this->assertDatabaseHas('applications', ['status' => 'draft']);
+    }
+
+    public function test_student_can_create_application_with_documents_in_one_request(): void
+    {
+        Storage::fake('local');
+        StudentProfile::factory()->create(['user_id' => $this->student->id]);
+
+        $file = UploadedFile::fake()->create('proposal.pdf', 100, 'application/pdf');
+
+        $res = $this->actingAs($this->student)->post('/api/applications', [
+            'applicant_type' => 'student',
+            'program_type' => 'a',
+            'submit_type' => 'final',
+            'category' => 'AI & Data Technologies',
+            'documents' => [
+                [
+                    'type' => 'proposal',
+                    'classification' => 'confidential',
+                    'file' => $file,
+                ],
+            ],
+        ]);
+
+        $res->assertStatus(201)->assertJsonStructure(['application_id']);
+        $applicationId = $res->json('application_id');
+
+        $this->assertDatabaseHas('applications', ['id' => $applicationId, 'status' => 'submitted']);
+        $this->assertDatabaseHas('documents', ['type' => 'proposal', 'file_name' => 'proposal.pdf']);
+        $this->assertDatabaseHas('application_documents', ['application_id' => $applicationId]);
     }
 
     public function test_application_requires_student_profile(): void

@@ -138,6 +138,10 @@ class ApplicationPolicy
             return true;
         }
 
+        if ($user->hasRole('company') && $user->role_in_org == 'owner') {
+            return true;
+        }
+
         if (! $user->hasRole('mentor')) {
             return false;
         }

@@ -6,11 +6,12 @@ use App\Models\Call;
 use App\Models\Program;
 use App\Services\AuditService;
 use Illuminate\Http\Request;
-use Illuminate\Validation\ValidationException;
 use App\Models\Application;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
+use App\Http\Requests\StoreCallRequest;
+use App\Http\Requests\UpdateCallRequest;
+use App\Services\CallService;
 
 /**
  * @tags Call Management
@@ -18,6 +19,12 @@ use Illuminate\Support\Str;
  */
 class CallController extends Controller
 {
+    protected $callService;
+
+    public function __construct(CallService $callService)
+    {
+        $this->callService = $callService;
+    }
     public function active(Request $request, ?string $program_type = null)
     {
         $query = Call::where('status', 'open');
@@ -41,196 +48,31 @@ class CallController extends Controller
         return response()->json($calls);
     }
 
-    public function store(Request $request)
+    public function store(StoreCallRequest $request)
     {
-        $programType = null;
-        if ($request->has('program_type')) {
-            $programType = $request->input('program_type');
-        } elseif ($request->has('program')) {
-            $programType = $request->input('program');
-        } elseif ($request->has('program_id')) {
-            $programId = $request->input('program_id');
-            if (is_numeric($programId)) {
-                $p = Program::find($programId);
-                if ($p) {
-                    $programType = str_replace('program_', '', $p->code);
-                }
-            } else {
-                $programType = str_contains($programId, 'program_a') ? 'a' : (str_contains($programId, 'program_b') ? 'b' : null);
-            }
-        }
-
-        try {
-            $data = $request->validate([
-                'program_type' => 'required|in:a,b',
-                'title' => 'nullable|string|max:255',
-                'name' => 'nullable|string|max:255',
-                'status' => 'sometimes|required|in:draft,open,closed,archived',
-                'opens_at' => 'nullable|date',
-                'deadline_at' => 'nullable|date',
-                'min_team_size' => 'nullable|integer|min:1',
-                'max_team_size' => 'nullable|integer',
-                'evaluation_criteria' => 'nullable',
-                'required_documents' => 'nullable',
-                'form_config' => 'nullable',
-            ]);
-        } catch (ValidationException $e) {
-            return response()->json([
-                'error' => 'Validation Failed',
-                'messages' => $e->errors(),
-                'received_data' => $request->all(),
-            ], 422);
-        }
-
-        // use program_type directly as enum value on calls table
-
-        $documents = $request->input('form_config') ?? $request->input('required_documents') ?? [];
-        if (is_string($documents)) {
-            $documents = json_decode($documents, true) ?? [];
-        }
-
-        if ($documents) {
-            Validator::make(
-                ['documents' => $documents],
-                [
-                    'documents' => 'array',
-                    'documents.*.max_size_mb' => 'nullable|numeric',
-                    'documents.*.is_mandatory' => 'required|boolean',
-                    'documents.*.document_name' => 'required|string',
-                    'documents.*.type' => 'nullable|string',
-                ]
-            )->validate();
-
-            foreach ($documents as &$document) {
-                if (empty($document['type'])) {
-                    $document['type'] = Str::snake($document['document_name']);
-                }
-            }
-        }
-
-        $callName = $request->input('title') ?? $request->input('name') ?? 'Bez názvu';
-
-        $call = Call::create([
-            'program' => $data['program_type'],
-            'name' => $callName,
-            'status' => $request->input('status') ?? 'draft',
-            'opens_at' => $request->input('opens_at') ? now()->parse($request->input('opens_at')) : null,
-            'deadline_at' => $request->input('deadline_at') ? now()->parse($request->input('deadline_at')) : null,
-            'min_team_size' => $request->input('min_team_size') ?? 1,
-            'max_team_size' => $request->input('max_team_size') ?? null,
-            'evaluation_criteria' => $request->input('evaluation_criteria') ?? [],
-            'required_documents' => $documents,
-            'created_by' => $request->user()->id ?? 1,
-        ]);
-
-        $call->label = $callName;
-
-        AuditService::log('create_call', 'call', [
-            'call_id' => $call->id,
-            'program_type' => $data['program_type'], 
-            'name' => $callName,
-        ]);
+        $call = $this->callService->create($request->validated(), $request->user()->id ?? 1);
 
         return response()->json($call, 201);
     }
 
-    public function update(Request $request, int $id)
+    public function update(UpdateCallRequest $request, int $id)
     {
-        $call = Call::findOrFail($id);
-
-        $data = $request->validate([
-            'title' => 'sometimes|string|max:255',
-            'program_type' => 'sometimes|in:a,b',
-            'status' => 'sometimes|in:draft,open,closed,archived',
-            'opens_at' => 'nullable|date',
-            'deadline_at' => 'nullable|date|after_or_equal:opens_at',
-            'min_team_size' => 'sometimes|integer|min:1',
-            'max_team_size' => 'nullable|integer|min:1',
-            'evaluation_criteria' => 'nullable|array',
-            'form_config' => 'nullable|string',
-            'required_documents' => 'nullable|array',
-        ]);
-
-        if (isset($data['program_type'])) {
-            $call->program = $data['program_type'];
+        try {
+            $call = $this->callService->update($id, $request->validated());
+        } catch (\InvalidArgumentException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
         }
-
-        if (isset($data['title'])) {
-            $call->name = $data['title'];
-        }
-
-        if (isset($data['max_team_size']) && $data['max_team_size'] !== null) {
-            $min = $data['min_team_size'] ?? $call->min_team_size;
-            if ($data['max_team_size'] < $min) {
-                return response()->json(['message' => 'Max team size cannot be less than min team size.'], 422);
-            }
-            $call->max_team_size = $data['max_team_size'];
-        } elseif (array_key_exists('max_team_size', $data)) {
-            $call->max_team_size = null;
-        }
-
-        $documents = $data['form_config'] ?? null;
-        if (is_string($documents)) {
-            $documents = json_decode($documents, true) ?? [];
-        } elseif (isset($data['required_documents'])) {
-            $documents = $data['required_documents'];
-        }
-
-        if (is_array($documents)) {
-            Validator::make(
-                ['documents' => $documents],
-                [
-                    'documents' => 'array',
-                    'documents.*.max_size_mb' => 'nullable|numeric',
-                    'documents.*.is_mandatory' => 'required|boolean',
-                    'documents.*.document_name' => 'required|string',
-                    'documents.*.type' => 'nullable|string',
-                ]
-            )->validate();
-
-            foreach ($documents as &$document) {
-                if (is_array($document) && empty($document['type']) && !empty($document['document_name'])) {
-                    $document['type'] = Str::snake($document['document_name']);
-                }
-            }
-        }
-
-        if ($documents !== null) {
-            $call->required_documents = $documents;
-        }
-
-        if (isset($data['min_team_size'])) {
-            $call->min_team_size = $data['min_team_size'];
-        }
-        if (isset($data['status'])) {
-            $call->status = $data['status'];
-        }
-        if (array_key_exists('opens_at', $data)) {
-            $call->opens_at = $data['opens_at'] ? now()->parse($data['opens_at']) : null;
-        }
-        if (array_key_exists('deadline_at', $data)) {
-            $call->deadline_at = $data['deadline_at'] ? now()->parse($data['deadline_at']) : null;
-        }
-
-        $call->save();
 
         return response()->json($call);
     }
 
     public function destroy(int $id)
     {
-        $call = Call::findOrFail($id);
-
-        if ($call->status !== 'draft') {
-            return response()->json(['message' => 'Only draft calls can be deleted.'], 422);
+        try {
+            $this->callService->delete($id);
+        } catch (\DomainException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
         }
-
-        $callId = $call->id;
-        $call->delete();
-
-        AuditService::log('delete_call', 'call', [
-            'call_id' => $callId,
-        ]);
 
         return response()->json(['message' => 'Call deleted']);
     }
