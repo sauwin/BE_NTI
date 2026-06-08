@@ -237,5 +237,7 @@ class OrganizationController extends Controller
             'target_org_id' => $orgId,
             'target_org_number' => $org->registration_number,
         ]);
+
+        return response()->json(['message' => 'Partner status changed']);
     }
 }
