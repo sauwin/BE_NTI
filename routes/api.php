@@ -43,6 +43,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
 Route::get('/calls/active/{program_type?}', [CallController::class, 'active']);
 Route::get('/faq-items', [FaqItemController::class, 'index']);
 Route::get('/partners', [OrganizationController::class, 'publicPartners']);
+Route::get('/contacts/{partnerId}', [OrganizationController::class, 'ContactMember']);
 Route::get('/programs/b/tasks', [TaskController::class, 'publicTasks']);
 
 Route::get('/email/continueRegistration/{id}/{hash}', [EmailVerificationController::class, 'completeRegistration'])->name('verification.verify');

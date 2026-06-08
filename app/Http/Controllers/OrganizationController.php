@@ -240,4 +240,18 @@ class OrganizationController extends Controller
 
         return response()->json(['message' => 'Partner status changed']);
     }
+
+    /**
+     * Get contact members for partnes company
+     */
+    public function ContactMember(Request $request, int $partnerId) 
+    {
+        $contacts = User::query()
+            ->select('id', 'first_name', 'last_name', 'email')
+            ->where('organization_id', $partnerId)
+            ->where('role_in_org', 'contact')
+            ->get();
+
+        return response()->json($contacts);
+    }
 }
