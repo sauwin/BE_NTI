@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Organization;
 use App\Models\User;
+use App\Services\AuditService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
@@ -80,6 +81,9 @@ class OrganizationController extends Controller
         return response()->json(['message' => 'Profile updated']);
     }
 
+    /**
+     * Get publicPartners from company
+     */
     public function publicPartners()
     {
         $partners = Organization::where('is_public_partner', true)
@@ -88,6 +92,9 @@ class OrganizationController extends Controller
         return response()->json($partners);
     }
 
+    /**
+     * Get all company (with filters)
+     */
     public function index(Request $request) 
     {
         $query = Organization::query();
@@ -109,12 +116,25 @@ class OrganizationController extends Controller
         return response()->json($companies);
     }
 
+    /**
+     * Approve company and activate owner
+     */
     public function approveCompany(Request $request, int $orgId) 
     {
-        $org = Organization::findOrFail($orgId);
-        $org->update(['status' => 'active']);
+        DB::transaction(function () use ($orgId)
+        {
+            $org = Organization::findOrFail($orgId);
 
-        AuditService::log('approve', 'organization', [
+            $org->update(['status' => 'active']);
+
+            User::where('organization_id', $orgId)
+                ->where('role_in_org', 'owner')
+                ->update(['status' => 'active']);
+
+            return $org;
+        });
+
+        AuditService::log('Approve', 'Organization', [
             'target_org_id' => $orgId,
             'target_org_number' => $org->registration_number,
         ]);
@@ -122,6 +142,9 @@ class OrganizationController extends Controller
         return response()->json(['message' => 'Company approved']);
     }
 
+    /**
+     * Reject company and deactivate owner
+     */
     public function rejectCompany(Request $request, int $orgId) 
     {
 
@@ -131,37 +154,66 @@ class OrganizationController extends Controller
 
             User::where('organization_id', $orgId)
                 ->where('role_in_org', 'owner')
-                ->update(['status' => 'pending_approvals']);
+                ->update(['status' => 'pending_approval']);
 
             $org->delete();
         });
 
+        AuditService::log('Reject', 'Organization', [
+            'target_org_id' => $orgId,
+            'target_org_number' => $org->registration_number,
+        ]);
+
         return response()->json(['message' => 'Company rejected']);
     }
 
-    public function activateCompany(Request $requst, int $orgId) 
+    /**
+     * Activate company 
+     */
+    public function activateCompany(Request $request, int $orgId) 
     {
         $org = Organization::findOrFail($orgId);
 
         $org->update(['status' => 'active']);
 
+        AuditService::log('Activate', 'Organization', [
+            'target_org_id' => $orgId,
+            'target_org_number' => $org->registration_number,
+        ]);
+
         return response()->json(['message' => 'Company activated']);
     }
 
+    /**
+     * Deactivate company
+     */
     public function deactivateCompany(Request $requst, int $orgId) 
     {
         $org = Organization::findOrFail($orgId);
 
         $org->update(['status' => 'inactive']);
 
+        AuditService::log('Deactivate', 'Organization', [
+            'target_org_id' => $orgId,
+            'target_org_number' => $org->registration_number,
+        ]);
+
         return response()->json(['message' => 'Company deactivated']);
     }
 
+    /**
+     * Delete company from DB
+     */
     public function deleteCompany(Request $requst, int $orgId) 
     {
         $org = Organization::findOrFail($orgId);
 
         $org->delete();
+
+        AuditService::log('Delete', 'Organization', [
+            'target_org_id' => $orgId,
+            'target_org_number' => $org->registration_number,
+        ]);
 
         return response()->json(['message' => 'Company deleted']);
     }

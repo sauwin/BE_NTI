@@ -47,6 +47,11 @@ class EmailVerificationController extends Controller
                     'granted_at' => now(),
                 ]);
             }
+
+            if ($user->role_in_org === 'owner') {
+                $user->update(['email_verified_at' => now(), 'status' => 'pending_approval']);
+            }
+
         });
 
         return redirect(rtrim(env('FRONTEND_URL', 'http://localhost:5173'), '/').'/verified');
