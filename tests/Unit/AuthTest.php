@@ -33,8 +33,8 @@ class AuthTest extends TestCase
             'first_name' => 'Jan',
             'last_name' => 'Novak',
             'email' => 'jan@ukf.sk',
-            'password' => 'password1',
-            'password_confirmation' => 'password1',
+            'password' => 'Password123!',
+            'password_confirmation' => 'Password123!',
             'role' => 'student',
             'agreed_terms' => true,
             'gdpr_consent' => true,
@@ -50,8 +50,8 @@ class AuthTest extends TestCase
             'first_name' => 'Jan',
             'last_name' => 'Novak',
             'email' => 'jan@test.com',
-            'password' => 'password1',
-            'password_confirmation' => 'password1',
+            'password' => 'Password123!',
+            'password_confirmation' => 'Password123!',
             'role' => 'student',
             'agreed_terms' => true,
             'gdpr_consent' => true,
@@ -148,12 +148,12 @@ class AuthTest extends TestCase
 
         $res = $this->postJson('/api/auth/reset-password', [
             'token' => $raw,
-            'password' => 'newpassword1',
-            'password_confirmation' => 'newpassword1',
+            'password' => 'Newpassword123!',
+            'password_confirmation' => 'Newpassword123!',
         ]);
 
         $res->assertStatus(200);
-        $this->assertTrue(Hash::check('newpassword1', $user->fresh()->password));
+        $this->assertTrue(Hash::check('Newpassword123!', $user->fresh()->password));
     }
 
     public function test_password_reset_expired_token_returns_400(): void
@@ -168,8 +168,8 @@ class AuthTest extends TestCase
 
         $res = $this->postJson('/api/auth/reset-password', [
             'token' => $raw,
-            'password' => 'newpassword1',
-            'password_confirmation' => 'newpassword1',
+            'password' => 'Newpassword123!',
+            'password_confirmation' => 'Newpassword123!',
         ]);
 
         $res->assertStatus(400);

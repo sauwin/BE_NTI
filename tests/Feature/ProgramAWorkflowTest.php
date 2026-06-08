@@ -92,8 +92,8 @@ class ProgramAWorkflowTest extends TestCase
             'first_name' => 'Jan',
             'last_name' => 'Novak',
             'email' => 'jan@test.sk',
-            'password' => 'password1',
-            'password_confirmation' => 'password1',
+            'password' => 'Password123!',
+            'password_confirmation' => 'Password123!',
             'role' => 'student',
             'agreed_terms' => true,
             'gdpr_consent' => true,
@@ -119,7 +119,7 @@ class ProgramAWorkflowTest extends TestCase
         $this->assertDatabaseHas('student_profiles', ['user_id' => $student->id]);
     }
 
-// Step 3: create team with min 3 members (spec 7.2: min 3)
+// Step 3: create team with min 3 members
     public function test_leader_can_create_team_and_invite_members(): void
     {
         $leader = $this->makeUser($this->studentRole);
@@ -162,7 +162,7 @@ class ProgramAWorkflowTest extends TestCase
         $this->assertEquals('accepted', $team->members()->where('user_id', $m2->id)->first()->pivot->status);
     }
 
-// Step 5: submit application as draft then submit it (spec: draft → submitted)
+// Step 5: submit application as draft then submit it
     public function test_leader_can_create_draft_application(): void
     {
         [$leader, $team] = $this->makeTeamWithMembers(3);
@@ -185,7 +185,7 @@ class ProgramAWorkflowTest extends TestCase
         ]);
     }
 
-// Step 6: leader submits draft → status becomes submitted (spec: Podané)
+// Step 6: leader submits draft → status becomes submitted
     public function test_leader_can_submit_draft_application(): void
     {
         [$leader, $team] = $this->makeTeamWithMembers(3);
@@ -207,7 +207,7 @@ class ProgramAWorkflowTest extends TestCase
         $this->assertDatabaseHas('applications', ['id' => $app->id, 'status' => 'submitted']);
     }
 
-// Step 7: admin formally verifies (spec: Formálne overené)
+// Step 7: admin formally verifies
     public function test_admin_can_formally_verify_submitted_application(): void
     {
         $admin = $this->makeUser($this->adminRole);
@@ -228,7 +228,7 @@ class ProgramAWorkflowTest extends TestCase
         $this->assertDatabaseHas('applications', ['id' => $app->id, 'status' => 'formally_verified']);
     }
 
-// Step 8: admin moves to under_evaluation (spec: V hodnotení komisiou)
+// Step 8: admin moves to under_evaluation
     public function test_admin_can_move_application_to_evaluation(): void
     {
         $admin = $this->makeUser($this->adminRole);
@@ -249,7 +249,7 @@ class ProgramAWorkflowTest extends TestCase
         $this->assertDatabaseHas('applications', ['id' => $app->id, 'status' => 'under_evaluation']);
     }
 
-// Step 9: admin moves to under_evaluation (spec: V hodnotení komisiou)
+// Step 9: admin moves to under_evaluation
     public function test_admin_can_create_criteria(): void
     {
         $admin = $this->makeUser($this->adminRole);
@@ -279,7 +279,7 @@ class ProgramAWorkflowTest extends TestCase
         $this->assertDatabaseHas('evaluation_criteria', ['call_id' => $call->id]);
     }
 
-// Step 10: evaluator submits evaluation (spec section 5, 6.3)
+// Step 10: evaluator submits evaluation
     public function test_evaluator_can_evaluate_application(): void
     {
         $evaluator = $this->makeUser($this->evaluatorRole);
@@ -330,7 +330,7 @@ class ProgramAWorkflowTest extends TestCase
         $this->assertDatabaseHas('evaluations', ['application_id' => $app->id, 'evaluator_id' => $evaluator->id]);
     }
 
-// Step 10: admin finalizes evaluation (spec section 5, 6.3)
+// Step 11: admin finalizes evaluation
     public function test_admin_can_finalize_evaluation(): void
     {
         $admin = $this->makeUser($this->adminRole);
@@ -364,7 +364,7 @@ class ProgramAWorkflowTest extends TestCase
         $this->assertDatabaseHas('applications', ['id' => $app->id, 'status' => 'approved']);
     }
 
-// Step 10: admin requests revision (spec: Vyžiadané doplnenie)
+// Step 12: admin requests revision
     public function test_admin_can_request_revision(): void
     {
         $admin = $this->makeUser($this->adminRole);
@@ -377,16 +377,53 @@ class ProgramAWorkflowTest extends TestCase
             'status' => 'under_evaluation',
         ]);
 
-        $res = $this->actingAs($admin)->patchJson("/api/applications/{$app->id}/status", [
-            'status' => 'pending_revision',
-            'comment' => 'Please add budget breakdown',
+        $res = $this->actingAs($admin)->postJson("/api/applications/{$app->id}/revisions", [
+            'message' => 'Please add budget breakdown',
         ]);
 
         $res->assertStatus(200);
         $this->assertDatabaseHas('applications', ['id' => $app->id, 'status' => 'pending_revision']);
+        $this->assertDatabaseHas('application_revision_requests', [
+            'application_id' => $app->id,
+            'requested_by' => $admin->id,
+            'message' => 'Please add budget breakdown',
+        ]);
     }
 
-// Step 11: applicant applies revision and resubmits (spec: Vyžiadané doplnenie → Podané)
+    public function test_mentor_can_request_revision(): void
+    {
+        $mentor = $this->makeUser($this->mentorRole);
+        $student = $this->makeUser($this->studentRole);
+        $call = $this->makeOpenCall();
+        $profile = StudentProfile::factory()->create(['user_id' => $student->id]);
+
+        $app = Application::create([
+            'call_id' => $call->id,
+            'student_profile_id' => $profile->id,
+            'applicant_type' => 'student',
+            'program_type' => 'a',
+            'status' => 'under_evaluation',
+        ]);
+
+        Mentorship::create([
+            'application_id' => $app->id,
+            'mentor_id' => $mentor->id,
+        ]);
+
+        $res = $this->actingAs($mentor)->postJson("/api/applications/{$app->id}/revisions", [
+            'message' => 'Please refine your timeline',
+        ]);
+
+        $res->assertStatus(200);
+        $this->assertDatabaseHas('applications', ['id' => $app->id, 'status' => 'pending_revision']);
+        $this->assertDatabaseHas('application_revision_requests', [
+            'application_id' => $app->id,
+            'requested_by' => $mentor->id,
+            'message' => 'Please refine your timeline',
+        ]);
+    }
+
+// Step 13: applicant applies revision and resubmits
     public function test_applicant_can_resubmit_after_revision_request(): void
     {
         [$leader, $team] = $this->makeTeamWithMembers(3);
@@ -413,7 +450,7 @@ class ProgramAWorkflowTest extends TestCase
         $this->assertDatabaseHas('applications', ['id' => $app->id, 'status' => 'submitted']);
     }
 
-// Step 12: admin approves (spec: Schválené)
+// Step 14: admin approves
     public function test_admin_can_approve_application(): void
     {
         $admin = $this->makeUser($this->adminRole);
@@ -434,7 +471,7 @@ class ProgramAWorkflowTest extends TestCase
         $this->assertDatabaseHas('applications', ['id' => $app->id, 'status' => 'approved']);
     }
 
-// Step 13: admin rejects (spec: Zamietnuté)
+// Step 15: admin rejects
     public function test_admin_can_reject_application(): void
     {
         $admin = $this->makeUser($this->adminRole);
@@ -456,7 +493,7 @@ class ProgramAWorkflowTest extends TestCase
         $this->assertDatabaseHas('applications', ['id' => $app->id, 'status' => 'rejected']);
     }
 
-// Step 14: admin moves approved application to onboarding (spec: Onboarding)
+// Step 16: admin moves approved application to onboarding
     public function test_admin_can_move_approved_application_to_onboarding(): void
     {
         $admin = $this->makeUser($this->adminRole);
@@ -477,7 +514,7 @@ class ProgramAWorkflowTest extends TestCase
         $this->assertDatabaseHas('applications', ['id' => $app->id, 'status' => 'onboarding']);
     }
 
-// Step 15: admin assigns mentor after approval (spec: priradenie mentora)
+// Step 17: admin assigns mentor after approval
     public function test_admin_can_assign_mentor_to_approved_application(): void
     {
         $admin = $this->makeUser($this->adminRole);
@@ -505,7 +542,7 @@ class ProgramAWorkflowTest extends TestCase
         ]);
     }
 
-// Step 16: admin activates project (spec: Aktívny projekt)
+// Step 18: admin activates project
     public function test_mentor_can_set_project_active(): void
     {
         $admin = $this->makeUser($this->adminRole);
@@ -534,7 +571,7 @@ class ProgramAWorkflowTest extends TestCase
         $this->assertDatabaseHas('applications', ['id' => $app->id, 'status' => 'active']);
     }
 
-// Step 17: mentor records consultation on active project (spec section 5, 8.4)
+// Step 19: mentor records consultation on active project
     public function test_mentor_can_record_consultation(): void
     {
         $mentor = $this->makeUser($this->mentorRole);
@@ -566,7 +603,7 @@ class ProgramAWorkflowTest extends TestCase
         ]);
     }
 
-// Step 18: mentor creates milestone on active project (spec: Milestone entity)
+// Step 20: mentor creates milestone on active project
     public function test_mentor_can_create_milestone_for_active_project(): void
     {
         $admin = $this->makeUser($this->adminRole);
@@ -600,7 +637,7 @@ class ProgramAWorkflowTest extends TestCase
         ]);
     }
 
-// Step 19: mentor can suspend active project (spec: Pozastavené)
+// Step 21: mentor can suspend active project
     public function test_mentor_can_suspend_active_project(): void
     {
         $admin = $this->makeUser($this->adminRole);
@@ -629,7 +666,7 @@ class ProgramAWorkflowTest extends TestCase
         $this->assertDatabaseHas('applications', ['id' => $app->id, 'status' => 'suspended']);
     }
 
-// Step 20: mentor closes project (spec: Ukončené / archivované)
+// Step 22: mentor closes project
     public function test_mentor_can_close_completed_project(): void
     {
         $admin = $this->makeUser($this->adminRole);
@@ -658,7 +695,7 @@ class ProgramAWorkflowTest extends TestCase
         $this->assertDatabaseHas('applications', ['id' => $app->id, 'status' => 'closed']);
     }
 
-// Full happy path chained (spec section 5 full lifecycle)
+// Full happy path chained
     public function test_full_program_a_workflow(): void
     {
         $this->withoutExceptionHandling();

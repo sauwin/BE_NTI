@@ -12,7 +12,6 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\EmailVerificationController;
 use App\Http\Controllers\CallController;
 use App\Http\Controllers\CallEvaluatorController;
-use App\Http\Controllers\CallTaskController;
 use App\Http\Controllers\ConsultationController;
 use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\DraftController;
@@ -100,6 +99,8 @@ Route::middleware('auth:sanctum', 'not_blocked')->group(function () {
     Route::get('/applications/{id}/documents', [ApplicationController::class, 'documents']);
     Route::patch('/applications/{id}/status', [ApplicationController::class, 'updateStatus'])
         ->middleware('throttle:10,1');
+    Route::post('/applications/{id}/revisions', [ApplicationController::class, 'requestRevision'])
+        ->middleware('throttle:10,1');
     Route::get('/applications/{application}/last_revision', [ApplicationController::class, 'getLastRevisionRequest'])
             ->middleware('throttle:10,1');
 
@@ -168,7 +169,9 @@ Route::middleware('auth:sanctum', 'not_blocked')->group(function () {
     Route::post('/company/tasks', [TaskController::class, 'store'])->middleware('throttle:10,1');
     Route::put('/company/tasks/{id}', [TaskController::class, 'update'])->middleware('throttle:10,1');
     Route::delete('/company/tasks/{id}', [TaskController::class, 'destroy'])->middleware('throttle:10,1');
-    Route::post('/calls-with-tasks', [CallTaskController::class, 'storeCallWithTask'])->middleware('throttle:10,1');
+    Route::post('/calls-with-tasks', [TaskController::class, 'storeCallWithTask'])->middleware('throttle:10,1');
+    Route::put('/calls-with-tasks/{id}', [TaskController::class, 'updateCallWithTask'])->middleware('throttle:10,1');
+    Route::patch('/calls-with-tasks/{id}/status', [TaskController::class, 'updateCallWithTaskStatus'])->middleware('throttle:10,1');
 
     // Company members
     Route::get('/company/members/pending', [OrganizationMembershipController::class, 'pendingMembers']);
@@ -210,8 +213,6 @@ Route::middleware('auth:sanctum', 'not_blocked')->group(function () {
         Route::get('/applications', [ApplicationManagementController::class, 'index']);
         Route::get('/applications/{id}', [ApplicationManagementController::class, 'show']);
         Route::patch('/applications/{id}/status', [ApplicationController::class, 'updateStatus'])->middleware('throttle:10,1');
-        Route::post('/applications/{id}/revisions', [ApplicationManagementController::class, 'requestRevision'])
-            ->middleware('throttle:10,1');
         Route::get('/applications/{application}/evaluations', [ApplicationController::class, 'getEvaluations']);
         Route::post('/applications/{application}/finalize-evaluation', [EvaluationController::class, 'finalizeEvaluation'])->middleware('throttle:10,1');
 
@@ -240,7 +241,5 @@ Route::middleware('auth:sanctum', 'not_blocked')->group(function () {
         Route::get('/export/users', [ExportController::class, 'exportUsers']);
         Route::get('/export/calls', [ExportController::class, 'exportCalls']);
         Route::get('/export/notifications', [ExportController::class, 'exportNotifications']);
-
-        Route::post('/applications/{id}/revision-request', [ApplicationController::class, 'createRevisionRequest']);
     });
 });

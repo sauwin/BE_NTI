@@ -61,10 +61,21 @@ class ApplicationController extends Controller
     {
         $this->authorize('create', Application::class);
 
-        $application = $this->applicationService->createApplication(
-            $request->validated(),
-            $request->user()
-        );
+        $validated = $request->validated();
+        $documents = $validated['documents'] ?? [];
+
+        if (! empty($documents)) {
+            $application = $this->applicationService->createApplicationWithDocuments(
+                $validated,
+                $request->user(),
+                $documents
+            );
+        } else {
+            $application = $this->applicationService->createApplication(
+                $validated,
+                $request->user()
+            );
+        }
 
         return response()->json(['application_id' => $application->id], 201);
     }
@@ -179,9 +190,16 @@ class ApplicationController extends Controller
 
         $this->authorize('updateStatus', $application);
 
-        $statusValidationRule = $user->isAdmin()
-            ? 'required|in:submitted,formally_verified,under_evaluation,pending_revision,approved,rejected,onboarding,active,suspended,closed'
-            : 'required|in:onboarding,active,approved,suspended,closed';
+        $statusValidationRule = '';
+        if ($user->isAdmin()) {
+            $statusValidationRule = 'required|in:submitted,formally_verified,under_evaluation,pending_revision,approved,rejected,onboarding,active,suspended,closed';
+        }
+        else if ($user->hasRole('mentor')) {
+            $statusValidationRule = 'required|in:onboarding,active,approved,suspended,closed';
+        }
+        else if ($user->hasRole('company')) {
+            $statusValidationRule = 'required|in:formally_verified,pending_revision';
+        }
 
         $request->validate([
             'status' => $statusValidationRule,
@@ -191,6 +209,24 @@ class ApplicationController extends Controller
         $this->applicationWorkflowService->updateStatus($application, $request->status, $request->comment, $user);
 
         return response()->json(['message' => "Application status updated successfully to {$request->status}."]);
+    }
+
+    /**
+     * Request an application revision and notify the applicant.
+     */
+    public function requestRevision(Request $request, int $id)
+    {
+        $application = Application::findOrFail($id);
+
+        $this->authorize('updateStatus', $application);
+
+        $request->validate([
+            'message' => 'required|string|min:5|max:2000'
+        ]);
+
+        $this->applicationWorkflowService->createRevisionRequest($application, $request->message, $request->user());
+
+        return response()->json(['message' => 'Revision request created successfully and student notified.']);
     }
 
     /**

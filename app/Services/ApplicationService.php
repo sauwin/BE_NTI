@@ -9,10 +9,13 @@ use App\Models\ApplicationStatusHistory;
 use App\Models\Call;
 use App\Models\StudentProfile;
 use App\Models\Team;
+use App\Models\Document;
+use App\Models\ApplicationDocument;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 use App\Mail\ApplicationRevisionSubmittedMail;
 
@@ -20,13 +23,38 @@ class ApplicationService
 {
     public function createApplication(array $data, $user): Application
     {
+        return DB::transaction(function () use ($data, $user) {
+            return $this->createApplicationRecord($data, $user, false);
+        });
+    }
+
+    public function createApplicationWithDocuments(array $data, $user, array $documents = []): Application
+    {
         $isFinalSubmit = ($data['submit_type'] ?? 'final') === 'final';
 
-        $call = Call::where('program', $data['program_type'])
-            ->where('status', 'open')
-            ->latest()
-            ->first();
+        return DB::transaction(function () use ($data, $user, $documents, $isFinalSubmit) {
+            $application = $this->createApplicationRecord($data, $user, $isFinalSubmit);
 
+            if (! empty($documents)) {
+                $this->attachApplicationDocuments($application, $documents, $user->id);
+            }
+
+            if ($isFinalSubmit) {
+                $this->validateRequiredDocuments($application);
+            }
+
+            return $application;
+        });
+    }
+
+    private function createApplicationRecord(array $data, $user, bool $isFinalSubmit): Application
+    {
+        $callQuery = Call::where('program', $data['program_type'])->where('status', 'open');
+        if (! empty($data['call_id'])) {
+            $callQuery->where('id', $data['call_id']);
+        }
+
+        $call = $callQuery->latest()->first();
         if (! $call) {
             throw ValidationException::withMessages(['program_type' => 'No active call found for this program.']);
         }
@@ -34,7 +62,6 @@ class ApplicationService
         $profile = StudentProfile::where('user_id', $user->id)->first();
 
         $team = null;
-
         if ($data['applicant_type'] === 'team') {
             $team = Team::withCount(['members' => function ($query) {
                 $query->where('team_members.status', 'accepted');
@@ -72,38 +99,67 @@ class ApplicationService
             }
         }
 
-        return DB::transaction(function () use ($call, $profile, $team, $isFinalSubmit, $data, $user) {
-            $initialStatus = $isFinalSubmit ? 'submitted' : 'draft';
+        $initialStatus = $isFinalSubmit ? 'submitted' : 'draft';
 
-            $app = Application::create([
-                'call_id' => $call->id,
-                'applicant_type' => $data['applicant_type'],
-                'program_type' => $data['program_type'],
-                'team_id' => $data['team_id'] ?? null,
-                'student_profile_id' => $profile->id,
-                'status' => $initialStatus,
-                'category' => $data['category'] ?? null,
-            ]);
+        $app = Application::create([
+            'call_id' => $call->id,
+            'applicant_type' => $data['applicant_type'],
+            'program_type' => $data['program_type'],
+            'team_id' => $data['team_id'] ?? null,
+            'student_profile_id' => $profile->id,
+            'status' => $initialStatus,
+            'category' => $data['category'] ?? null,
+        ]);
 
-            ApplicationStatusHistory::create([
-                'application_id' => $app->id,
-                'old_status' => null,
-                'new_status' => $initialStatus,
-                'changed_by' => $user->id,
-                'comment' => $isFinalSubmit ? 'Prvotné odoslanie prihlášky' : 'Vytvorenie konceptu prihlášky',
-                'changed_at' => now(),
-            ]);
+        ApplicationStatusHistory::create([
+            'application_id' => $app->id,
+            'old_status' => null,
+            'new_status' => $initialStatus,
+            'changed_by' => $user->id,
+            'comment' => $isFinalSubmit ? 'Prvotné odoslanie prihlášky' : 'Vytvorenie konceptu prihlášky',
+            'changed_at' => now(),
+        ]);
 
-            if ($team && $isFinalSubmit) {
-                $team->update(['status' => 'ready']);
+        if ($team && $isFinalSubmit) {
+            $team->update(['status' => 'ready']);
+        }
+
+        if ($isFinalSubmit) {
+            $this->sendSubmissionNotifications($app, $user);
+        }
+
+        return $app;
+    }
+
+    private function attachApplicationDocuments(Application $application, array $documents, int $userId): void
+    {
+        foreach ($documents as $documentData) {
+            if (empty($documentData['file']) || ! $documentData['file']->isValid()) {
+                continue;
             }
 
-            if ($isFinalSubmit) {
-                $this->sendSubmissionNotifications($app, $user);
-            }
+            $file = $documentData['file'];
+            $type = $documentData['type'];
+            $classification = $documentData['classification'] ?? 'confidential';
 
-            return $app;
-        });
+            $path = Storage::disk('local')->putFile('documents', $file);
+
+            $document = Document::create([
+                'uploaded_by' => $userId,
+                'type' => $type,
+                'classification' => $classification,
+                'version' => 1,
+                'file_path' => $path,
+                'file_name' => $file->getClientOriginalName(),
+                'mime_type' => $file->getClientMimeType(),
+                'file_size_bytes' => $file->getSize(),
+            ]);
+
+            ApplicationDocument::create([
+                'application_id' => $application->id,
+                'document_id' => $document->id,
+            ]);
+        }
     }
 
     public function submitDraft(Application $application, $user): void

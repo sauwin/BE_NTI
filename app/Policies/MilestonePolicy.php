@@ -13,7 +13,7 @@ class MilestonePolicy
 
     public function viewAny(User $user, Application $application): bool
     {
-        return $this->isAdminOrMentor($user) || $this->hasApplicationStake($user, $application);
+        return $user->hasRole(['super_admin', 'nti_admin', 'mentor', 'company']) || $this->hasApplicationStake($user, $application);
     }
 
     public function view(User $user, Milestone $milestone): bool
