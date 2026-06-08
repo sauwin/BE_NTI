@@ -10,6 +10,7 @@ use App\Exports\UsersExport;
 use App\Exports\ApplicationsExport;
 use App\Exports\CallsExport;
 use App\Exports\BulkNotificationCampaignsExport;
+use App\Exports\CompanyExport;
 
 /**
  * @tags Admin Management
@@ -109,6 +110,30 @@ class ExportController extends Controller
 
         return Excel::download(
             new BulkNotificationCampaignsExport($filters),
+            $fileName,
+            $excelFormat
+        );
+    }
+
+    /**
+     * Export companies
+     */
+    public function exportCompany(Request $request)
+    {
+        $filters = $request->only(['search_name', 'search_number', 'status']);
+        $format = strtolower($request->query('format', 'csv'));
+
+        [$excelFormat, $extension] = $this->resolveFormat($format);
+
+        AuditService::log('export', 'companies', [
+            'format' => $format,
+            'filters' => $filters,
+        ]);
+
+        $fileName = 'companies_export_' . now()->format('Y_m_d_His') . '.' . $extension;
+
+        return Excel::download(
+            new CompanyExport($filters),
             $fileName,
             $excelFormat
         );
