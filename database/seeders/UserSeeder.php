@@ -30,7 +30,7 @@ class UserSeeder extends Seeder
         //More different test roles
         $slugs = ['student', 'company', 'mentor', 'evaluator', 'content_editor'];
 
-        User::factory(10)->create()->each(function (User $user) use ($roles, $slugs) {
+        User::factory(20)->create()->each(function (User $user) use ($roles, $slugs) {
 
             $slug = $slugs[array_rand($slugs)];
             $role = $roles->get($slug);
@@ -52,7 +52,7 @@ class UserSeeder extends Seeder
                     'sector' => fake()->word(),
                     'description' => fake()->sentence(),
                     'website' => fake()->url(),
-                    'status' => 'active',
+                    'status' => fake()->randomElement(['active', 'pending', 'inactive']),
                     'is_public_partner' => false,
                 ]);
 

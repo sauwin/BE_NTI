@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->string('email')->unique();
             $table->string('password');
-            $table->enum('status', ['active', 'pending_verification', 'blocked', 'deleted'])
+            $table->enum('status', ['active', 'pending_verification', 'pending_approvals' , 'blocked', 'deleted'])
                 ->default('pending_verification');
             $table->timestamp('email_verified_at')->nullable();
             $table->string('first_name');
