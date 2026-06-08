@@ -217,4 +217,27 @@ class OrganizationController extends Controller
 
         return response()->json(['message' => 'Company deleted']);
     }
+
+    /**
+     * Update partner status
+     */
+    public function updateCompanyPartnerStatus(Request $request, int $orgId)
+    {
+        $org = Organization::findOrFail($orgId);
+
+        if ($org->is_public_partner === 0) {
+            $org->update(['is_public_partner' => '1']);
+        }
+
+        if ($org->is_public_partner === 1) {
+            $org->update(['is_public_partner' => '0']);
+        }
+
+        AuditService::log('Update', 'Partner Status', [
+            'target_org_id' => $orgId,
+            'target_org_number' => $org->registration_number,
+        ]);
+
+        return response()->json(['message' => 'Partner status changed']);
+    }
 }
