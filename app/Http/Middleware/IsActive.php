@@ -6,7 +6,7 @@ use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
-class NotBlocked
+class IsActive
 {
     /**
      * Handle an incoming request.
@@ -17,8 +17,8 @@ class NotBlocked
     {
         $user = $request->user();
 
-        if ($user->status == 'blocked') {
-            return response()->json(['message' => 'Your account is blocked.'], 403);
+        if ($user->status === 'blocked' || $user->status === 'pending_verification') {
+            return response()->json(['message' => 'Your account is not active.'], 403);
         }
 
         return $next($request);

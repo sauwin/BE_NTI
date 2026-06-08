@@ -22,7 +22,11 @@ class TaskPolicy
 
     public function create(User $user): bool
     {
-        return $user->organization_id !== null;
+        if (!($user->status === 'pending_approval')) {
+            return $user->organization_id !== null;
+        }
+
+        return false;
     }
 
     public function update(User $user, Task $task): bool
