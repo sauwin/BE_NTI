@@ -126,6 +126,8 @@ class TaskTest extends TestCase
 
     public function test_can_fetch_public_tasks_for_program_b(): void
     {
+        $this->withoutExceptionHandling();
+
         Task::create([
             'call_id' => $this->call->id,
             'organization_id' => $this->organization->id,

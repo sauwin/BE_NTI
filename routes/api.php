@@ -262,11 +262,6 @@ Route::middleware('auth:sanctum', 'is_active')->group(function () {
         Route::get('/export/notifications', [ExportController::class, 'exportNotifications']);
         Route::get('/export/company', [ExportController::class, 'exportCompany']);
         Route::get('/export/dashboard-stats', [ExportController::class, 'exportDashboardStats']);
-        Route::get('/export/tasks', [ExportController::class, 'exportTasks']);
 
-        // Program B backlog management
-        Route::get('/tasks', [TaskController::class, 'adminIndex']);
-        Route::patch('/tasks/{id}/advance', [TaskController::class, 'adminAdvanceStatus'])->middleware('throttle:30,1');
-        Route::patch('/tasks/{id}/status', [TaskController::class, 'adminSetStatus'])->middleware('throttle:30,1');
     });
 });

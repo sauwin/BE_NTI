@@ -11,7 +11,6 @@ use App\Exports\ApplicationsExport;
 use App\Exports\CallsExport;
 use App\Exports\BulkNotificationCampaignsExport;
 use App\Exports\CompanyExport;
-use App\Exports\TasksExport;
 use App\Exports\DashboardStatsExport;
 
 /**
@@ -136,27 +135,6 @@ class ExportController extends Controller
 
         return Excel::download(
             new CompanyExport($filters),
-            $fileName,
-            $excelFormat
-        );
-    }
-
-    public function exportTasks(Request $request)
-    {
-        $filters = $request->only(['status', 'search']);
-        $format = strtolower($request->query('format', 'xlsx'));
-
-        [$excelFormat, $extension] = $this->resolveFormat($format);
-
-        AuditService::log('export', 'tasks', [
-            'format'  => $format,
-            'filters' => $filters,
-        ]);
-
-        $fileName = 'tasks_export_' . now()->format('Y_m_d_His') . '.' . $extension;
-
-        return Excel::download(
-            new TasksExport($filters),
             $fileName,
             $excelFormat
         );
