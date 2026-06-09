@@ -10,6 +10,7 @@ use App\Services\TaskService;
 use App\Services\CallService;
 use App\Http\Requests\StoreTaskRequest;
 use App\Http\Requests\UpdateTaskRequest;
+use App\Services\AuditService;
 
 /**
  * @tags Task Management
@@ -197,5 +198,87 @@ class TaskController extends Controller
         $this->taskService->delete($id);
 
         return response()->json(['message' => 'Task deleted successfully']);
+    }
+
+    /**
+     * List all Program B tasks with optional ?status= filter.
+     */
+    public function adminIndex(Request $request)
+    {
+        $request->validate([
+            'status'   => 'nullable|in:published,in_matching,assigned,in_progress,closed',
+            'per_page' => 'nullable|integer|min:1|max:100',
+        ]);
+
+        $tasks = $this->taskService->adminTasks(
+            $request->input('status'),
+            (int) $request->input('per_page', 20)
+        );
+
+        return response()->json($tasks);
+    }
+
+    /**
+     * Move task to the next status in the chain:
+     */
+    public function adminAdvanceStatus(Request $request, int $id)
+    {
+        $request->validate([
+            'product_owner_user_id' => 'nullable|integer|exists:users,id',
+        ]);
+
+        $task = Task::findOrFail($id);
+
+        try {
+            $task = $this->taskService->advanceStatus(
+                $task,
+                $request->input('product_owner_user_id')
+            );
+        } catch (\DomainException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+
+        AuditService::log('advance_status', 'Task', [
+            'task_id'    => $task->id,
+            'new_status' => $task->status,
+        ]);
+
+        return response()->json([
+            'message' => 'Task status advanced.',
+            'task'    => $task,
+        ]);
+    }
+
+    /**
+     * Set an explicit admin-managed status (for overrides / corrections).
+     */
+    public function adminSetStatus(Request $request, int $id)
+    {
+        $request->validate([
+            'status'                => 'required|in:published,in_matching,assigned,in_progress,closed',
+            'product_owner_user_id' => 'nullable|integer|exists:users,id',
+        ]);
+
+        $task = Task::findOrFail($id);
+
+        try {
+            $task = $this->taskService->setAdminStatus(
+                $task,
+                $request->input('status'),
+                $request->input('product_owner_user_id')
+            );
+        } catch (\DomainException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+
+        AuditService::log('set_status', 'Task', [
+            'task_id'    => $task->id,
+            'new_status' => $task->status,
+        ]);
+
+        return response()->json([
+            'message' => 'Task status updated.',
+            'task'    => $task,
+        ]);
     }
 }
