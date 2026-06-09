@@ -1,5 +1,10 @@
 <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}"  @class(['dark' => ($appearance ?? 'system') == 'dark'])>
+<html>
+    <h1>Dobrý deň, {{ $user->first_name }}</h1>
+    <p>Váš projekt <strong>#{{ $application->id }}</strong> bol uzavretý.</p>
+    <p>Ďakujeme za účasť v programe NTI.</p>
+    <p>Tím NTI vás bude kontaktovať ohľadom ďalších krokov a výsledkov.</p>
+    <hr>
     <h1>Hello, {{ $user->first_name }}</h1>
     <p>Your project <strong>#{{ $application->id }}</strong> has been closed.</p>
     <p>Thank you for participating in the NTI program.</p>

@@ -217,7 +217,7 @@ Route::middleware('auth:sanctum', 'is_active')->group(function () {
         Route::post('/company/deactivate/{companyId}', [OrganizationController::class, 'deactivateCompany']);
         Route::delete('/company/delete/${companyId}', [OrganizationController::class, 'deleteCompany']);
         Route::post('/company/partner-status/{companyId}', [OrganizationController::class, 'updateCompanyPartnerStatus']);
-       
+
         Route::post('/notifications/bulk', [BulkNotificationController::class, 'send'])->middleware('throttle:5,1');
         Route::get('/notifications/history', [BulkNotificationController::class, 'history']);
 
