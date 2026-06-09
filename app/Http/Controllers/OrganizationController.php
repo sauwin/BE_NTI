@@ -120,35 +120,34 @@ class OrganizationController extends Controller
      * Approve company and activate owner
      */
     public function approveCompany(Request $request, int $orgId) 
-    {
-        DB::transaction(function () use ($orgId)
         {
-            $org = Organization::findOrFail($orgId);
+            $org = DB::transaction(function () use ($orgId)
+            {
+                $org = Organization::findOrFail($orgId);
 
-            $org->update(['status' => 'active']);
+                $org->update(['status' => 'active']);
 
-            User::where('organization_id', $orgId)
-                ->where('role_in_org', 'owner')
-                ->update(['status' => 'active']);
+                User::where('organization_id', $orgId)
+                    ->where('role_in_org', 'owner')
+                    ->update(['status' => 'active']);
 
-            return $org;
-        });
+                return $org;
+            });
 
-        AuditService::log('Approve', 'Organization', [
-            'target_org_id' => $orgId,
-            'target_org_number' => $org->registration_number,
-        ]);
+            AuditService::log('Approve', 'Organization', [
+                'target_org_id' => $orgId,
+                'target_org_number' => $org->registration_number,
+            ]);
 
-        return response()->json(['message' => 'Company approved']);
-    }
+            return response()->json(['message' => 'Company approved']);
+        }
 
     /**
      * Reject company and deactivate owner
      */
     public function rejectCompany(Request $request, int $orgId) 
     {
-
-        DB::transaction(function () use ($orgId)
+        $org = DB::transaction(function () use ($orgId)
         {
             $org = Organization::findOrFail($orgId);
 
@@ -157,6 +156,8 @@ class OrganizationController extends Controller
                 ->update(['status' => 'pending_approval']);
 
             $org->delete();
+
+            return $org;
         });
 
         AuditService::log('Reject', 'Organization', [
