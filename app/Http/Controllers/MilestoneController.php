@@ -21,10 +21,8 @@ class MilestoneController extends Controller
     public function index(Request $request, int $id)
     {
         $application = Application::findOrFail($id);
-
         $this->authorize('viewAny', [Milestone::class, $application]);
-
-        return response()->json(Milestone::where('application_id', $id)->get());
+        return response()->json(Milestone::with('documents')->where('application_id', $id)->get());
     }
 
     /**
@@ -125,5 +123,22 @@ class MilestoneController extends Controller
         $milestone->documents()->attach($document->id);
 
         return response()->json(['document_id' => $document->id, 'file_name' => $document->file_name], 201);
+    }
+
+    /**
+     * Download document from milestones
+     */
+    public function downloadDocument(Request $request, int $milestoneId, int $documentId)
+    {
+        $milestone = Milestone::findOrFail($milestoneId);
+        $this->authorize('view', $milestone);
+
+        $document = $milestone->documents()->findOrFail($documentId);
+
+        if (! \Storage::disk('local')->exists($document->file_path)) {
+            return response()->json(['message' => 'File not found.'], 404);
+        }
+
+        return \Storage::disk('local')->download($document->file_path, $document->file_name);
     }
 }

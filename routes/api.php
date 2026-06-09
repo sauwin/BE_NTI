@@ -111,6 +111,7 @@ Route::middleware('auth:sanctum', 'is_active')->group(function () {
     Route::get('/milestones/{id}', [MilestoneController::class, 'show']);
     Route::patch('/milestones/{id}', [MilestoneController::class, 'update'])->middleware('throttle:10,1');
     Route::post('/milestones/{id}/documents', [MilestoneController::class, 'uploadDocument'])->middleware('throttle:20,1');
+    Route::get('/milestones/{milestoneId}/documents/{documentId}/download', [MilestoneController::class, 'downloadDocument'])->middleware('throttle:30,1');
 
     // Evaluations
     Route::prefix('evaluator')->group(function () {
