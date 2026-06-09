@@ -28,9 +28,9 @@ class EvaluationController extends Controller
     {
         $user = Auth::user();
     
-    $this->authorize('viewAny', Evaluation::class);
+        $this->authorize('viewAny', Evaluation::class);
 
-    $applications = Application::whereIn('call_id', function ($query) use ($user) {
+        $applications = Application::whereIn('call_id', function ($query) use ($user) {
             $query->select('call_id')
                 ->from('call_evaluators')
                 ->where('user_id', $user->id);
