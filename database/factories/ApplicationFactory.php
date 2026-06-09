@@ -15,7 +15,7 @@ class ApplicationFactory extends Factory
     public function definition(): array
     {
         $status = fake()->randomElement([
-            'draft', 'submitted', /* 'formal_check', */ 'formally_verified',
+            'draft', 'submitted', 'formally_verified',
             'under_evaluation', 'pending_revision', 'approved', 'rejected', 'closed',
         ]);
 

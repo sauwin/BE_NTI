@@ -13,7 +13,7 @@ class TeamFactory extends Factory
     public function definition(): array
     {
         return [
-            'name' => fake()->company() . ' Team',
+            'name' => fake()->company().' Team',
             'leader_id' => User::factory(),
             'description' => fake()->paragraph(),
             'status' => 'forming',

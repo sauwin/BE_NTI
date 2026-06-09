@@ -52,7 +52,7 @@ class CallPeriodSeeder extends Seeder
                 'created_by' => $adminId,
                 'created_at' => now(),
                 'updated_at' => now(),
-            ]
+            ],
         ]);
     }
 }

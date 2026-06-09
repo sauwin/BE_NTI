@@ -1,7 +1,5 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
-
 use App\Http\Controllers\Admin\ApplicationManagementController;
 use App\Http\Controllers\Admin\BulkNotificationController;
 use App\Http\Controllers\Admin\ExportController;
@@ -9,13 +7,14 @@ use App\Http\Controllers\AdminController;
 use App\Http\Controllers\ApplicationController;
 use App\Http\Controllers\ArticleController;
 use App\Http\Controllers\AuthController;
-use App\Http\Controllers\EmailVerificationController;
 use App\Http\Controllers\CallController;
 use App\Http\Controllers\CallEvaluatorController;
 use App\Http\Controllers\ConsultationController;
 use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\DraftController;
+use App\Http\Controllers\EmailVerificationController;
 use App\Http\Controllers\EvaluationController;
+use App\Http\Controllers\EvaluationCriteriaController;
 use App\Http\Controllers\FaqItemController;
 use App\Http\Controllers\GdprController;
 use App\Http\Controllers\MentorProfileController;
@@ -29,7 +28,7 @@ use App\Http\Controllers\ReportingController;
 use App\Http\Controllers\StudentProfileController;
 use App\Http\Controllers\TaskController;
 use App\Http\Controllers\TeamController;
-use App\Http\Controllers\EvaluationCriteriaController;
+use Illuminate\Support\Facades\Route;
 
 // Public
 Route::post('/auth/register', [AuthController::class, 'register'])->middleware('throttle:3,15');
@@ -55,7 +54,7 @@ Route::post('/auth/verify-reset-token', [PasswordResetController::class, 'verify
 
 // Authenticated
 Route::middleware('auth:sanctum', 'is_active')->group(function () {
-    //Criteria
+    // Criteria
     Route::get('/calls/{call}/criteria', [EvaluationCriteriaController::class, 'index']);
 
     // Tasks
@@ -81,8 +80,8 @@ Route::middleware('auth:sanctum', 'is_active')->group(function () {
     Route::get('/documents/{id}/download', [DocumentController::class, 'download']);
     Route::get('/documents/{id}/preview', [DocumentController::class, 'preview']);
 
-    Route::delete('/applications/{applicationId}/documents/{type}', [DocumentController::class, 'deleteApplicationDocument']);
-    Route::delete('/tasks/{taskId}/documents/{type}', [DocumentController::class, 'deleteTaskDocument']);
+    //    Route::delete('/applications/{applicationId}/documents/{type}', [DocumentController::class, 'deleteApplicationDocument']);
+    //    Route::delete('/tasks/{taskId}/documents/{type}', [DocumentController::class, 'deleteTaskDocument']);
 
     // Applications
     Route::get('/applications', [ApplicationController::class, 'index']);
@@ -103,7 +102,7 @@ Route::middleware('auth:sanctum', 'is_active')->group(function () {
     Route::post('/applications/{id}/revisions', [ApplicationController::class, 'requestRevision'])
         ->middleware('throttle:10,1');
     Route::get('/applications/{application}/last_revision', [ApplicationController::class, 'getLastRevisionRequest'])
-            ->middleware('throttle:10,1');
+        ->middleware('throttle:10,1');
 
     // Milestones
     Route::get('/applications/{id}/milestones', [MilestoneController::class, 'index']);
@@ -185,7 +184,7 @@ Route::middleware('auth:sanctum', 'is_active')->group(function () {
     Route::get('/admin/admin-users', [AdminController::class, 'adminUsers']);
     Route::delete('/company/members/{userId}/kick', [OrganizationMembershipController::class, 'kickMember']);
 
-    Route::get('/applications/{id}/history', [ApplicationController::class, 'getHistory']);
+    //    Route::get('/applications/{id}/history', [ApplicationController::class, 'getHistory']);
     Route::get('/applications/{id}/revision-request', [ApplicationController::class, 'getLastRevisionRequest']);
 
     // Super Admin Only
@@ -223,7 +222,7 @@ Route::middleware('auth:sanctum', 'is_active')->group(function () {
 
         // Applications Management
         Route::get('/applications', [ApplicationManagementController::class, 'index']);
-        Route::get('/applications/{id}', [ApplicationManagementController::class, 'show']);
+        //        Route::get('/applications/{id}', [ApplicationManagementController::class, 'show']);
         Route::patch('/applications/{id}/status', [ApplicationController::class, 'updateStatus'])->middleware('throttle:10,1');
         Route::get('/applications/{application}/evaluations', [ApplicationController::class, 'getEvaluations']);
         Route::post('/applications/{application}/finalize-evaluation', [EvaluationController::class, 'finalizeEvaluation'])->middleware('throttle:10,1');
@@ -245,7 +244,7 @@ Route::middleware('auth:sanctum', 'is_active')->group(function () {
         Route::post('/calls/{id}/evaluators', [CallEvaluatorController::class, 'assign'])->middleware('throttle:10,1');
         Route::delete('/calls/{id}/evaluators/{userId}', [CallEvaluatorController::class, 'remove'])->middleware('throttle:10,1');
 
-        //Evaluation criteria
+        // Evaluation criteria
         Route::put('/calls/{call}/criteria', [EvaluationCriteriaController::class, 'sync']);
 
         // export
