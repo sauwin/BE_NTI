@@ -36,8 +36,8 @@ class StoreTaskRequest extends FormRequest
             'product_owner_user_id' => 'nullable|exists:users,id',
             'min_team_size' => 'nullable|number',
             'max_team_size' => 'nullable|number',
-            'opens_at' => 'required|date',
-            'deadline_at' => 'required|date',
+            'opens_at' => 'nullable|date',
+            'deadline_at' => 'nullable|date',
         ];
     }
 }
