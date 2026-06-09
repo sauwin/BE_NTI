@@ -26,7 +26,7 @@ return new class extends Migration
                 ->nullable()
                 ->constrained('organizations')
                 ->onDelete('set null');
-            $table->enum('role_in_org', ['owner', 'contact', 'evaluator', 'mentor'])
+            $table->enum('role_in_org', ['owner', 'contact', 'evaluator'])
                 ->nullable();
             $table->index('email');
             $table->index('status');

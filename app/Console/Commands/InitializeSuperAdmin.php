@@ -19,12 +19,12 @@ class InitializeSuperAdmin extends Command
         $password = env('SUPER_ADMIN_PASSWORD');
 
         if (! $email || ! $password) {
-            $this->error('SUPER_ADMIN_EMAIL SUPER_ADMIN_EMAILor SUPER_ADMIN_PASSWORD not set in .env');
+            $this->error('SUPER_ADMIN_EMAIL SUPER_ADMIN_EMAIL or SUPER_ADMIN_PASSWORD not set in .env');
             return 1;
         }
 
         if (User::where('email', $email)->exists()) {
-            $this->info('Super admin already exists');
+            $this->error('Super admin already exists');
             return 0;
         }
 

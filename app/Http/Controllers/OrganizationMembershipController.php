@@ -192,7 +192,7 @@ class OrganizationMembershipController extends Controller
         $organizationId = $request->user()->organization_id;
 
         $data = $request->validate([
-            'role_in_org' => 'required|string|in:contact,evaluator,mentor',
+            'role_in_org' => 'required|string|in:contact,evaluator',
         ]);
 
         $targetUser = User::findOrFail($userId);

@@ -50,8 +50,8 @@ class CallEvaluatorController extends Controller
 
         $user = User::findOrFail($validated['user_id']);
 
-        if (! $user->hasRole('evaluator')) {
-            return response()->json(['message' => 'User does not have evaluator role'], 422);
+        if (!$user->hasRole('evaluator') && !$user->role_in_org == 'evaluator') {
+            return response()->json(['message' => 'User is not an evaluator'], 422);
         }
 
         $existing = CallEvaluator::where('call_id', $call->id)

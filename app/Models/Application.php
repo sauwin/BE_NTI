@@ -34,6 +34,8 @@ class Application extends Model
         'decision_by',
         'internal_notes',
         'category',
+        'project_title',
+        'proposed_solution',
     ];
 
     protected $casts = [

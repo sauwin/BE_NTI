@@ -50,6 +50,10 @@ return new class extends Migration
             $table->timestamps();
             $table->index('call_id');
             $table->index('status');
+            $table->string('project_title')
+                ->nullable();
+            $table->string('proposed_solution')
+                ->nullable();
             $table->index('applicant_type');
         });
     }

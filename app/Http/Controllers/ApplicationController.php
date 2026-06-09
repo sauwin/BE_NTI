@@ -113,6 +113,8 @@ class ApplicationController extends Controller
         $data = $request->validate([
             'category' => 'nullable|string|max:255',
             'team_id' => 'nullable|exists:teams,id',
+            'project_title' => 'nullable|string|max:255',
+            'proposed_solution' => 'nullable|string',
         ]);
 
         $application->update($data);

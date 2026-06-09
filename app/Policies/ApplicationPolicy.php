@@ -49,6 +49,7 @@ class ApplicationPolicy
 
     public function view(User $user, Application $application): bool
     {
+        \Log::info('Avavavavav asujdaju');
         if ($user->isAdmin()) {
             return true;
         }
@@ -57,14 +58,14 @@ class ApplicationPolicy
             return $application->student_profile_id === $user->studentProfile?->id;
         }
 
-        if ($user->hasRole('company')) {
-            return $application->call?->created_by === $user->id;
-        }
-
-        if ($user->hasRole('evaluator')) {
+        if ($user->hasRole('evaluator') || ($user->hasRole('company') && $user->role_in_org == 'evaluator')) {
             return CallEvaluator::where('call_id', $application->call->id)
                 ->where('user_id', $user->id)
                 ->exists();
+        }
+
+        if ($user->hasRole('company')) {
+            return $application->call?->created_by === $user->id;
         }
 
         if ($user->hasRole('mentor')) {

@@ -32,6 +32,8 @@ class ApplicationFactory extends Factory
             'decision_at' => $isDecisionMade ? fake()->dateTimeBetween('now', '+2 weeks') : null,
             'decision_by' => $isDecisionMade ? User::factory() : null,
             'internal_notes' => fake()->optional()->sentence(),
+            'project_title' => fake()->sentence(3),
+            'proposed_solution' => fake()->optional()->paragraph(),
         ];
     }
 
