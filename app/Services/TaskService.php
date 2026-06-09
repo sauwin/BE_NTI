@@ -2,9 +2,9 @@
 
 namespace App\Services;
 
-use App\Models\Task;
 use App\Models\Call;
 use App\Models\Document;
+use App\Models\Task;
 use Illuminate\Support\Facades\Storage;
 
 /**
@@ -13,20 +13,19 @@ use Illuminate\Support\Facades\Storage;
  * are not permitted (except resetting a published task to draft, which
  * stays in the company-facing endpoint).
  */
-
 class TaskService
 {
     private const ADMIN_TRANSITIONS = [
-        'published'   => 'in_matching',
+        'published' => 'in_matching',
         'in_matching' => 'assigned',
-        'assigned'    => 'in_progress',
+        'assigned' => 'in_progress',
         'in_progress' => 'closed',
     ];
 
     public function adminTasks(?string $status = null, int $perPage = 20)
     {
         $query = Task::with(['call', 'organization', 'productOwner'])
-            ->whereHas('call', fn($q) => $q->where('program', 'b'));
+            ->whereHas('call', fn ($q) => $q->where('program', 'b'));
 
         if ($status) {
             $query->where('status', $status);
@@ -39,7 +38,7 @@ class TaskService
      * Advance a task to the next status in the admin transition chain.
      * Optionally set product_owner_user_id when moving to assigned.
      *
-     * @throws \DomainException  when the current status has no allowed next step
+     * @throws \DomainException when the current status has no allowed next step
      */
     public function advanceStatus(Task $task, ?int $productOwnerUserId = null): Task
     {
@@ -68,7 +67,7 @@ class TaskService
      * Explicitly set any admin-managed status (for cases where you need
      * to skip or override — restricted to admin gate in the controller).
      *
-     * @throws \DomainException  when $status is not in the admin-managed set
+     * @throws \DomainException when $status is not in the admin-managed set
      */
     public function setAdminStatus(Task $task, string $status, ?int $productOwnerUserId = null): Task
     {
@@ -143,6 +142,7 @@ class TaskService
     {
         $task = Task::findOrFail($id);
         $task->update($data);
+
         return $task;
     }
 
@@ -150,6 +150,7 @@ class TaskService
     {
         $task = Task::findOrFail($id);
         $task->delete();
+
         return true;
     }
 

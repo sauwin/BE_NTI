@@ -118,4 +118,41 @@ class FaqItemController extends Controller
 
         return response()->noContent();
     }
+
+    public function storeTranslation(Request $request, FaqItem $faqItem)
+    {
+        Gate::authorize('update', $faqItem);
+
+        $validated = $request->validate([
+            'language' => 'required|in:sk,en',
+            'question' => 'required|string|max:255',
+            'answer' => 'required|string',
+        ]);
+
+        $existing = $faqItem->translations()->where('language', $validated['language'])->first();
+        if ($existing) {
+            return response()->json(['message' => 'Translation already exists. Use PUT to update.'], 409);
+        }
+
+        $translation = $faqItem->translations()->create($validated);
+
+        return response()->json($translation, 201);
+    }
+
+    public function updateTranslation(Request $request, FaqItem $faqItem, string $language)
+    {
+        Gate::authorize('update', $faqItem);
+
+        $validated = $request->validate([
+            'question' => 'sometimes|string|max:255',
+            'answer' => 'sometimes|string',
+        ]);
+
+        $translation = $faqItem->translations()->where('language', $language)->firstOrFail();
+        $translation->update($validated);
+
+        return response()->json($translation);
+    }
+
+
 }

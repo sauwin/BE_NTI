@@ -28,6 +28,7 @@ use App\Http\Controllers\ReportingController;
 use App\Http\Controllers\StudentProfileController;
 use App\Http\Controllers\TaskController;
 use App\Http\Controllers\TeamController;
+use App\Http\Controllers\TranslationController;
 use Illuminate\Support\Facades\Route;
 
 // Public
@@ -193,6 +194,12 @@ Route::middleware('auth:sanctum', 'is_active')->group(function () {
         Route::delete('/admin/users/{userId}', [AdminController::class, 'deleteUser']);
         Route::post('/admin/users/{userId}/reset-password', [AdminController::class, 'resetAdminPassword']);
     });
+
+    // Translation
+    Route::get('/translations', [TranslationController::class, 'index']);
+    Route::post('/translations', [TranslationController::class, 'store']);
+    Route::post('/faq-items/{faqItem}/translations', [FaqItemController::class, 'storeTranslation']);
+    Route::put('/faq-items/{faqItem}/translations/{language}', [FaqItemController::class, 'updateTranslation']);
 
     // Admin Only
     Route::middleware('admin')->prefix('admin')->group(function () {
