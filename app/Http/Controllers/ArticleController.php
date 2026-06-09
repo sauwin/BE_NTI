@@ -186,7 +186,7 @@ class ArticleController extends Controller
      */
     public function destroy(NewsArticle $article, ArticleImageService $imageService)
     {
-        Gate::authorize('forceDelete', NewsArticle::class);
+        Gate::authorize('forceDelete', $article);
 
         DB::transaction(function () use (
             $article,

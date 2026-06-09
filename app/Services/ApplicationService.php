@@ -111,6 +111,8 @@ class ApplicationService
             'student_profile_id' => $profile->id,
             'status' => $initialStatus,
             'category' => $data['category'] ?? null,
+            'project_title' => $data['project_title'] ?? null,
+            'proposed_solution' => $data['proposed_solution'] ?? null,
         ]);
 
         ApplicationStatusHistory::create([

@@ -9,7 +9,7 @@ class EvaluationPolicy
 {
     private function canEvaluate(User $user): bool
     {
-        return $user->hasRole(['evaluator', 'nti_admin', 'super_admin']);
+        return $user->hasRole(['evaluator', 'nti_admin', 'super_admin']) || $user->role_in_org == 'evaluator';
     }
 
     public function viewAny(User $user): bool

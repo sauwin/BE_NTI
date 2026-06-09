@@ -69,7 +69,7 @@ class CallPolicy
      */
     public function viewCriteria(User $user, Call $call): bool
     {
-        if ($user->hasRole('evaluator')) {
+        if ($user->hasRole('evaluator') || $user->role_in_org == 'evaluator') {
             return $call->evaluators()->whereKey($user->id)->exists();
         }
 

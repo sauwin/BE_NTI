@@ -2,33 +2,20 @@
 
 namespace Database\Seeders;
 
-use App\Models\NewsArticle;
-use App\Models\NewsArticleTranslation;
+use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
 class DatabaseSeeder extends Seeder
 {
+    /**
+     * Run the database seeds.
+     */
     public function run(): void
     {
-        $this->call([
-            RoleSeeder::class,
-            UserSeeder::class,
-            NewsArticleSeeder::class,
-            AdminUserSeeder::class,
-            FaqSeeder::class,
-            CallPeriodSeeder::class,
-            TeamAndApplicationSeeder::class,
-        ]);
-
-        NewsArticle::factory(30)
-            ->has(
-                NewsArticleTranslation::factory()->state(['language' => 'en']),
-                'translations'
-            )
-            ->has(
-                NewsArticleTranslation::factory()->state(['language' => 'sk']),
-                'translations'
-            )
-            ->create();
+        if (app()->environment('production')) {
+            $this->call(ProductionSeeder::class);
+        } else {
+            $this->call(TestSeeder::class);
+        }
     }
 }
