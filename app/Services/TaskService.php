@@ -7,8 +7,91 @@ use App\Models\Call;
 use App\Models\Document;
 use Illuminate\Support\Facades\Storage;
 
+/**
+ * Allowed admin-side status transitions for Program B backlog tasks.
+ * A task may only move forward along this chain; backward transitions
+ * are not permitted (except resetting a published task to draft, which
+ * stays in the company-facing endpoint).
+ */
+
 class TaskService
 {
+    private const ADMIN_TRANSITIONS = [
+        'published'   => 'in_matching',
+        'in_matching' => 'assigned',
+        'assigned'    => 'in_progress',
+        'in_progress' => 'closed',
+    ];
+
+    public function adminTasks(?string $status = null, int $perPage = 20)
+    {
+        $query = Task::with(['call', 'organization', 'productOwner'])
+            ->whereHas('call', fn($q) => $q->where('program', 'b'));
+
+        if ($status) {
+            $query->where('status', $status);
+        }
+
+        return $query->orderBy('updated_at', 'desc')->paginate($perPage);
+    }
+
+    /**
+     * Advance a task to the next status in the admin transition chain.
+     * Optionally set product_owner_user_id when moving to assigned.
+     *
+     * @throws \DomainException  when the current status has no allowed next step
+     */
+    public function advanceStatus(Task $task, ?int $productOwnerUserId = null): Task
+    {
+        $current = $task->status;
+
+        if (! array_key_exists($current, self::ADMIN_TRANSITIONS)) {
+            throw new \DomainException(
+                "Task cannot be advanced from status '{$current}'."
+            );
+        }
+
+        $next = self::ADMIN_TRANSITIONS[$current];
+
+        $updates = ['status' => $next];
+
+        if ($next === 'assigned' && $productOwnerUserId) {
+            $updates['product_owner_user_id'] = $productOwnerUserId;
+        }
+
+        $task->update($updates);
+
+        return $task->fresh(['call', 'organization', 'productOwner']);
+    }
+
+    /**
+     * Explicitly set any admin-managed status (for cases where you need
+     * to skip or override — restricted to admin gate in the controller).
+     *
+     * @throws \DomainException  when $status is not in the admin-managed set
+     */
+    public function setAdminStatus(Task $task, string $status, ?int $productOwnerUserId = null): Task
+    {
+        $adminStatuses = array_merge(
+            array_keys(self::ADMIN_TRANSITIONS),
+            array_values(self::ADMIN_TRANSITIONS)
+        );
+
+        if (! in_array($status, array_unique($adminStatuses), true)) {
+            throw new \DomainException("'{$status}' is not a valid admin-managed status.");
+        }
+
+        $updates = ['status' => $status];
+
+        if ($status === 'assigned' && $productOwnerUserId) {
+            $updates['product_owner_user_id'] = $productOwnerUserId;
+        }
+
+        $task->update($updates);
+
+        return $task->fresh(['call', 'organization', 'productOwner']);
+    }
+
     public function byOrganization($organizationId)
     {
         return Task::with(['call', 'organization'])

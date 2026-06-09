@@ -9,6 +9,10 @@ class TaskPolicy
 {
     public function view(User $user, Task $task): bool
     {
+        if ($user->isAdmin()) {
+            return true;
+        }
+
         if ((int) $task->product_owner_user_id === $user->id) {
             return true;
         }
@@ -31,6 +35,10 @@ class TaskPolicy
 
     public function update(User $user, Task $task): bool
     {
+        if ($user->isAdmin()) {
+            return true;
+        }
+
         if ($user->organization_id && (int) $task->organization_id === (int) $user->organization_id) {
             return true;
         }
@@ -39,6 +47,10 @@ class TaskPolicy
 
     public function delete(User $user, Task $task): bool
     {
+        if ($user->isAdmin()) {
+            return true;
+        }
+
         if ($user->organization_id && (int) $task->organization_id === (int) $user->organization_id) {
             return true;
         }
