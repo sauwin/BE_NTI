@@ -29,6 +29,9 @@ class TaskController extends Controller
         $this->callService = $callService;
     }
 
+    /**
+     * Create a new Call and Task together in a single transaction.
+     */
     public function storeCallWithTask(Request $request)
     {
         $this->authorize('create', Task::class);
@@ -79,6 +82,9 @@ class TaskController extends Controller
         });
     }
 
+    /**
+     * Update Call and Task together in a single transaction.
+     */
     public function updateCallWithTask(Request $request, $id)
     {
         $taskModel = Task::with('call', 'documents')->findOrFail($id);
@@ -120,6 +126,9 @@ class TaskController extends Controller
         });
     }
 
+    /**
+     * Update only the status of a Call and its associated Task.
+     */
     public function updateCallWithTaskStatus(Request $request, $id)
     {
         $request->validate([
@@ -146,6 +155,9 @@ class TaskController extends Controller
         return response()->json(['message' => 'Status updated', 'call' => $call, 'task' => $task]);
     }
 
+    /**
+     * List all tasks belonging to a specific organization.
+     */
     public function byOrganization($organizationId)
     {
         $tasks = Task::with(['call', 'organization'])
@@ -155,6 +167,9 @@ class TaskController extends Controller
         return response()->json($tasks);
     }
 
+    /**
+     * List all published Program B tasks visible to the public.
+     */
     public function publicTasks()
     {
         $tasks = Task::with(['call', 'organization'])
@@ -167,6 +182,9 @@ class TaskController extends Controller
         return response()->json($tasks);
     }
 
+    /**
+     * List tasks belonging to the authenticated user's organization.
+     */
     public function index(Request $request)
     {
         $tasks = $this->taskService->index($request->user()->id);
@@ -174,6 +192,9 @@ class TaskController extends Controller
         return response()->json($tasks);
     }
 
+    /**
+     * Show a single task with all relations.
+     */
     public function show(Request $request, $id)
     {
         $task = $this->taskService->findWithRelations($id);
@@ -183,6 +204,9 @@ class TaskController extends Controller
         return response()->json($task);
     }
 
+    /**
+     * Create a standalone task.
+     */
     public function store(StoreTaskRequest $request)
     {
         $this->authorize('create', Task::class);
@@ -192,6 +216,9 @@ class TaskController extends Controller
         return response()->json($task, 201);
     }
 
+    /**
+     * Update a standalone task.
+     */
     public function update(UpdateTaskRequest $request, $id)
     {
         $task = Task::findOrFail($id);
@@ -203,6 +230,9 @@ class TaskController extends Controller
         return response()->json($task);
     }
 
+    /**
+     * Delete a task permanently.
+     */
     public function destroy(Request $request, $id)
     {
         $task = Task::findOrFail($id);

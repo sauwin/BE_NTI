@@ -65,7 +65,7 @@ class NotificationController extends Controller
     }
 
     /**
-     * Save log 
+     * Save log for notification
      */
     public static function log(int $userId, string $recipientEmail, string $eventType, string $message, array $context = []): void
     {

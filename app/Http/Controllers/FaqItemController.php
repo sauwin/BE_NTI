@@ -139,6 +139,9 @@ class FaqItemController extends Controller
         return response()->json($translation, 201);
     }
 
+    /**
+     * Update translation for FAQ item
+     */
     public function updateTranslation(Request $request, FaqItem $faqItem, string $language)
     {
         Gate::authorize('update', $faqItem);

@@ -52,6 +52,9 @@ class OrganizationMembershipController extends Controller
         return response()->json($rows);
     }
 
+    /**
+     * Approve member for organization
+     */
     public function approveMember(Request $request, int $userId)
     {
         $this->authorizeOrganizationManagement($request);
@@ -83,6 +86,9 @@ class OrganizationMembershipController extends Controller
         return response()->json(['message' => 'Member approved']);
     }
 
+    /**
+     * Reject member for organization
+     */
     public function rejectMember(Request $request, int $userId)
     {
         $this->authorizeOrganizationManagement($request);
@@ -111,6 +117,9 @@ class OrganizationMembershipController extends Controller
         return response()->json(['message' => 'Member request rejected']);
     }
 
+    /**
+     * Get active members from organization
+     */
     public function activeMembers(Request $request)
     {
         $this->authorizeOrganizationManagement($request);
@@ -153,6 +162,9 @@ class OrganizationMembershipController extends Controller
         return response()->json($formatted);
     }
 
+    /**
+     * Kick member from organization
+     */
     public function kickMember(Request $request, int $userId)
     {
         $this->authorizeOrganizationManagement($request);
@@ -181,6 +193,9 @@ class OrganizationMembershipController extends Controller
         return response()->json(['message' => 'Member kicked successfully, now pending']);
     }
 
+    /**
+     * Update role for organization member
+     */
     public function updateMemberRole(Request $request, int $userId)
     {
         $this->authorizeOrganizationManagement($request);
