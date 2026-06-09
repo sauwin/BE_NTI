@@ -2,11 +2,11 @@
 
 namespace Database\Seeders;
 
-use App\Models\Call;
-use App\Models\User;
-use App\Models\Team;
-use App\Models\StudentProfile;
 use App\Models\Application;
+use App\Models\Call;
+use App\Models\StudentProfile;
+use App\Models\Team;
+use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 
@@ -14,7 +14,7 @@ class TeamAndApplicationSeeder extends Seeder
 {
     public function run(): void
     {
-        $callA = Call::where('program', 'a')->first() 
+        $callA = Call::where('program', 'a')->first()
             ?? Call::factory()->create(['status' => 'open']);
 
         $studentIds = DB::table('user_roles')
@@ -46,18 +46,18 @@ class TeamAndApplicationSeeder extends Seeder
 
         $profiles = StudentProfile::whereIn('user_id', $students->pluck('id'))->get();
 
-        $chunks = $students->chunk(4); 
+        $chunks = $students->chunk(4);
 
         foreach ($chunks as $index => $group) {
             if ($group->count() < 3) {
-                continue; 
+                continue;
             }
 
             $leader = $group->first();
             $members = $group->slice(1);
 
-            $isReady = $index === 0; 
-            
+            $isReady = $index === 0;
+
             $team = Team::factory()->create([
                 'leader_id' => $leader->id,
                 'status' => $isReady ? 'ready' : 'forming',
@@ -85,14 +85,14 @@ class TeamAndApplicationSeeder extends Seeder
 
             if ($isReady) {
                 $leaderProfile = $profiles->where('user_id', $leader->id)->first();
-                
+
                 Application::factory()->create([
                     'call_id' => $callA->id,
                     'applicant_type' => 'team',
                     'program_type' => 'a',
                     'team_id' => $team->id,
                     'student_profile_id' => $leaderProfile->id,
-                    'status' => 'submitted', 
+                    'status' => 'submitted',
                 ]);
             }
         }

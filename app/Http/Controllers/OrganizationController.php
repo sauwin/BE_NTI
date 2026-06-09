@@ -111,7 +111,10 @@ class OrganizationController extends Controller
             $query->where('status', $request->status);
         }
 
-        $companies = $query->orderBy('created_at', 'desc')->paginate(20);
+        $companies = $query
+            ->with(['members:id,organization_id,first_name,last_name,email,role_in_org'])
+            ->orderBy('created_at', 'desc')
+            ->paginate(20);
 
         return response()->json($companies);
     }
@@ -120,10 +123,10 @@ class OrganizationController extends Controller
      * Approve company and activate owner
      */
     public function approveCompany(Request $request, int $orgId) 
+    {
+        DB::transaction(function () use ($orgId)
         {
-            $org = DB::transaction(function () use ($orgId)
-            {
-                $org = Organization::findOrFail($orgId);
+            $org = Organization::findOrFail($orgId);
 
                 $org->update(['status' => 'active']);
 

@@ -2,11 +2,11 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\DB;
+use App\Models\Organization;
 use App\Models\Role;
 use App\Models\User;
-use App\Models\Organization;
+use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
 
 class UserSeeder extends Seeder
 {
@@ -15,7 +15,7 @@ class UserSeeder extends Seeder
         $roles = Role::all()->keyBy('slug');
         $studentRole = $roles->get('student');
 
-        //More students for teams test
+        // More students for teams test
         if ($studentRole) {
             User::factory(6)->create()->each(function (User $student) use ($studentRole) {
                 DB::table('user_roles')->insert([
@@ -27,7 +27,7 @@ class UserSeeder extends Seeder
             });
         }
 
-        //More different test roles
+        // More different test roles
         $slugs = ['student', 'company', 'mentor', 'evaluator', 'content_editor'];
 
         User::factory(20)->create()->each(function (User $user) use ($roles, $slugs) {

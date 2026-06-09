@@ -2,10 +2,9 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
-use Illuminate\Database\Seeder;
 use App\Models\NewsArticle;
 use App\Models\NewsArticleTranslation;
+use Illuminate\Database\Seeder;
 
 class NewsArticleSeeder extends Seeder
 {
@@ -15,14 +14,14 @@ class NewsArticleSeeder extends Seeder
     public function run(): void
     {
         NewsArticle::factory(30)
-        ->has(
-            NewsArticleTranslation::factory()->state(['language' => 'en']),
-            'translations'
-        )
-        ->has(
-            NewsArticleTranslation::factory()->state(['language' => 'sk']),
-            'translations'
-        )
-        ->create();
+            ->has(
+                NewsArticleTranslation::factory()->state(['language' => 'en']),
+                'translations'
+            )
+            ->has(
+                NewsArticleTranslation::factory()->state(['language' => 'sk']),
+                'translations'
+            )
+            ->create();
     }
 }

@@ -2,13 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Application;
 use App\Models\Call;
 use App\Models\CallEvaluator;
 use App\Models\User;
 use App\Notifications\EvaluationAssigned;
+use App\Services\AuditService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use App\Services\AuditService;
 
 /**
  * @tags Call Management
@@ -65,6 +66,23 @@ class CallEvaluatorController extends Controller
             'call_id' => $call->id,
             'user_id' => $user->id,
         ]);
+
+        NotificationController::log($user->id, $user->email, 'evaluator_assigned', 'You have been assigned as evaluator for: '.$call->title, ['call_id' => $call->id]);
+        $admins = User::whereHas('roles', fn ($q) => $q->whereIn('slug', ['nti_admin', 'super_admin']))->get();
+        foreach ($admins as $admin) {
+            NotificationController::log($admin->id, $admin->email, 'evaluator_assigned_success', 'Evaluator '.$user->email.' assigned to call: '.$call->title, ['call_id' => $call->id, 'evaluator_id' => $user->id]);
+        }
+        $applications = Application::where('call_id', $call->id)->with('studentProfile.user', 'mentorships.mentor')->get();
+        foreach ($applications as $app) {
+            if ($app->studentProfile?->user) {
+                $student = $app->studentProfile->user;
+                NotificationController::log($student->id, $student->email, 'evaluator_assigned', 'An evaluator has been assigned to review your application.', ['call_id' => $call->id]);
+            }
+            foreach ($app->mentorships as $mentorship) {
+                $mentor = $mentorship->mentor;
+                NotificationController::log($mentor->id, $mentor->email, 'evaluator_assigned', 'An evaluator has been assigned to call: '.$call->title, ['call_id' => $call->id]);
+            }
+        }
 
         AuditService::log('assign_evaluator', 'call', [
             'call_id' => $call->id,

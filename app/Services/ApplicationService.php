@@ -3,28 +3,30 @@
 namespace App\Services;
 
 use App\Http\Controllers\NotificationController;
+use App\Mail\ApplicationRevisionSubmittedMail;
 use App\Mail\ApplicationSubmittedMail;
 use App\Models\Application;
+use App\Models\ApplicationDocument;
 use App\Models\ApplicationStatusHistory;
 use App\Models\Call;
+use App\Models\Document;
 use App\Models\StudentProfile;
 use App\Models\Team;
-use App\Models\Document;
-use App\Models\ApplicationDocument;
-use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
-use App\Mail\ApplicationRevisionSubmittedMail;
 
 class ApplicationService
 {
     public function createApplication(array $data, $user): Application
     {
         return DB::transaction(function () use ($data, $user) {
-            return $this->createApplicationRecord($data, $user, false);
+            $isFinalSubmit = ($data['submit_type'] ?? 'final') === 'final';
+
+            return $this->createApplicationRecord($data, $user, $isFinalSubmit);
         });
     }
 
@@ -209,7 +211,7 @@ class ApplicationService
 
         DB::transaction(function () use ($application, $user) {
             $oldStatus = $application->status;
-            $newStatus = $this->getPreviousStatus($application); 
+            $newStatus = $this->getPreviousStatus($application);
 
             $application->update(['status' => $newStatus]);
 
@@ -277,14 +279,14 @@ class ApplicationService
             Mail::to($user->email)->queue(new ApplicationRevisionSubmittedMail($user, $application));
 
             NotificationController::log(
-                $user->id, 
-                $user->email, 
+                $user->id,
+                $user->email,
                 'application_revision_submitted',
-                'Zmeny v prihláške #' . $application->id . ' (Program ' . strtoupper($application->program_type) . ') boli úspešne uložené і prihláška bola znova odoslaná на kontrolu.',
+                'Zmeny v prihláške #'.$application->id.' (Program '.strtoupper($application->program_type).') boli úspešne uložené і prihláška bola znova odoslaná на kontrolu.',
                 ['application_id' => $application->id]
             );
         } catch (\Exception $e) {
-            logger()->error('Failed sending revision email notifications: ' . $e->getMessage());
+            logger()->error('Failed sending revision email notifications: '.$e->getMessage());
         }
     }
 

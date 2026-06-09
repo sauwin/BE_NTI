@@ -12,6 +12,7 @@ use App\Exports\CallsExport;
 use App\Exports\BulkNotificationCampaignsExport;
 use App\Exports\CompanyExport;
 use App\Exports\TasksExport;
+use App\Exports\DashboardStatsExport;
 
 /**
  * @tags Admin Management
@@ -156,6 +157,28 @@ class ExportController extends Controller
 
         return Excel::download(
             new TasksExport($filters),
+            $fileName,
+            $excelFormat
+        );
+    }
+
+    /**
+     * Export dashboard stats
+     */
+    public function exportDashboardStats(Request $request)
+    {
+        $format = strtolower($request->query('format', 'xlsx'));
+
+        [$excelFormat, $extension] = $this->resolveFormat($format);
+
+        AuditService::log('export', 'dashboard_stats', [
+            'format' => $format,
+        ]);
+
+        $fileName = 'dashboard_stats_export_' . now()->format('Y_m_d_His') . '.' . $extension;
+
+        return Excel::download(
+            new DashboardStatsExport(),
             $fileName,
             $excelFormat
         );
