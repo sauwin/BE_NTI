@@ -4,11 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreApplicationRequest;
 use App\Models\Application;
-use App\Models\StudentProfile;
 use App\Models\ApplicationRevisionRequest;
 use App\Models\CallEvaluator;
-use App\Services\ApplicationWorkflowService;
 use App\Services\ApplicationService;
+use App\Services\ApplicationWorkflowService;
 use Illuminate\Http\Request;
 
 /**
@@ -18,6 +17,7 @@ use Illuminate\Http\Request;
 class ApplicationController extends Controller
 {
     protected $applicationService;
+
     protected $applicationWorkflowService;
 
     public function __construct(ApplicationService $applicationService, ApplicationWorkflowService $applicationWorkflowService)
@@ -94,7 +94,7 @@ class ApplicationController extends Controller
         $this->authorize('view', $application);
 
         $totalEvaluators = CallEvaluator::where('call_id', $application->call_id)->count();
-        
+
         $application->total_evaluators_count = $totalEvaluators;
         $application->pending_evaluators_count = max(0, $totalEvaluators - $application->completed_evaluations_count);
 
@@ -131,8 +131,10 @@ class ApplicationController extends Controller
 
         $this->applicationService->applyChanges($application, $request->user());
 
+        $user = $request->user();
+        NotificationController::log($user->id, $user->email, 'revision_resubmitted', 'Your revised application has been resubmitted.', ['application_id' => $id]);
         return response()->json([
-            'message' => 'Application submitted successfully'
+            'message' => 'Application submitted successfully',
         ]);
     }
 
@@ -148,7 +150,7 @@ class ApplicationController extends Controller
         $this->applicationService->submitDraft($application, $request->user());
 
         return response()->json([
-            'message' => 'Application submitted successfully'
+            'message' => 'Application submitted successfully',
         ]);
     }
 
@@ -193,11 +195,9 @@ class ApplicationController extends Controller
         $statusValidationRule = '';
         if ($user->isAdmin()) {
             $statusValidationRule = 'required|in:submitted,formally_verified,under_evaluation,pending_revision,approved,rejected,onboarding,active,suspended,closed';
-        }
-        else if ($user->hasRole('mentor')) {
+        } elseif ($user->hasRole('mentor')) {
             $statusValidationRule = 'required|in:onboarding,active,approved,suspended,closed';
-        }
-        else if ($user->hasRole('company')) {
+        } elseif ($user->hasRole('company')) {
             $statusValidationRule = 'required|in:formally_verified,pending_revision';
         }
 
@@ -221,7 +221,7 @@ class ApplicationController extends Controller
         $this->authorize('updateStatus', $application);
 
         $request->validate([
-            'message' => 'required|string|min:5|max:2000'
+            'message' => 'required|string|min:5|max:2000',
         ]);
 
         $this->applicationWorkflowService->createRevisionRequest($application, $request->message, $request->user());

@@ -2,15 +2,16 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Call;
-use App\Models\Task;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Http\Request;
-use App\Services\TaskService;
-use App\Services\CallService;
 use App\Http\Requests\StoreTaskRequest;
 use App\Http\Requests\UpdateTaskRequest;
+use App\Models\Application;
+use App\Models\Task;
+use App\Models\User;
 use App\Services\AuditService;
+use App\Services\CallService;
+use App\Services\TaskService;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 /**
  * @tags Task Management
@@ -57,7 +58,15 @@ class TaskController extends Controller
             ]);
 
             $task = $this->taskService->create($taskData, $request->user());
-
+            $admins = User::whereHas('roles', fn ($q) => $q->whereIn('slug', ['nti_admin', 'super_admin']))->get();
+            foreach ($admins as $admin) {
+                NotificationController::log($admin->id, $admin->email, 'task_created', 'New Program B task created: '.$call->title, ['task_id' => $task->id, 'call_id' => $call->id]);
+            }
+            if ($task->organization) {
+                foreach ($task->organization->members as $member) {
+                    NotificationController::log($member->id, $member->email, 'task_created', 'Your task "'.$call->title.'" has been successfully created.', ['task_id' => $task->id]);
+                }
+            }
             if ($request->hasFile('files')) {
                 $this->taskService->attachDocuments($task, $request->file('files'), $request->user()->id ?? 1);
             }
@@ -130,8 +139,13 @@ class TaskController extends Controller
         $call->status = $request->input('status') === 'published' ? 'open' : 'draft';
         $call->save();
 
+        if ($task->productOwner) {
+            NotificationController::log($task->productOwner->id, $task->productOwner->email, 'task_status_changed', 'Your task "'.$task->title.'" is now '.($task->status), ['task_id' => $task->id]);
+        }
+
         return response()->json(['message' => 'Status updated', 'call' => $call, 'task' => $task]);
     }
+
     public function byOrganization($organizationId)
     {
         $tasks = Task::with(['call', 'organization'])
@@ -206,7 +220,7 @@ class TaskController extends Controller
     public function adminIndex(Request $request)
     {
         $request->validate([
-            'status'   => 'nullable|in:published,in_matching,assigned,in_progress,closed',
+            'status' => 'nullable|in:published,in_matching,assigned,in_progress,closed',
             'per_page' => 'nullable|integer|min:1|max:100',
         ]);
 
@@ -239,13 +253,29 @@ class TaskController extends Controller
         }
 
         AuditService::log('advance_status', 'Task', [
-            'task_id'    => $task->id,
+            'task_id' => $task->id,
             'new_status' => $task->status,
         ]);
 
+        if ($task->status === 'assigned') {
+            $admins = User::whereHas('roles', fn ($q) => $q->whereIn('slug', ['nti_admin', 'super_admin']))->get();
+            foreach ($admins as $admin) {
+                NotificationController::log($admin->id, $admin->email, 'task_assigned', 'Task "'.$task->title.'" has been assigned to a team.', ['task_id' => $task->id]);
+            }
+            if ($task->productOwner) {
+                NotificationController::log($task->productOwner->id, $task->productOwner->email, 'task_assigned', 'Your task "'.$task->title.'" has been assigned to a team.', ['task_id' => $task->id]);
+            }
+            $applications = Application::where('call_id', $task->call_id)->where('program_type', 'b')->with('team.members')->get();
+            foreach ($applications as $app) {
+                foreach ($app->team?->members ?? [] as $member) {
+                    NotificationController::log($member->id, $member->email, 'added_to_program_b', 'You have been added to Program B task: '.$task->title, ['task_id' => $task->id]);
+                }
+            }
+        }
+
         return response()->json([
             'message' => 'Task status advanced.',
-            'task'    => $task,
+            'task' => $task,
         ]);
     }
 
@@ -255,7 +285,7 @@ class TaskController extends Controller
     public function adminSetStatus(Request $request, int $id)
     {
         $request->validate([
-            'status'                => 'required|in:published,in_matching,assigned,in_progress,closed',
+            'status' => 'required|in:published,in_matching,assigned,in_progress,closed',
             'product_owner_user_id' => 'nullable|integer|exists:users,id',
         ]);
 
@@ -272,13 +302,16 @@ class TaskController extends Controller
         }
 
         AuditService::log('set_status', 'Task', [
-            'task_id'    => $task->id,
+            'task_id' => $task->id,
             'new_status' => $task->status,
         ]);
+        if ($task->productOwner) {
+            NotificationController::log($task->productOwner->id, $task->productOwner->email, 'task_status_set', 'Task "'.$task->title.'" status set to '.$task->status, ['task_id' => $task->id]);
+        }
 
         return response()->json([
             'message' => 'Task status updated.',
-            'task'    => $task,
+            'task' => $task,
         ]);
     }
 }
