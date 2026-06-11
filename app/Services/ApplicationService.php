@@ -195,7 +195,7 @@ class ApplicationService
                 'old_status' => $oldStatus,
                 'new_status' => $newStatus,
                 'changed_by' => $user->id,
-                'comment' => 'Odoslanie uloženej чернетки (draft -> submitted)',
+                'comment' => 'Odoslanie uloženbého draftu (draft -> submitted)',
                 'changed_at' => now(),
             ]);
 
@@ -284,7 +284,7 @@ class ApplicationService
                 $user->id,
                 $user->email,
                 'application_revision_submitted',
-                'Zmeny v prihláške #'.$application->id.' (Program '.strtoupper($application->program_type).') boli úspešne uložené і prihláška bola znova odoslaná на kontrolu.',
+                'Zmeny v prihláške #'.$application->id.' (Program '.strtoupper($application->program_type).') boli úspešne uložené a prihláška bola znova odoslaná na kontrolu.',
                 ['application_id' => $application->id]
             );
         } catch (\Exception $e) {

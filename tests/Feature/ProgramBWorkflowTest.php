@@ -348,11 +348,17 @@ class ProgramBWorkflowTest extends TestCase
             'status' => 'open',
         ]);
 
+        $student = User::factory()->create();
+        $profile = StudentProfile::factory()->create([
+            'user_id' => $student->id,
+        ]);
+
         $app = Application::create([
             'call_id' => $call->id,
             'applicant_type' => 'team',
             'program_type' => 'b',
             'status' => 'active',
+            'student_profile_id' => $profile->id
         ]);
 
         $res = $this->actingAs($admin)->postJson("/api/applications/{$app->id}/milestones", [

@@ -21,6 +21,10 @@ class DocumentPolicy
             return true;
         }
 
+        if ($user->hasRole('company') && $user->role_in_org == 'owner' || $user->role_in_org == 'evaluator') {
+            return true;
+        }
+
         $associatedTask = DB::table('task_documents')
             ->join('tasks', 'tasks.id', '=', 'task_documents.task_id')
             ->where('task_documents.document_id', $document->id)

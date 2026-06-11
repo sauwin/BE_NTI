@@ -27,7 +27,7 @@ class ApplicationRevisionSubmittedMail extends Mailable
     }
 
     /**
-     * Get the message envelope (Тема листа офіційною словацькою мовою для NTI).
+     * Get the message envelope
      */
     public function envelope(): Envelope
     {

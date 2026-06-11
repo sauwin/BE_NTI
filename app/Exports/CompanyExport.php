@@ -71,6 +71,6 @@ class CompanyExport implements FromQuery, WithHeadings, WithMapping, WithCustomC
         return [
             'use_bom' => true,
             'output_encoding' => 'UTF-8',
-        ];
-    }
+       ];
+    } 
 }

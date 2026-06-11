@@ -14,7 +14,7 @@ return new class extends Migration
             $table->string('subject');          
             $table->text('message');  
             $table->integer('total_recipients');
-            $table->foreignId('sender_id')->nullable()->constrained('users')->nullOnDelete(); // Хто відправив
+            $table->foreignId('sender_id')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamps();
         });
     }

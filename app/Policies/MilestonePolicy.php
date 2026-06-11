@@ -23,16 +23,28 @@ class MilestonePolicy
 
     public function create(User $user, Application $application): bool
     {
+        if ($application->status == 'suspended' || $application->status == 'closed') {
+            return false;
+        }
+
         return $this->isAdminOrMentor($user);
     }
 
     public function update(User $user, Milestone $milestone): bool
     {
+        if ($milestone->application->status == 'suspended' || $milestone->application->status == 'closed') {
+            return false;
+        }
+
         return $this->isAdminOrMentor($user);
     }
 
     public function uploadDocument(User $user, Milestone $milestone): bool
     {
+        if ($milestone->application->status == 'suspended' || $milestone->application->status == 'closed') {
+            return false;
+        }
+
         return $this->viewAny($user, $milestone->application);
     }
 }

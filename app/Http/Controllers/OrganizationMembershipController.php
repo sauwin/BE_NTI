@@ -16,7 +16,7 @@ class OrganizationMembershipController extends Controller
     {
         $organization = $request->user()->organization;
 
-        if (! $organization) {
+        if (! $organization ) {
             abort(403, 'You are not part of an organization');
         }
 
@@ -168,6 +168,10 @@ class OrganizationMembershipController extends Controller
     public function kickMember(Request $request, int $userId)
     {
         $this->authorizeOrganizationManagement($request);
+
+        if ($userId == $request->user()->id) {
+            return response()->json(['message' => 'You cannot kick yourself'], 403);
+        }
 
         $organizationId = $request->user()->organization_id;
 

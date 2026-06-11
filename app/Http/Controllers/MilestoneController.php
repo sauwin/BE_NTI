@@ -48,6 +48,9 @@ class MilestoneController extends Controller
             'status' => 'pending',
         ]);
 
+        $student = $milestone->application->studentProfile->user;
+        NotificationController::log($student->id, $student->email, 'milestone_added', 'Milestone added for your application');
+
         return response()->json($milestone, 201);
     }
 

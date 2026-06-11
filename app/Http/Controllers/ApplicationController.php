@@ -6,6 +6,8 @@ use App\Http\Requests\StoreApplicationRequest;
 use App\Models\Application;
 use App\Models\ApplicationRevisionRequest;
 use App\Models\CallEvaluator;
+use App\Models\User;
+use App\Models\Task;
 use App\Services\ApplicationService;
 use App\Services\ApplicationWorkflowService;
 use Illuminate\Http\Request;
@@ -134,7 +136,22 @@ class ApplicationController extends Controller
         $this->applicationService->applyChanges($application, $request->user());
 
         $user = $request->user();
+
+        //Notifications
+        $admins = User::whereHas('roles', fn ($q) => $q->whereIn('slug', ['nti_admin', 'super_admin']))->get();
+        foreach ($admins as $admin) {
+            NotificationController::log($admin->id, $admin->email, 'revision_resubmitted', 'Application #' . $id . ' has been resubmitted', ['application_id' => $id]);
+        }
+
+
+        if ($application->program_type == 'b') {
+            $task = Task::where('call_id', $application->call_id)->first();
+            $owner = $task->productOwner;
+            NotificationController::log($owner->id, $owner->email, 'revision_resubmitted', 'Application #' . $id . ' has been resubmitted', ['application_id' => $id]);
+        }
+
         NotificationController::log($user->id, $user->email, 'revision_resubmitted', 'Your revised application has been resubmitted.', ['application_id' => $id]);
+
         return response()->json([
             'message' => 'Application submitted successfully',
         ]);
@@ -150,6 +167,22 @@ class ApplicationController extends Controller
         $this->authorize('submitDraft', $application);
 
         $this->applicationService->submitDraft($application, $request->user());
+
+        $user = $request->user();
+
+        //Notifications
+        $admins = User::whereHas('roles', fn ($q) => $q->whereIn('slug', ['nti_admin', 'super_admin']))->get();
+        foreach ($admins as $admin) {
+            NotificationController::log($admin->id, $admin->email, 'application_submitted', 'Application #' . $application->id . ' has been submitted', ['application_id' => $application->id]);
+        }
+
+        if ($application->program == 'b') {
+            $task = Task::where('call_id', $application->call_id)->first();
+            $owner = $task->productOwner;
+            NotificationController::log($owner->id, $owner->email, 'application_submitted', 'Application #' . $id . ' has been submitted', ['application_id' => $id]);
+        }
+
+        NotificationController::log($user->id, $user->email, 'application_submitted', 'Your revised application has been submitted.', ['application_id' => $id]);
 
         return response()->json([
             'message' => 'Application submitted successfully',

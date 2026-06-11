@@ -611,11 +611,14 @@ class ProgramAWorkflowTest extends TestCase
         $student = $this->makeUser($this->studentRole);
         $call = $this->makeOpenCall();
 
+        $profile = StudentProfile::factory()->create(['user_id' => $student->id]);
+
         $app = Application::create([
             'call_id' => $call->id,
             'applicant_type' => 'student',
             'program_type' => 'a',
             'status' => 'active',
+            'student_profile_id' => $profile->id,
         ]);
 
         $this->actingAs($admin)->postJson('/api/mentorships/assign', [

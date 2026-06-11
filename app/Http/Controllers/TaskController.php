@@ -63,11 +63,11 @@ class TaskController extends Controller
             $task = $this->taskService->create($taskData, $request->user());
             $admins = User::whereHas('roles', fn ($q) => $q->whereIn('slug', ['nti_admin', 'super_admin']))->get();
             foreach ($admins as $admin) {
-                NotificationController::log($admin->id, $admin->email, 'task_created', 'New Program B task created: '.$call->title, ['task_id' => $task->id, 'call_id' => $call->id]);
+                NotificationController::log($admin->id, $admin->email, 'task_created', 'New Program B task created', ['task_id' => $task->id, 'call_id' => $call->id]);
             }
             if ($task->organization) {
                 foreach ($task->organization->members as $member) {
-                    NotificationController::log($member->id, $member->email, 'task_created', 'Your task "'.$call->title.'" has been successfully created.', ['task_id' => $task->id]);
+                    NotificationController::log($member->id, $member->email, 'task_created', 'Your task has been successfully created.', ['task_id' => $task->id]);
                 }
             }
             if ($request->hasFile('files')) {
@@ -153,6 +153,20 @@ class TaskController extends Controller
         }
 
         return response()->json(['message' => 'Status updated', 'call' => $call, 'task' => $task]);
+    }
+
+    public function deleteCallWithTask(Request $request, Task $task)
+    {
+        return \DB::transaction(function () use ($request, $task) {
+            $task->documents()->delete();
+
+            $this->taskService->delete($task->id);
+            $this->callService->delete($task->call->id);
+
+            return response()->json([
+                'message' => 'Call, Task and Documents deleted!',
+            ]);
+        });
     }
 
     /**

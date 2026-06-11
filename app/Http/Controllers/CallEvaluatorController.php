@@ -67,10 +67,10 @@ class CallEvaluatorController extends Controller
             'user_id' => $user->id,
         ]);
 
-        NotificationController::log($user->id, $user->email, 'evaluator_assigned', 'You have been assigned as evaluator for: '.$call->title, ['call_id' => $call->id]);
+        NotificationController::log($user->id, $user->email, 'evaluator_assigned', 'You have been assigned as evaluator for: '.$call->name, ['call_id' => $call->id]);
         $admins = User::whereHas('roles', fn ($q) => $q->whereIn('slug', ['nti_admin', 'super_admin']))->get();
         foreach ($admins as $admin) {
-            NotificationController::log($admin->id, $admin->email, 'evaluator_assigned_success', 'Evaluator '.$user->email.' assigned to call: '.$call->title, ['call_id' => $call->id, 'evaluator_id' => $user->id]);
+            NotificationController::log($admin->id, $admin->email, 'evaluator_assigned_success', 'Evaluator '.$user->email.' assigned to call: '.$call->name, ['call_id' => $call->id, 'evaluator_id' => $user->id]);
         }
         $applications = Application::where('call_id', $call->id)->with('studentProfile.user', 'mentorships.mentor')->get();
         foreach ($applications as $app) {
@@ -80,7 +80,7 @@ class CallEvaluatorController extends Controller
             }
             foreach ($app->mentorships as $mentorship) {
                 $mentor = $mentorship->mentor;
-                NotificationController::log($mentor->id, $mentor->email, 'evaluator_assigned', 'An evaluator has been assigned to call: '.$call->title, ['call_id' => $call->id]);
+                NotificationController::log($mentor->id, $mentor->email, 'evaluator_assigned', 'An evaluator has been assigned to call: '.$call->name, ['call_id' => $call->id]);
             }
         }
 

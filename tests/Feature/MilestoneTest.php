@@ -33,12 +33,18 @@ function msUser(string $roleSlug): User
 
 function msApplication(): Application
 {
+    $student = User::factory()->create();
+    $profile = StudentProfile::factory()->create([
+        'user_id' => $student->id,
+    ]);
+
     $call = Call::factory()->create(['program' => 'a']);
 
     return Application::create([
         'call_id' => $call->id,
         'applicant_type' => 'student',
         'status' => 'approved',
+        'student_profile_id' => $profile->id
     ]);
 }
 

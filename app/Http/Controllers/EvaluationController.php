@@ -103,7 +103,7 @@ class EvaluationController extends Controller
             'scores.*.score' => 'required|numeric|min:0|max:100',
             'scores.*.weight_at_moment' => 'required|numeric|min:0|max:100',
             'scores.*.comment' => 'nullable|string',
-            'recommendation' => 'required|in:approve,reject,pending_revision',
+            'recommendation' => 'required|in:approve,reject,request_revision',
             'comment' => 'nullable|string',
         ]);
 

@@ -130,6 +130,7 @@ Route::middleware('auth:sanctum', 'is_active')->group(function () {
     // Mentorships
     Route::get('/mentorships', [MentorshipController::class, 'index'])->middleware('throttle:10,1');
     Route::get('/mentorships/{id}', [MentorshipController::class, 'show'])->middleware('throttle:10,1');
+    Route::delete('/mentorships/{id}', [MentorshipController::class, 'destroy'])->middleware('throttle:10,1');
     Route::post('/mentorships/assign', [MentorshipController::class, 'assign'])->middleware('throttle:10,1');
 
     // Mentorship consultations
@@ -172,6 +173,7 @@ Route::middleware('auth:sanctum', 'is_active')->group(function () {
     Route::put('/company/tasks/{id}', [TaskController::class, 'update'])->middleware('throttle:10,1');
     Route::delete('/company/tasks/{id}', [TaskController::class, 'destroy'])->middleware('throttle:10,1');
     Route::post('/calls-with-tasks', [TaskController::class, 'storeCallWithTask'])->middleware('throttle:10,1');
+    Route::delete('/calls-with-tasks/{task}', [TaskController::class, 'deleteCallWithTask'])->middleware('throttle:10,1');
     Route::put('/calls-with-tasks/{id}', [TaskController::class, 'updateCallWithTask'])->middleware('throttle:10,1');
     Route::patch('/calls-with-tasks/{id}/status', [TaskController::class, 'updateCallWithTaskStatus'])->middleware('throttle:10,1');
 
